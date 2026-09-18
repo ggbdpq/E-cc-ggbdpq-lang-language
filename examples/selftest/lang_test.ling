@@ -1,0 +1,70 @@
+// lang_test.ling —— ling 自测（ling test 运行当前目录 *_test.ling 的 test* 函数）
+
+fn test算术与字符串() {
+    assert(1 + 2 * 3 == 7, "优先级")
+    assert(10 / 3 == 3, "整除")
+    assert(len("你好ab") == 4, "len 按码点")
+    assert("he" + "llo" == "hello", "拼接")
+    assert(int("42") == 42, "转换")
+}
+
+fn test值语义与引用() {
+    struct P {
+        x: int
+        y: int
+    }
+    var a = P{x: 1, y: 2}
+    var b = a
+    b.x = 9
+    assert(a.x == 1, "struct 赋值须拷贝")
+    let r = &a
+    r.x = 5
+    assert(a.x == 5, "引用写须穿透")
+}
+
+fn testResult传播() {
+    fn half(n: int): Result[int, error] {
+        if n % 2 != 0 {
+            return Err(err("奇数不能折半"))
+        }
+        return Ok(n / 2)
+    }
+    fn run(n: int): Result[int, error] {
+        return Ok(half(n)? * 10)
+    }
+    assert(run(4) == Ok(20), "Ok 链")
+    match run(3) {
+        Ok(v) => assert(false, "应得 Err")
+        Err(e) => assert(e.msg == "奇数不能折半", "Err 传播")
+    }
+}
+
+fn testMatch穷尽() {
+    enum E {
+        A(int)
+        B
+    }
+    fn f(e: E): int {
+        return match e {
+            A(v) => v
+            B => 0
+        }
+    }
+    assert(f(A(7)) == 7, "构造模式")
+    assert(f(B) == 0, "零参 case")
+}
+
+fn test容器() {
+    var m = {"a": 1, "b": 2}
+    m["c"] = 3
+    var sum = 0
+    for k in keys(m) {
+        sum = sum + m[k]
+    }
+    assert(sum == 6, "map 累加")
+    var xs = [1, 2]
+    push(xs, 3)
+    assert(len(xs) == 3, "push 原位追加")
+    let tail = xs[1:3]
+    assert(len(tail) == 2 && tail[0] == 2 && tail[1] == 3, "切片")
+}

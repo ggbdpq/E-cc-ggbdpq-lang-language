@@ -1,0 +1,58 @@
+// shapes —— struct 值语义 + 方法 + enum + match 穷尽
+struct Point {
+    x: int
+    y: int
+}
+
+struct Rect {
+    w: float
+    h: float
+}
+
+enum Shape {
+    Circle(float)
+    Rect(float, float)
+    Unit
+}
+
+fn (r Rect).area(): float {
+    return r.w * r.h
+}
+
+fn describe(s: Shape): string {
+    return match s {
+        Circle(r) => "圆 r=" + str(r)
+        Rect(w, h) => "矩形 " + str(w) + "x" + str(h)
+        Unit => "空"
+    }
+}
+
+fn area(s: Shape): float {
+    return match s {
+        Circle(r) => 3.14159 * r * r
+        Rect(w, h) => w * h
+        Unit => 0.0
+    }
+}
+
+fn main() {
+    // 值语义：q 是 p 的拷贝，改 q 不影响 p
+    var p = Point{x: 1, y: 2}
+    var q = p
+    q.x = 9
+    println("p =", p, " q =", q)
+
+    // 引用语义：通过 & 读写原值
+    let r = &p
+    r.x = 100
+    println("经引用改后 p.x =", p.x)
+
+    // 方法
+    let rect = Rect{w: 3.0, h: 4.0}
+    println("rect.area() =", rect.area())
+
+    // enum + 穷尽 match
+    for s in [Circle(1.0), Rect(2.0, 5.0), Unit] {
+        println(describe(s), "面积 =", area(s))
+    }
+}

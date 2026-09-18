@@ -1,0 +1,32 @@
+// closures —— 匿名函数、闭包捕获、函数作值、泛型
+// 注：→Go 转译要求参数/返回注解齐全，本示例即按可转译标准书写
+fn makeCounter(): fn(): int {
+    var n = 0
+    return fn(): int {
+        n = n + 1
+        return n
+    }
+}
+
+fn map[T, U](xs: [T], f: fn(T): U): [U] {
+    var out: [U] = []
+    for x in xs {
+        push(out, f(x))
+    }
+    return out
+}
+
+fn main() {
+    let c = makeCounter()
+    c()
+    c()
+    println("计数:", c())
+
+    let double = fn(x: int): int {
+        return x * 2
+    }
+    println(map([1, 2, 3], double))
+    println(map(["a", "b"], fn(s: string): string {
+        return s + "!"
+    }))
+}

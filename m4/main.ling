@@ -1,0 +1,89 @@
+// m4/main.ling —— M4 移植自检输出：与 m4/gofixture 的输出逐行对照
+// （gofixture 多打印一段 K 常量表，从第一个 MD5| 行起应逐字节一致）
+
+fn main() {
+    let vectors = ["", "a", "abc", "message digest", "abcdefghijklmnopqrstuvwxyz", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", "12345678901234567890123456789012345678901234567890123456789012345678901234567890"]
+    for s in vectors {
+        println("MD5|" + s + "|" + md5Hex(s))
+    }
+
+    for u in ["https://i0.hdslb.com/bfs/wbi/721eadf611e6e185ab5be6a99a29af84.png", "https://i0.hdslb.com/bfs/wbi/abc123.", "nokey"] {
+        println("KEYOF|" + u + "|" + keyOf(u))
+    }
+
+    let img = "721eadf611e6e185ab5be6a99a29af84"
+    let sub = "63a34e3d5df4b3d30a2bec68fc9a9cd6"
+    let mixin = getMixinKey(img, sub)
+    println("MIXIN|" + mixin)
+
+    var p1: map[string]string = {}
+    p1["foo"] = "one"
+    p1["zab"] = "two"
+    p1["bar"] = "three"
+    let s1 = signWBI(p1, 1702204800, mixin)
+    println("SIGN|" + encodeQuery(s1) + "|" + s1["w_rid"])
+
+    var p2: map[string]string = {}
+    p2["q"] = "a b+c&d=e!f'g(h)i*j"
+    p2["foo"] = "中文"
+    let s2 = signWBI(p2, 1700000000, mixin)
+    println("SIGN|" + encodeQuery(s2) + "|" + s2["w_rid"])
+
+    // codecName
+    var codecs = [DashStream{codecs: "avc1.64001F", codecid: 0, bandwidth: 0, height: 0}, DashStream{codecs: "hev1.1.6.L120.90", codecid: 0, bandwidth: 0, height: 0}, DashStream{codecs: "hvc1.2.4.L153.B0", codecid: 0, bandwidth: 0, height: 0}, DashStream{codecs: "av01.0.08M.08", codecid: 0, bandwidth: 0, height: 0}, DashStream{codecs: "", codecid: 7, bandwidth: 0, height: 0}, DashStream{codecs: "", codecid: 12, bandwidth: 0, height: 0}, DashStream{codecs: "", codecid: 13, bandwidth: 0, height: 0}, DashStream{codecs: "mp4a.40.2", codecid: 0, bandwidth: 0, height: 0}]
+    for c in codecs {
+        println("CODEC|" + c.codecs + "," + str(c.codecid) + "|" + codecName(c))
+    }
+
+    // fpsOf
+    for fr in ["", "30", "16000/1000", "25000/1000", "abc", "1000/0"] {
+        println("FPS|" + fr + "|" + str(fpsOf(fr)))
+    }
+
+    // pickCodec
+    var streams = [DashStream{codecs: "avc1.64001F", codecid: 7, bandwidth: 1000, height: 1080}, DashStream{codecs: "hev1.1.6", codecid: 12, bandwidth: 1500, height: 1080}, DashStream{codecs: "av01.0.08M", codecid: 13, bandwidth: 1200, height: 1080}]
+    for pref in ["h264", "hevc", "av1", "unknown"] {
+        let p = pickCodec(streams, pref)
+        println("PICK|" + pref + "|" + codecName(p) + "|" + str(p.bandwidth))
+    }
+
+    // pageOf（原版吃 URL，这里喂解析后的查询表）
+    var q3: map[string]string = {}
+    q3["p"] = "3"
+    println("PAGEOF|https://www.bilibili.com/video/BV1xx?p=3|" + str(pageOf(q3)))
+    var q0: map[string]string = {}
+    println("PAGEOF|https://www.bilibili.com/video/BV1xx|" + str(pageOf(q0)))
+    var qb: map[string]string = {}
+    qb["p"] = "abc"
+    println("PAGEOF|https://www.bilibili.com/video/BV1xx?p=abc|" + str(pageOf(qb)))
+
+    // parseArchives（bvid 从 url 剥前缀还原，镜像 gofixture 的打印形态）
+    let VPREFIX = "https://www.bilibili.com/video/"
+    for js in ["{\"archives\":[{\"bvid\":\"BV1a\",\"title\":\"第一集\"},{\"bvid\":\"\",\"title\":\"空的跳过\"},{\"bvid\":\"BV1b\",\"title\":null}]}", "{}", "{\"archives\":[]}"] {
+        let refs = match parseArchives(js) {
+            Ok(rs) => rs
+            Err(e) => []
+        }
+        for r in refs {
+            let bvid = r.url[len(VPREFIX):len(r.url)]
+            println("ARCHIVES|" + bvid + "|" + r.title)
+        }
+        println("ARCHIVESEND|" + str(len(refs)))
+    }
+
+    // listKindOf（path + 查询表与 gofixture 的 URL 一一对应）
+    let listCases = [["/123/channel/collectiondetail", "sid=456", ""], ["/123/lists/789", "type=series", ""], ["/123/lists/789", "type=season", ""], ["/123/lists/789", "", ""], ["/123/channel/collectiondetail", "", ""], ["/onlymid", "", ""], ["/video/BV1xx", "", ""]]
+    let listUrls = ["https://space.bilibili.com/123/channel/collectiondetail?sid=456", "https://space.bilibili.com/123/lists/789?type=series", "https://space.bilibili.com/123/lists/789?type=season", "https://space.bilibili.com/123/lists/789", "https://space.bilibili.com/123/channel/collectiondetail", "https://space.bilibili.com/onlymid", "https://www.bilibili.com/video/BV1xx"]
+    for i in 0..len(listCases) {
+        var q: map[string]string = {}
+        let kv = listCases[i][1]
+        if kv != "" {
+            let eq = indexOf(kv, "=")
+            q[kv[0:eq]] = kv[eq + 1:len(kv)]
+        }
+        match listKindOf(listCases[i][0], q) {
+            Ok(t) => println("LISTKIND|" + listUrls[i] + "|" + t.mid + "|" + t.kind + "|" + t.sid)
+            Err(e) => println("LISTKIND|" + listUrls[i] + "|ERR|" + e.msg)
+        }
+    }
+}
