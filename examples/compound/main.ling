@@ -1,0 +1,33 @@
+// compound —— 复合赋值（decisions #52）：+= -= *= /=
+// 数组 += 是原位拼接（push 语义，别名可见）
+// struct 声明放模块顶层（→Go 转译的嵌套限制，spec §6.2）
+
+struct P {
+    x: int
+    y: int
+}
+
+fn main() {
+    var i = 1
+    i += 2
+    i *= 3
+    println("i =", i)
+    i -= 4
+    i /= 2
+    println("i =", i)
+
+    var s = "a"
+    s += "b"
+    println("s =", s)
+
+    var out = []
+    for n in 0..4 {
+        out += [n * n]
+    }
+    println("out =", out, "len =", len(out))
+
+    var p = P{x: 1, y: 2}
+    p.x += 10
+    p.y *= 5
+    println("p =", p)
+}

@@ -107,6 +107,15 @@ func Test等价JS_json(t *testing.T) {
 	}
 }
 
+func Test等价JS_compound(t *testing.T) {
+	prog := loadDir(t, "examples/compound")
+	want := interpRunJS(t, prog)
+	got := nodeRun(t, transpileJS(t, prog))
+	if got != want {
+		t.Fatalf("输出不一致\n=== 解释器 ===\n%q\n=== Node ===\n%q", want, got)
+	}
+}
+
 func Test等价JS_M4移植(t *testing.T) {
 	prog := loadDir(t, "m4")
 	want := interpRunJS(t, prog)

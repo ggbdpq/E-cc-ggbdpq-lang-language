@@ -62,6 +62,10 @@ const (
 	Xor
 	Shl
 	Shr
+	PlusAssign
+	MinusAssign
+	StarAssign
+	SlashAssign
 	Question
 	Dot
 	Dot2 // ..
@@ -88,6 +92,7 @@ var kindName = map[Kind]string{
 	Assign: "=", Eq: "==", Neq: "!=", Lt: "<", Le: "<=", Gt: ">", Ge: ">=",
 	And: "&&", Or: "||", Not: "!", Amp: "&",
 	BitOr: "|", Xor: "^", Shl: "<<", Shr: ">>",
+	PlusAssign: "+=", MinusAssign: "-=", StarAssign: "*=", SlashAssign: "/=",
 	Question: "?",
 	Dot:      ".", Dot2: "..", Comma: ",", Colon: ":", Arrow: "=>",
 	LParen: "(", RParen: ")", LBrace: "{", RBrace: "}", LBracket: "[", RBracket: "]",
@@ -345,6 +350,30 @@ func (l *Lexer) op() error {
 	case '^':
 		l.i++
 		l.emit(Xor, "^")
+	case '+':
+		if two('=', PlusAssign, "+=") {
+			return nil
+		}
+		l.i++
+		l.emit(Plus, "+")
+	case '-':
+		if two('=', MinusAssign, "-=") {
+			return nil
+		}
+		l.i++
+		l.emit(Minus, "-")
+	case '*':
+		if two('=', StarAssign, "*=") {
+			return nil
+		}
+		l.i++
+		l.emit(Star, "*")
+	case '/':
+		if two('=', SlashAssign, "/=") {
+			return nil
+		}
+		l.i++
+		l.emit(Slash, "/")
 	case '=':
 		if two('=', Eq, "==") {
 			return nil
@@ -384,18 +413,10 @@ func (l *Lexer) op() error {
 		}
 		l.i++
 		l.emit(Dot, ".")
-	case '+', '-', '*', '/', '%', '(', ')', '{', '}', '[', ']', ',', ':', '?':
+	case '%', '(', ')', '{', '}', '[', ']', ',', ':', '?':
 		l.i++
 		var k Kind
 		switch r {
-		case '+':
-			k = Plus
-		case '-':
-			k = Minus
-		case '*':
-			k = Star
-		case '/':
-			k = Slash
 		case '%':
 			k = Percent
 		case '(':

@@ -82,7 +82,18 @@ func (f *fmtter) stmt(s syntax.Stmt, indent int) {
 		f.w(indent, kw+" "+st.Name+anno+" = "+expr(st.Init, 0, indent))
 
 	case *syntax.AssignStmt:
-		f.w(indent, expr(st.Target, 0, indent)+" = "+expr(st.Val, 0, indent))
+		op := "="
+		switch st.Op {
+		case syntax.PlusAssign:
+			op = "+="
+		case syntax.MinusAssign:
+			op = "-="
+		case syntax.StarAssign:
+			op = "*="
+		case syntax.SlashAssign:
+			op = "/="
+		}
+		f.w(indent, expr(st.Target, 0, indent)+" "+op+" "+expr(st.Val, 0, indent))
 
 	case *syntax.ExprStmt:
 		f.w(indent, expr(st.X, 0, indent))

@@ -181,6 +181,7 @@ type LetStmt struct {
 type AssignStmt struct {
 	Target Expr
 	Val    Expr
+	Op     Kind // Assign（=）或 PlusAssign/MinusAssign/StarAssign/SlashAssign
 	Line   int
 }
 

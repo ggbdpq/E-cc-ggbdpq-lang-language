@@ -532,3 +532,46 @@ println(1)`, "1\n")
 }
 println(myHost(1))`, "extern")
 }
+
+// —— 复合赋值（decisions #52；Q26 批准的 += -= *= /=） ——
+
+func Test复合赋值数值与字符串(t *testing.T) {
+	wantOut(t, "var i = 1\ni += 2\nprintln(i)", "3\n")
+	wantOut(t, "var i = 5\ni -= 3\nprintln(i)", "2\n")
+	wantOut(t, "var i = 4\ni *= 2\nprintln(i)", "8\n")
+	wantOut(t, "var i = 7\ni /= 2\nprintln(i)", "3\n")
+	wantOut(t, `var s = "a"
+s += "b"
+println(s)`, "ab\n")
+	wantOut(t, "var f = 1.5\nf *= 2.0\nprintln(f)", "3\n")
+}
+
+func Test复合赋值数组拼接(t *testing.T) {
+	// += 对数组等价 push（引用原位，别名可见）
+	wantOut(t, `var xs = [1, 2]
+var ys = xs
+xs += [3]
+println(len(xs))
+println(ys[2])`, "3\n3\n")
+	wantOut(t, `var out = []
+for i in 0..3 {
+    out += [i * i]
+}
+println(out)`, "[0, 1, 4]\n") // 0..3 半开：i=0,1,2
+}
+
+func Test复合赋值目标(t *testing.T) {
+	// 字段与索引目标
+	wantOut(t, `struct P {
+    x: int
+    y: int
+}
+var p = P{x: 1, y: 2}
+p.x += 10
+println(p.x)`, "11\n")
+	wantOut(t, `var m = {"a": 1}
+m["a"] += 5
+println(m["a"])`, "6\n")
+	// let 绑定不可复合赋值（与 = 同规）
+	wantErr(t, "let x = 1\nx += 2", "let")
+}

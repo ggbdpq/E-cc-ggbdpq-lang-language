@@ -360,20 +360,31 @@ func (it *Interp) assign(st *syntax.AssignStmt, env *Env) error {
 		return err
 	}
 	v = copyValue(v)
-	switch tgt := st.Target.(type) {
+
+	// 复合赋值：读旧值运算后写回（数组 += 是原位 push，单独处理）
+	if st.Op != syntax.Assign {
+		return it.assignCompound(st, v, env)
+	}
+
+	return it.writeTarget(st.Target, v, st.Line, env)
+}
+
+// writeTarget 按目标类型写回值（= 赋值的唯一出口）
+func (it *Interp) writeTarget(tgt syntax.Expr, v Value, line int, env *Env) error {
+	switch t := tgt.(type) {
 	case *syntax.Ident:
-		c, ok := env.lookup(tgt.Name)
+		c, ok := env.lookup(t.Name)
 		if !ok {
-			return it.errf(st.Line, "未定义变量 %s", tgt.Name)
+			return it.errf(line, "未定义变量 %s", t.Name)
 		}
 		if !c.mutable {
-			return it.errf(st.Line, "%s 由 let 绑定，不可重新赋值", tgt.Name)
+			return it.errf(line, "%s 由 let 绑定，不可重新赋值", t.Name)
 		}
 		c.val = v
 		return nil
 
 	case *syntax.FieldEx:
-		ov, err := it.eval(tgt.Obj, env)
+		ov, err := it.eval(t.Obj, env)
 		if err != nil {
 			return err
 		}
@@ -382,36 +393,36 @@ func (it *Interp) assign(st *syntax.AssignStmt, env *Env) error {
 		}
 		sv, ok := ov.(*StructVal)
 		if !ok {
-			return it.errf(st.Line, "只能给 struct 字段赋值，得到 %s", typeName(ov))
+			return it.errf(line, "只能给 struct 字段赋值，得到 %s", typeName(ov))
 		}
 		idx := -1
 		for i, f := range sv.Def.Fields {
-			if f == tgt.Name {
+			if f == t.Name {
 				idx = i
 				break
 			}
 		}
 		if idx < 0 {
-			return it.errf(st.Line, "%s 没有字段 %s", sv.Def.Name, tgt.Name)
+			return it.errf(line, "%s 没有字段 %s", sv.Def.Name, t.Name)
 		}
 		sv.Fields[idx] = v
 		return nil
 
 	case *syntax.IndexEx:
-		ov, err := it.eval(tgt.Obj, env)
+		ov, err := it.eval(t.Obj, env)
 		if err != nil {
 			return err
 		}
 		if p, ok := ov.(*PtrVal); ok {
 			ov = *p.Cell
 		}
-		iv, err := it.eval(tgt.Idx, env)
+		iv, err := it.eval(t.Idx, env)
 		if err != nil {
 			return err
 		}
 		switch container := ov.(type) {
 		case *ArrVal:
-			i, err := it.intIndex(iv, len(container.Items), st.Line)
+			i, err := it.intIndex(iv, len(container.Items), line)
 			if err != nil {
 				return err
 			}
@@ -419,18 +430,132 @@ func (it *Interp) assign(st *syntax.AssignStmt, env *Env) error {
 			return nil
 		case *MapVal:
 			if err := container.Set(iv, v); err != nil {
-				return it.errf(st.Line, "%s", err)
+				return it.errf(line, "%s", err)
 			}
 			return nil
 		case StrVal:
-			return it.errf(st.Line, "字符串不可变")
+			return it.errf(line, "字符串不可变")
 		default:
-			return it.errf(st.Line, "%s 不可索引赋值", typeName(ov))
+			return it.errf(line, "%s 不可索引赋值", typeName(ov))
 		}
 	default:
-		return it.errf(st.Line, "赋值目标不合法")
+		return it.errf(line, "赋值目标不合法")
 	}
 }
+
+// assignCompound 复合赋值（+= -= *= /=）：读旧值、运算、写回。
+// 数组 += 是原位 push（引用可见），不做读改写。
+func (it *Interp) assignCompound(st *syntax.AssignStmt, v Value, env *Env) error {
+	readTarget := func() (Value, error) {
+		switch t := st.Target.(type) {
+		case *syntax.Ident:
+			if c, ok := env.lookup(t.Name); ok {
+				return c.val, nil
+			}
+			return nil, it.errf(st.Line, "未定义变量 %s", t.Name)
+		case *syntax.FieldEx:
+			return it.eval(t, env)
+		case *syntax.IndexEx:
+			return it.eval(t, env)
+		}
+		return nil, it.errf(st.Line, "赋值目标不合法")
+	}
+
+	if st.Op == syntax.PlusAssign {
+		cur, err := readTarget()
+		if err != nil {
+			return err
+		}
+		if p, ok := cur.(*PtrVal); ok {
+			cur = *p.Cell
+		}
+		if arr, ok := cur.(*ArrVal); ok {
+			add, ok := v.(*ArrVal)
+			if !ok {
+				return it.errf(st.Line, "数组 += 需要数组，得到 %s", typeName(v))
+			}
+			arr.Items = append(arr.Items, add.Items...)
+			return nil
+		}
+	}
+
+	old, err := readTarget()
+	if err != nil {
+		return err
+	}
+	if p, ok := old.(*PtrVal); ok {
+		old = *p.Cell
+	}
+	combined, err := it.applyOp(st.Op, old, v, st.Line)
+	if err != nil {
+		return err
+	}
+	return it.writeTarget(st.Target, combined, st.Line, env)
+}
+
+// applyOp 复合赋值的数值/字符串运算（语义与 evalBinary 的对应分支一致）
+func (it *Interp) applyOp(op syntax.Kind, old, v Value, line int) (Value, error) {
+	switch op {
+	case syntax.PlusAssign:
+		switch a := old.(type) {
+		case IntVal:
+			if b, ok := v.(IntVal); ok {
+				return a + b, nil
+			}
+		case FloatVal:
+			if b, ok := v.(FloatVal); ok {
+				return a + b, nil
+			}
+		case StrVal:
+			if b, ok := v.(StrVal); ok {
+				return a + b, nil
+			}
+		}
+	case syntax.MinusAssign:
+		switch a := old.(type) {
+		case IntVal:
+			if b, ok := v.(IntVal); ok {
+				return a - b, nil
+			}
+		case FloatVal:
+			if b, ok := v.(FloatVal); ok {
+				return a - b, nil
+			}
+		}
+	case syntax.StarAssign:
+		switch a := old.(type) {
+		case IntVal:
+			if b, ok := v.(IntVal); ok {
+				return a * b, nil
+			}
+		case FloatVal:
+			if b, ok := v.(FloatVal); ok {
+				return a * b, nil
+			}
+		}
+	case syntax.SlashAssign:
+		switch a := old.(type) {
+		case IntVal:
+			if b, ok := v.(IntVal); ok {
+				if b == 0 {
+					return nil, it.errf(line, "整数除零")
+				}
+				return a / b, nil
+			}
+		case FloatVal:
+			if b, ok := v.(FloatVal); ok {
+				if b == 0 {
+					return nil, it.errf(line, "浮点除零")
+				}
+				return a / b, nil
+			}
+		}
+	}
+	return nil, it.errf(line, "%s 与 %s 不可做该运算（无隐式转换）", typeName(old), typeName(v))
+}
+
+// assignCompound 复合赋值（+= -= *= /=）：读旧值、运算、写回。
+// 数组 += 是原位 push（引用可见），不做读改写。
 
 func (it *Interp) intIndex(v Value, length, line int) (int, error) {
 	i, ok := v.(IntVal)

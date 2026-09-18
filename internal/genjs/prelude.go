@@ -248,6 +248,46 @@ function lingBytes(v) {
   return [...new TextEncoder().encode(v)].map(b => BigInt(b));
 }
 function lingChar(v) { return String.fromCodePoint(Number(v)); }
+function lingAddIndex(obj, idx, v, op) {
+  if (obj instanceof Map) {
+    const ks = lingKeyString(idx);
+    const old = obj.get(ks);
+    let nv;
+    switch (op) {
+      case "+=": nv = lingAdd(old, v); break;
+      default: throw new Error("映射仅支持 +=");
+    }
+    lingMapSet(obj, idx, nv);
+    return;
+  }
+  if (Array.isArray(obj)) {
+    const i = Number(idx);
+    switch (op) {
+      case "+=": obj[i] = lingAdd(obj[i], v); break;
+      case "-=": obj[i] = lingSub(obj[i], v); break;
+      case "*=": obj[i] = lingMul(obj[i], v); break;
+      case "/=": obj[i] = lingDiv(obj[i], v); break;
+    }
+    return;
+  }
+  throw new Error("该类型不可索引复合赋值");
+}
+function lingAdd(a, b) {
+  if (typeof a === 'bigint' && typeof b === 'bigint') return a + b;
+  if (typeof a === 'number' && typeof b === 'number') return a + b;
+  if (typeof a === 'string' && typeof b === 'string') return a + b;
+  throw new Error("+= 类型不符");
+}
+function lingSub(a, b) {
+  if (typeof a === 'bigint' && typeof b === 'bigint') return a - b;
+  if (typeof a === 'number' && typeof b === 'number') return a - b;
+  throw new Error("-= 类型不符");
+}
+function lingMul(a, b) {
+  if (typeof a === 'bigint' && typeof b === 'bigint') return a * b;
+  if (typeof a === 'number' && typeof b === 'number') return a * b;
+  throw new Error("*= 类型不符");
+}
 function lingIsNone(v) { return !!(v && v.__lingOpt && !v.has); }
 
 // ———— 标准库委托：json ————

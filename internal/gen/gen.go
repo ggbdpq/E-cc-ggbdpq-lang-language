@@ -850,6 +850,10 @@ func (g *gen) emitLet(name string, typ syntax.TypeEx, init syntax.Expr, line int
 }
 
 func (g *gen) emitAssign(st *syntax.AssignStmt) error {
+	// 复合赋值（decisions #52）
+	if st.Op != syntax.Assign {
+		return g.emitCompoundAssign(st)
+	}
 	switch tgt := st.Target.(type) {
 	case *syntax.Ident:
 		if t, ok := st.Val.(*syntax.TryEx); ok {
@@ -892,6 +896,63 @@ func (g *gen) emitAssign(st *syntax.AssignStmt) error {
 			return err
 		}
 		g.w("lingSetIndex(" + obj + ", " + idx + ", " + expr + ")")
+		return nil
+	}
+	return g.errf(st.Line, "赋值目标不合法")
+}
+
+// emitCompoundAssign 复合赋值：ident/field 原生 +=（Go 数值/字符串原生）；
+// 数组 += 走 lingPushFrom；index 复合走 lingAddIndex（Map 值读改写）
+func (g *gen) emitCompoundAssign(st *syntax.AssignStmt) error {
+	op := ""
+	switch st.Op {
+	case syntax.PlusAssign:
+		op = "+="
+	case syntax.MinusAssign:
+		op = "-="
+	case syntax.StarAssign:
+		op = "*="
+	case syntax.SlashAssign:
+		op = "/="
+	}
+	switch tgt := st.Target.(type) {
+	case *syntax.Ident:
+		expr, err := g.expr(st.Val)
+		if err != nil {
+			return err
+		}
+		lt := g.lookup(tgt.Name)
+		if st.Op == syntax.PlusAssign && strings.HasPrefix(lt, "*LingArr[") {
+			g.w(tgt.Name + " = lingPushFrom(" + tgt.Name + ", " + expr + ")")
+			return nil
+		}
+		g.w(tgt.Name + " " + op + " " + expr)
+		return nil
+	case *syntax.FieldEx:
+		obj, err := g.expr(tgt.Obj)
+		if err != nil {
+			return err
+		}
+		expr, err := g.expr(st.Val)
+		if err != nil {
+			return err
+		}
+		g.w(obj + "." + tgt.Name + " " + op + " " + expr)
+		return nil
+	case *syntax.IndexEx:
+		obj, err := g.expr(tgt.Obj)
+		if err != nil {
+			return err
+		}
+		idx, err := g.expr(tgt.Idx)
+		if err != nil {
+			return err
+		}
+		expr, err := g.expr(st.Val)
+		if err != nil {
+			return err
+		}
+		g.w("lingAddIndex(" + obj + ", " + idx + ", " + expr + ", " + strconv.Quote(op) + ")")
 		return nil
 	}
 	return g.errf(st.Line, "赋值目标不合法")

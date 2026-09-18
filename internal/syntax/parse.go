@@ -304,7 +304,19 @@ func (p *Parser) parseStmt() (Stmt, error) {
 			if err != nil {
 				return nil, err
 			}
-			return &AssignStmt{Target: e, Val: v, Line: t.Line}, nil
+			return &AssignStmt{Target: e, Val: v, Op: Assign, Line: t.Line}, nil
+		}
+		for _, op := range []Kind{PlusAssign, MinusAssign, StarAssign, SlashAssign} {
+			if p.accept(op) {
+				if err := checkTarget(e); err != nil {
+					return nil, err
+				}
+				v, err := p.parseExpr(0)
+				if err != nil {
+					return nil, err
+				}
+				return &AssignStmt{Target: e, Val: v, Op: op, Line: t.Line}, nil
+			}
 		}
 		return &ExprStmt{X: e, Line: t.Line}, nil
 	}

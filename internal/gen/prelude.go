@@ -96,6 +96,20 @@ func (a *LingArr[T]) LingLen() int64 { return int64(len(a.Items)) }
 
 func (a *LingArr[T]) LingGet(i int64) any { return a.Items[i] }
 
+func (a *LingArr[T]) lingItems() []any {
+	out := make([]any, len(a.Items))
+	for i, v := range a.Items {
+		out[i] = v
+	}
+	return out
+}
+
+func (a *LingArr[T]) lingAppendItems(items []any) {
+	for _, it := range items {
+		a.Items = append(a.Items, it.(T))
+	}
+}
+
 func (a *LingArr[T]) lingString(top bool) string {
 	parts := make([]string, len(a.Items))
 	for i, v := range a.Items {
@@ -324,6 +338,59 @@ func lingBytes(v any) *LingArr[any] {
 		items[i] = int64(b)
 	}
 	return &LingArr[any]{Items: items}
+}
+
+// lingPushFrom 数组 += ：把 another 的元素原位追加（引用语义，别名可见）
+func lingPushFrom[T any](arr *LingArr[T], another *LingArr[T]) *LingArr[T] {
+	arr.Items = append(arr.Items, another.Items...)
+	return arr
+}
+
+func lingPushFromAny(arr, another any) any {
+	if src, ok := another.(interface{ lingItems() []any }); ok {
+		if dst, ok := arr.(interface{ lingAppendItems([]any) }); ok {
+			dst.lingAppendItems(src.lingItems())
+			return arr
+		}
+	}
+	panic("数组 += 需要数组")
+}
+
+// lingAddIndex 映射复合赋值：读旧值按运算符改写
+func lingAddIndex(obj, idx, v any, op string) {
+	m, ok := obj.(*LingMap)
+	if !ok {
+		panic("映射复合赋值需要映射")
+	}
+	ks, _ := lingKeyString(idx)
+	old := m.m[ks]
+	var nv any
+	switch op {
+	case "+=":
+		nv = lingAdd(old, v)
+	default:
+		panic("映射仅支持 +=")
+	}
+	m.Set(idx, nv)
+}
+
+// lingAdd 数值加法（Map 复合赋值用；int64/float64/string）
+func lingAdd(a, b any) any {
+	switch x := a.(type) {
+	case int64:
+		if y, ok := b.(int64); ok {
+			return x + y
+		}
+	case float64:
+		if y, ok := b.(float64); ok {
+			return x + y
+		}
+	case string:
+		if y, ok := b.(string); ok {
+			return x + y
+		}
+	}
+	panic("+= 类型不符")
 }
 
 // lingChar 码点转单字符字符串

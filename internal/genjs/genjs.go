@@ -442,6 +442,9 @@ func (g *jsgen) registerFnValue(name string, init syntax.Expr) {
 }
 
 func (g *jsgen) emitAssign(st *syntax.AssignStmt) error {
+	if st.Op != syntax.Assign {
+		return g.emitCompoundAssign(st)
+	}
 	switch tgt := st.Target.(type) {
 	case *syntax.Ident:
 		if t, ok := st.Val.(*syntax.TryEx); ok {
@@ -487,6 +490,63 @@ func (g *jsgen) emitAssign(st *syntax.AssignStmt) error {
 			return err
 		}
 		g.w("lingSetIndex(" + obj + ", " + idx + ", lingCopy(await " + expr + "));")
+		return nil
+	}
+	return g.errf(st.Line, "赋值目标不合法")
+}
+
+// emitCompoundAssign 复合赋值（decisions #52）：ident/field 原生 +=；
+// 数组 += 展开元素 push；index 复合走 lingAddIndex（Map 读改写）
+func (g *jsgen) emitCompoundAssign(st *syntax.AssignStmt) error {
+	op := ""
+	switch st.Op {
+	case syntax.PlusAssign:
+		op = "+="
+	case syntax.MinusAssign:
+		op = "-="
+	case syntax.StarAssign:
+		op = "*="
+	case syntax.SlashAssign:
+		op = "/="
+	}
+	switch tgt := st.Target.(type) {
+	case *syntax.Ident:
+		expr, err := g.expr(st.Val)
+		if err != nil {
+			return err
+		}
+		if st.Op == syntax.PlusAssign {
+			// 数组 += 是元素拼接；数值/字符串原生 += 对 BigInt/number/string 均正确
+			g.w("if (Array.isArray(" + tgt.Name + ")) { " + tgt.Name + ".push(...lingIter(" + expr + ")) } else { " + tgt.Name + " " + op + " " + expr + " }")
+			return nil
+		}
+		g.w(tgt.Name + " " + op + " " + expr + ";")
+		return nil
+	case *syntax.FieldEx:
+		obj, err := g.expr(tgt.Obj)
+		if err != nil {
+			return err
+		}
+		expr, err := g.expr(st.Val)
+		if err != nil {
+			return err
+		}
+		g.w(obj + "." + tgt.Name + " " + op + " " + expr + ";")
+		return nil
+	case *syntax.IndexEx:
+		obj, err := g.expr(tgt.Obj)
+		if err != nil {
+			return err
+		}
+		idx, err := g.expr(tgt.Idx)
+		if err != nil {
+			return err
+		}
+		expr, err := g.expr(st.Val)
+		if err != nil {
+			return err
+		}
+		g.w("lingAddIndex(" + obj + ", " + idx + ", " + expr + ", " + strconv.Quote(op) + ")")
 		return nil
 	}
 	return g.errf(st.Line, "赋值目标不合法")
