@@ -1,0 +1,213 @@
+package interp
+
+import (
+	"fmt"
+	"io"
+	"strconv"
+	"strings"
+)
+
+// prelude 预载代数类型（Option/Result/error，spec §3.6）与内建函数（spec §4）
+func (it *Interp) prelude() {
+	optDef := &EnumDef{Name: "Option", Cases: []string{"Some", "None"}}
+	resDef := &EnumDef{Name: "Result", Cases: []string{"Ok", "Err"}}
+	it.enums["Option"] = optDef
+	it.enums["Result"] = resDef
+	it.ctors["Some"] = &ctor{def: optDef, idx: 0, arity: 1}
+	it.ctors["None"] = &ctor{def: optDef, idx: 1, arity: 0}
+	it.ctors["Ok"] = &ctor{def: resDef, idx: 0, arity: 1}
+	it.ctors["Err"] = &ctor{def: resDef, idx: 1, arity: 1}
+
+	it.structs["error"] = &StructDef{Name: "error", Fields: []string{"msg"}, Methods: map[string]*Closure{}}
+
+	reg := func(name string, fn func(it *Interp, args []Value) (Value, error)) {
+		it.Globals.redefine(name, &Builtin{Name: name, Fn: fn})
+	}
+
+	reg("println", func(it *Interp, args []Value) (Value, error) {
+		return UnitVal{}, it.write(it.fmtArgs(args) + "\n")
+	})
+	reg("print", func(it *Interp, args []Value) (Value, error) {
+		return UnitVal{}, it.write(it.fmtArgs(args))
+	})
+	reg("len", func(it *Interp, args []Value) (Value, error) {
+		if err := it.arity("len", args, 1); err != nil {
+			return nil, err
+		}
+		switch x := args[0].(type) {
+		case StrVal:
+			return IntVal(len([]rune(string(x)))), nil
+		case *ArrVal:
+			return IntVal(len(x.Items)), nil
+		case *MapVal:
+			return IntVal(x.Len()), nil
+		case *RangeVal:
+			if x.Hi > x.Lo {
+				return IntVal(x.Hi - x.Lo), nil
+			}
+			return IntVal(0), nil
+		}
+		return nil, fmt.Errorf("len 不支持 %s", typeName(args[0]))
+	})
+	reg("str", func(it *Interp, args []Value) (Value, error) {
+		if err := it.arity("str", args, 1); err != nil {
+			return nil, err
+		}
+		return StrVal(fmtVal(args[0], true)), nil
+	})
+	reg("int", func(it *Interp, args []Value) (Value, error) {
+		if err := it.arity("int", args, 1); err != nil {
+			return nil, err
+		}
+		switch x := args[0].(type) {
+		case IntVal:
+			return x, nil
+		case FloatVal:
+			return IntVal(int64(x)), nil
+		case StrVal:
+			n, err := strconv.ParseInt(strings.TrimSpace(string(x)), 10, 64)
+			if err != nil {
+				return nil, fmt.Errorf("无法把 %q 转为 int", string(x))
+			}
+			return IntVal(n), nil
+		}
+		return nil, fmt.Errorf("int() 不支持 %s", typeName(args[0]))
+	})
+	reg("float", func(it *Interp, args []Value) (Value, error) {
+		if err := it.arity("float", args, 1); err != nil {
+			return nil, err
+		}
+		switch x := args[0].(type) {
+		case IntVal:
+			return FloatVal(x), nil
+		case FloatVal:
+			return x, nil
+		case StrVal:
+			f, err := strconv.ParseFloat(strings.TrimSpace(string(x)), 64)
+			if err != nil {
+				return nil, fmt.Errorf("无法把 %q 转为 float", string(x))
+			}
+			return FloatVal(f), nil
+		}
+		return nil, fmt.Errorf("float() 不支持 %s", typeName(args[0]))
+	})
+	reg("keys", func(it *Interp, args []Value) (Value, error) {
+		if err := it.arity("keys", args, 1); err != nil {
+			return nil, err
+		}
+		m, ok := args[0].(*MapVal)
+		if !ok {
+			return nil, fmt.Errorf("keys 需要映射，得到 %s", typeName(args[0]))
+		}
+		return &ArrVal{Items: m.Keys()}, nil
+	})
+	reg("values", func(it *Interp, args []Value) (Value, error) {
+		if err := it.arity("values", args, 1); err != nil {
+			return nil, err
+		}
+		m, ok := args[0].(*MapVal)
+		if !ok {
+			return nil, fmt.Errorf("values 需要映射，得到 %s", typeName(args[0]))
+		}
+		vs := make([]Value, 0, m.Len())
+		for _, k := range m.ks {
+			v, _ := m.Get(k)
+			vs = append(vs, v)
+		}
+		return &ArrVal{Items: vs}, nil
+	})
+	reg("has", func(it *Interp, args []Value) (Value, error) {
+		if err := it.arity("has", args, 2); err != nil {
+			return nil, err
+		}
+		m, ok := args[0].(*MapVal)
+		if !ok {
+			return nil, fmt.Errorf("has 需要映射，得到 %s", typeName(args[0]))
+		}
+		_, found := m.Get(args[1])
+		return BoolVal(found), nil
+	})
+	reg("push", func(it *Interp, args []Value) (Value, error) {
+		if len(args) < 2 {
+			return nil, fmt.Errorf("push 需要至少 2 个参数")
+		}
+		arr, ok := args[0].(*ArrVal)
+		if !ok {
+			return nil, fmt.Errorf("push 需要数组，得到 %s", typeName(args[0]))
+		}
+		arr.Items = append(arr.Items, args[1:]...)
+		return arr, nil
+	})
+	reg("assert", func(it *Interp, args []Value) (Value, error) {
+		if len(args) < 1 || len(args) > 2 {
+			return nil, fmt.Errorf("assert 需要 1~2 个参数")
+		}
+		t, err := truthy(args[0])
+		if err != nil {
+			return nil, err
+		}
+		if !t {
+			if len(args) == 2 {
+				return nil, fmt.Errorf("assert 失败: %s", fmtVal(args[1], true))
+			}
+			return nil, fmt.Errorf("assert 失败")
+		}
+		return UnitVal{}, nil
+	})
+	reg("err", func(it *Interp, args []Value) (Value, error) {
+		if err := it.arity("err", args, 1); err != nil {
+			return nil, err
+		}
+		msg, ok := args[0].(StrVal)
+		if !ok {
+			return nil, fmt.Errorf("err 需要字符串，得到 %s", typeName(args[0]))
+		}
+		def := it.structs["error"]
+		return &StructVal{Def: def, Fields: []Value{msg}}, nil
+	})
+	reg("bytes", func(it *Interp, args []Value) (Value, error) {
+		if err := it.arity("bytes", args, 1); err != nil {
+			return nil, err
+		}
+		s, ok := args[0].(StrVal)
+		if !ok {
+			return nil, fmt.Errorf("bytes 需要字符串，得到 %s", typeName(args[0]))
+		}
+		bs := []byte(string(s))
+		items := make([]Value, len(bs))
+		for i, b := range bs {
+			items[i] = IntVal(b)
+		}
+		return &ArrVal{Items: items}, nil
+	})
+	reg("char", func(it *Interp, args []Value) (Value, error) {
+		if err := it.arity("char", args, 1); err != nil {
+			return nil, err
+		}
+		n, ok := args[0].(IntVal)
+		if !ok {
+			return nil, fmt.Errorf("char 需要 int，得到 %s", typeName(args[0]))
+		}
+		return StrVal(string(rune(n))), nil
+	})
+}
+
+func (it *Interp) fmtArgs(args []Value) string {
+	parts := make([]string, len(args))
+	for i, a := range args {
+		parts[i] = fmtVal(a, true)
+	}
+	return strings.Join(parts, " ")
+}
+
+func (it *Interp) write(s string) error {
+	_, err := io.WriteString(it.Out, s)
+	return err
+}
+
+func (it *Interp) arity(name string, args []Value, n int) error {
+	if len(args) != n {
+		return fmt.Errorf("%s 需要 %d 个参数，得到 %d 个", name, n, len(args))
+	}
+	return nil
+}

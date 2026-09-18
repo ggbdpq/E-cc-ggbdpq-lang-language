@@ -1,0 +1,391 @@
+package syntax
+
+import (
+	"fmt"
+	"strings"
+	"unicode"
+)
+
+// Kind 记号类别
+type Kind int
+
+const (
+	EOF Kind = iota
+	Newline
+	TokIdent
+	TokInt
+	TokFloat
+	TokStr
+	TokUnderscore
+
+	KwLet
+	KwVar
+	KwFn
+	KwReturn
+	KwIf
+	KwElse
+	KwWhile
+	KwFor
+	KwIn
+	KwMatch
+	KwStruct
+	KwEnum
+	KwTrue
+	KwFalse
+	KwBreak
+	KwContinue
+
+	// 保留字：v0 使用即报"尚未启用"
+	KwGo
+	KwChan
+	KwImport
+	KwExtern
+	KwInterface
+
+	Plus
+	Minus
+	Star
+	Slash
+	Percent
+	Assign // =
+	Eq     // ==
+	Neq    // !=
+	Lt
+	Le
+	Gt
+	Ge
+	And // &&
+	Or  // ||
+	Not // !
+	Amp // &
+	BitOr
+	Xor
+	Shl
+	Shr
+	Question
+	Dot
+	Dot2 // ..
+	Comma
+	Colon
+	Arrow // =>
+	LParen
+	RParen
+	LBrace
+	RBrace
+	LBracket
+	RBracket
+)
+
+var kindName = map[Kind]string{
+	EOF: "文件尾", Newline: "换行", TokIdent: "标识符",
+	TokInt: "整数", TokFloat: "浮点数", TokStr: "字符串", TokUnderscore: "_",
+	KwLet: "let", KwVar: "var", KwFn: "fn", KwReturn: "return",
+	KwIf: "if", KwElse: "else", KwWhile: "while", KwFor: "for", KwIn: "in",
+	KwMatch: "match", KwStruct: "struct", KwEnum: "enum",
+	KwTrue: "true", KwFalse: "false", KwBreak: "break", KwContinue: "continue",
+	KwGo: "go", KwChan: "chan", KwImport: "import", KwExtern: "extern", KwInterface: "interface",
+	Plus: "+", Minus: "-", Star: "*", Slash: "/", Percent: "%",
+	Assign: "=", Eq: "==", Neq: "!=", Lt: "<", Le: "<=", Gt: ">", Ge: ">=",
+	And: "&&", Or: "||", Not: "!", Amp: "&",
+	BitOr: "|", Xor: "^", Shl: "<<", Shr: ">>",
+	Question: "?",
+	Dot:      ".", Dot2: "..", Comma: ",", Colon: ":", Arrow: "=>",
+	LParen: "(", RParen: ")", LBrace: "{", RBrace: "}", LBracket: "[", RBracket: "]",
+}
+
+func (k Kind) String() string {
+	if s, ok := kindName[k]; ok {
+		return s
+	}
+	return fmt.Sprintf("Kind(%d)", int(k))
+}
+
+var keywords = map[string]Kind{
+	"let": KwLet, "var": KwVar, "fn": KwFn, "return": KwReturn,
+	"if": KwIf, "else": KwElse, "while": KwWhile, "for": KwFor, "in": KwIn,
+	"match": KwMatch, "struct": KwStruct, "enum": KwEnum,
+	"true": KwTrue, "false": KwFalse, "break": KwBreak, "continue": KwContinue,
+	"go": KwGo, "chan": KwChan, "import": KwImport, "extern": KwExtern, "interface": KwInterface,
+}
+
+// Token 单个记号；字符串字面量的 Lit 为解码后的值
+type Token struct {
+	Kind Kind
+	Lit  string
+	Line int
+}
+
+// isCont 该类记号之后换行视为续行（spec §2）
+func isCont(k Kind) bool {
+	switch k {
+	case Plus, Minus, Star, Slash, Percent,
+		Assign, Eq, Neq, Lt, Le, Gt, Ge,
+		And, Or, Comma, Colon, Arrow, Dot, Dot2,
+		LParen, LBracket, LBrace:
+		return true
+	}
+	return false
+}
+
+type lexError struct {
+	msg  string
+	line int
+}
+
+func (e *lexError) Error() string { return fmt.Sprintf("第%d行: %s", e.line, e.msg) }
+
+type Lexer struct {
+	runes []rune
+	i     int
+	line  int
+	last  Token // 上一记号（含换行）
+	toks  []Token
+}
+
+// Lex 把源码切成记号流，末尾追加 EOF。
+// 换行即语句结束；续行只看上一记号（运算符/逗号/开括号等，见 isCont），
+// 因此 match 分支、match 作实参等场景里换行都能存活。
+func Lex(src string) ([]Token, error) {
+	l := &Lexer{runes: []rune(src), line: 1}
+	for l.i < len(l.runes) {
+		r := l.runes[l.i]
+		switch {
+		case r == ' ' || r == '\t' || r == '\r':
+			l.i++
+		case r == '\n':
+			l.i++
+			l.emitNewline()
+		case r == '/' && l.peek(1) == '/':
+			for l.i < len(l.runes) && l.runes[l.i] != '\n' {
+				l.i++
+			}
+		case unicode.IsDigit(r):
+			l.number()
+		case r == '"':
+			if err := l.stringLit(); err != nil {
+				return nil, err
+			}
+		case isIdentStart(r):
+			l.ident()
+		default:
+			if err := l.op(); err != nil {
+				return nil, err
+			}
+		}
+	}
+	l.toks = append(l.toks, Token{EOF, "", l.line})
+	return l.toks, nil
+}
+
+func isIdentStart(r rune) bool { return r == '_' || unicode.IsLetter(r) }
+
+func (l *Lexer) peek(n int) rune {
+	if l.i+n < len(l.runes) {
+		return l.runes[l.i+n]
+	}
+	return 0
+}
+
+func (l *Lexer) emit(k Kind, lit string) {
+	t := Token{k, lit, l.line}
+	l.toks = append(l.toks, t)
+	l.last = t
+}
+
+// emitNewline 落实续行规则：续行记号之后、行首的换行不产记号
+func (l *Lexer) emitNewline() {
+	if len(l.toks) == 0 || isCont(l.last.Kind) {
+		return
+	}
+	if l.last.Kind == Newline {
+		return
+	}
+	l.toks = append(l.toks, Token{Newline, "\n", l.line - 1})
+	l.last = Token{Newline, "\n", l.line}
+}
+
+func (l *Lexer) number() {
+	start := l.i
+	for l.i < len(l.runes) && unicode.IsDigit(l.runes[l.i]) {
+		l.i++
+	}
+	isFloat := false
+	// "1..3" 里第一个 '.' 不属于数字
+	if l.i < len(l.runes) && l.runes[l.i] == '.' && unicode.IsDigit(l.peek(1)) {
+		isFloat = true
+		l.i++
+		for l.i < len(l.runes) && unicode.IsDigit(l.runes[l.i]) {
+			l.i++
+		}
+	}
+	lit := string(l.runes[start:l.i])
+	if isFloat {
+		l.emit(TokFloat, lit)
+	} else {
+		l.emit(TokInt, lit)
+	}
+}
+
+func (l *Lexer) stringLit() error {
+	l.i++
+	var b strings.Builder
+	for {
+		if l.i >= len(l.runes) || l.runes[l.i] == '\n' {
+			return &lexError{"字符串未闭合", l.line}
+		}
+		r := l.runes[l.i]
+		if r == '"' {
+			l.i++
+			break
+		}
+		if r == '\\' {
+			l.i++
+			if l.i >= len(l.runes) {
+				return &lexError{"字符串未闭合", l.line}
+			}
+			switch l.runes[l.i] {
+			case 'n':
+				b.WriteByte('\n')
+			case 't':
+				b.WriteByte('\t')
+			case 'r':
+				b.WriteByte('\r')
+			case '"':
+				b.WriteByte('"')
+			case '\\':
+				b.WriteByte('\\')
+			default:
+				return &lexError{fmt.Sprintf("不支持的转义 \\%c", l.runes[l.i]), l.line}
+			}
+			l.i++
+			continue
+		}
+		b.WriteRune(r)
+		l.i++
+	}
+	l.emit(TokStr, b.String())
+	return nil
+}
+
+func (l *Lexer) ident() {
+	start := l.i
+	for l.i < len(l.runes) && (isIdentStart(l.runes[l.i]) || unicode.IsDigit(l.runes[l.i])) {
+		l.i++
+	}
+	name := string(l.runes[start:l.i])
+	// 单独的下划线是通配符记号
+	if name == "_" {
+		l.emit(TokUnderscore, name)
+		return
+	}
+	if k, ok := keywords[name]; ok {
+		l.emit(k, name)
+		return
+	}
+	l.emit(TokIdent, name)
+}
+
+func (l *Lexer) op() error {
+	r := l.runes[l.i]
+	two := func(next rune, k Kind, lit string) bool {
+		if l.peek(1) == next {
+			l.i += 2
+			l.emit(k, lit)
+			return true
+		}
+		return false
+	}
+	switch r {
+	case '&':
+		if two('&', And, "&&") {
+			return nil
+		}
+		l.i++
+		l.emit(Amp, "&")
+	case '|':
+		if two('|', Or, "||") {
+			return nil
+		}
+		l.i++
+		l.emit(BitOr, "|")
+	case '^':
+		l.i++
+		l.emit(Xor, "^")
+	case '=':
+		if two('=', Eq, "==") {
+			return nil
+		}
+		if two('>', Arrow, "=>") {
+			return nil
+		}
+		l.i++
+		l.emit(Assign, "=")
+	case '!':
+		if two('=', Neq, "!=") {
+			return nil
+		}
+		l.i++
+		l.emit(Not, "!")
+	case '<':
+		if two('<', Shl, "<<") {
+			return nil
+		}
+		if two('=', Le, "<=") {
+			return nil
+		}
+		l.i++
+		l.emit(Lt, "<")
+	case '>':
+		if two('>', Shr, ">>") {
+			return nil
+		}
+		if two('=', Ge, ">=") {
+			return nil
+		}
+		l.i++
+		l.emit(Gt, ">")
+	case '.':
+		if two('.', Dot2, "..") {
+			return nil
+		}
+		l.i++
+		l.emit(Dot, ".")
+	case '+', '-', '*', '/', '%', '(', ')', '{', '}', '[', ']', ',', ':', '?':
+		l.i++
+		var k Kind
+		switch r {
+		case '+':
+			k = Plus
+		case '-':
+			k = Minus
+		case '*':
+			k = Star
+		case '/':
+			k = Slash
+		case '%':
+			k = Percent
+		case '(':
+			k = LParen
+		case ')':
+			k = RParen
+		case '{':
+			k = LBrace
+		case '}':
+			k = RBrace
+		case '[':
+			k = LBracket
+		case ']':
+			k = RBracket
+		case ',':
+			k = Comma
+		case ':':
+			k = Colon
+		case '?':
+			k = Question
+		}
+		l.emit(k, string(r))
+	default:
+		return &lexError{fmt.Sprintf("非法字符 %c", r), l.line}
+	}
+	return nil
+}
