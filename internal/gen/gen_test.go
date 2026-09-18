@@ -185,7 +185,7 @@ func Test等价_示例程序(t *testing.T) {
 	if testing.Short() {
 		t.Skip("short 模式跳过 go build")
 	}
-	for _, name := range []string{"hello", "shapes", "result", "closures", "json", "compound"} {
+	for _, name := range []string{"hello", "shapes", "result", "closures", "json", "compound", "tour"} {
 		name := name
 		t.Run(name, func(t *testing.T) {
 			srcBytes, err := os.ReadFile(filepath.Join("..", "..", "examples", name, "main.ling"))

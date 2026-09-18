@@ -114,7 +114,11 @@ function lingPrint(...args) { process.stdout.write(lingFmtArgs(args)); }
 function lingLen(v) {
   if (typeof v === "string") return BigInt([...v].length);
   if (Array.isArray(v)) return BigInt(v.length);
-  if (v instanceof Map) return BigInt(v.size);
+  if (v instanceof Map) {
+    let n = 0;
+    for (const k of v.keys()) if (!k.startsWith("__lingOrig:")) n++;
+    return BigInt(n);
+  }
   if (v && v.__lingRange !== undefined) return v.hi > v.lo ? v.hi - v.lo : 0n;
   throw new Error("len 不支持 " + lingTypeName(v));
 }

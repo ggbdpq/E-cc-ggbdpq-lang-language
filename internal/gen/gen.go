@@ -1111,6 +1111,15 @@ func (g *gen) emitBlock(stmts []syntax.Stmt) error {
 }
 
 func (g *gen) pushScope() { g.scopes = append(g.scopes, map[string]string{}) }
+
+func (g *gen) inScope(name string) bool {
+	for i := len(g.scopes) - 1; i >= 0; i-- {
+		if _, ok := g.scopes[i][name]; ok {
+			return true
+		}
+	}
+	return false
+}
 func (g *gen) popScope()  { g.scopes = g.scopes[:len(g.scopes)-1] }
 
 func (g *gen) emitForIn(st *syntax.ForInStmt) error {
@@ -2174,6 +2183,19 @@ func (g *gen) emitCall(x *syntax.CallEx) (string, error) {
 	// 函数值调用：参数/绑定持有函数（如泛型 fn 的 f: fn(T): U）
 	if lt := g.lookup(id.Name); strings.HasPrefix(lt, "func(") {
 		return g.emitNonIdentCall(x)
+	}
+
+	// 运行时函数值绑定（如立即调用返回的闭包）：静态不可预知，直通由 Go 编译器兜底
+	if g.inScope(id.Name) {
+		var args []string
+		for _, a := range x.Args {
+			arg, err := g.expr(a)
+			if err != nil {
+				return "", err
+			}
+			args = append(args, arg)
+		}
+		return id.Name + "(" + strings.Join(args, ", ") + ")", nil
 	}
 
 	return "", g.errf(x.Line, "未定义 %s（当前函数 %s）", id.Name, g.curFn)
