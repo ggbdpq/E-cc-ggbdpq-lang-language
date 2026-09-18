@@ -454,6 +454,23 @@ println(bs[1])`, "4\n97\n228\n")
 	wantOut(t, `println(len(bytes("")) == 0)`, "true\n")
 }
 
+// —— go 语句（decisions #57）：后台任务，主函数结束前 join ——
+
+func TestGo语句(t *testing.T) {
+	// 单线程解释器：go 同步立即执行（语义子集，输出确定）
+	wantOut(t, `var out = []
+fn work(n: int) {
+    out += [n * 2]
+}
+fn main() {
+    go work(21)
+    go work(5)
+    println(out)
+}`, "[42, 10]\n")
+	// go 的目标须是调用
+	wantErr(t, "fn main() {\n    go 1 + 1\n}", "go")
+}
+
 // —— Q28：十六进制字面量 ——
 
 func Test十六进制字面量(t *testing.T) {

@@ -344,6 +344,28 @@ func (g *jsgen) emitStmt(s syntax.Stmt) error {
 	case *syntax.ContinueStmt:
 		g.w("continue")
 		return nil
+
+	case *syntax.GoStmt:
+		// →JS 单线程：go 同步立即执行（顺序确定；decisions #57）
+		call := st.Call
+		id, ok := call.Callee.(*syntax.Ident)
+		if !ok {
+			return g.errf(st.Line, "go 的目标须是具名函数调用")
+		}
+		fi, hasFn := g.fns[id.Name]
+		if !hasFn {
+			return g.errf(st.Line, "未定义 %s（当前函数 %s）", id.Name, g.curFn)
+		}
+		var args []string
+		for _, a := range call.Args {
+			arg, err := g.expr(a)
+			if err != nil {
+				return err
+			}
+			args = append(args, "lingCopy("+arg+")")
+		}
+		g.w("await " + fi.goName + "(" + strings.Join(args, ", ") + ");")
+		return nil
 	case *syntax.FnDecl:
 		info := &jsFn{goName: "lf_" + st.Name, hasRet: st.Ret != nil, retLing: st.Ret}
 		for _, p := range st.Params {

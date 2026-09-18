@@ -123,6 +123,9 @@ func (f *fmtter) stmt(s syntax.Stmt, indent int) {
 	case *syntax.ContinueStmt:
 		f.w(indent, "continue")
 
+	case *syntax.GoStmt:
+		f.w(indent, "go "+expr(st.Call, 0, indent))
+
 	case *syntax.FnDecl:
 		f.fnDecl(st, indent)
 

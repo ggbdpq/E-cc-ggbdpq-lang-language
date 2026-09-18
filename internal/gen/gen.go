@@ -565,6 +565,7 @@ func (g *gen) emitProgram(prog []syntax.Stmt) error {
 	if _, has := g.fns["main"]; has {
 		g.w("func main() {")
 		g.w("\tlf_main()")
+		g.w("\tlingWaitAll()")
 		g.w("}")
 	} else {
 		g.w("func main() {}")
@@ -624,6 +625,10 @@ func (g *gen) emitFunc(d *syntax.FnDecl) error {
 	g.curFn = d.Name
 	saved := g.pushCtx(retDecl, d.Ret, tps, scope)
 	err := g.emitBody(d.Body)
+	// 函数体内有 go 语句：函数边界 join（保证调用方读到任务结果）
+	if err == nil && bodyHasGo(d.Body) {
+		g.w("	lingWaitAll()")
+	}
 	g.popCtx(saved)
 	g.curFn = savedFn
 	if err != nil {
@@ -632,6 +637,16 @@ func (g *gen) emitFunc(d *syntax.FnDecl) error {
 	g.w("}")
 	g.w("")
 	return nil
+}
+
+// bodyHasGo 递归检查语句序列是否包含 go 语句
+func bodyHasGo(stmts []syntax.Stmt) bool {
+	for _, st := range stmts {
+		if _, ok := st.(*syntax.GoStmt); ok {
+			return true
+		}
+	}
+	return false
 }
 
 func (g *gen) emitMethod(d *syntax.FnDecl) error {
@@ -777,6 +792,31 @@ func (g *gen) emitStmt(s syntax.Stmt) error {
 		return nil
 	case *syntax.ContinueStmt:
 		g.w("continue")
+		return nil
+
+	case *syntax.GoStmt:
+		// go 语句：真 goroutine + 全局 WaitGroup join（decisions #57）
+		call := st.Call
+		id, ok := call.Callee.(*syntax.Ident)
+		if !ok {
+			return g.errf(st.Line, "go 的目标须是具名函数调用")
+		}
+		fi, ok := g.fns[id.Name]
+		if !ok {
+			return g.errf(st.Line, "未定义 %s（当前函数 %s）", id.Name, g.curFn)
+		}
+		var args []string
+		for i, a := range call.Args {
+			arg, err := g.expr(a)
+			if err != nil {
+				return err
+			}
+			if i < len(fi.params) {
+				arg = g.maybeWrap(fi.params[i].typ, g.infer(a), arg)
+			}
+			args = append(args, arg)
+		}
+		g.w("lingGo(func() { " + fi.goName + "(" + strings.Join(args, ", ") + ") })")
 		return nil
 
 	case *syntax.FnDecl:

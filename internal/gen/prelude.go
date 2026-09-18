@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"sync"
 	"strings"
 	"time"
 )
@@ -341,8 +342,15 @@ func lingBytes(v any) *LingArr[any] {
 }
 
 // lingPushFrom 数组 += ：把 another 的元素原位追加（引用语义，别名可见）
-func lingPushFrom[T any](arr *LingArr[T], another *LingArr[T]) *LingArr[T] {
-	arr.Items = append(arr.Items, another.Items...)
+func lingPushFrom[T, U any](arr *LingArr[T], another *LingArr[U]) *LingArr[T] {
+	for _, it := range another.Items {
+		var box any = it
+		a, ok := box.(T)
+		if !ok {
+			panic("数组 += 元素类型不符")
+		}
+		arr.Items = append(arr.Items, a)
+	}
 	return arr
 }
 
@@ -392,6 +400,20 @@ func lingAdd(a, b any) any {
 	}
 	panic("+= 类型不符")
 }
+
+// —— 并发：go 语句 ——
+
+var lingWG sync.WaitGroup
+
+func lingGo(f func()) {
+	lingWG.Add(1)
+	go func() {
+		defer lingWG.Done()
+		f()
+	}()
+}
+
+func lingWaitAll() { lingWG.Wait() }
 
 // lingChar 码点转单字符字符串
 func lingChar(v any) string {

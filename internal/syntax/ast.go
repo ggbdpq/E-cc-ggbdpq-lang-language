@@ -251,6 +251,12 @@ type EnumDecl struct {
 	Line       int
 }
 
+// GoStmt go <调用>：后台任务，主函数结束前 join（decisions #57）
+type GoStmt struct {
+	Call *CallEx
+	Line int
+}
+
 // ImportStmt import "./md5"（装载器在合并前展开，解释器不会执行到）
 type ImportStmt struct {
 	Path string
@@ -355,6 +361,8 @@ func (n *EnumDecl) Pos() int     { return n.Line }
 func (n *EnumDecl) isStmt()      {}
 func (n *ImportStmt) Pos() int   { return n.Line }
 func (n *ImportStmt) isStmt()    {}
+func (n *GoStmt) Pos() int       { return n.Line }
+func (n *GoStmt) isStmt()        {}
 func (n *ExternDecl) Pos() int   { return n.Line }
 func (n *ExternDecl) isStmt()    {}
 func (n *NamedType) isType()     {}

@@ -225,6 +225,11 @@ func (it *Interp) execStmt(s syntax.Stmt, env *Env) error {
 
 	case *syntax.ImportStmt:
 		return it.errf(st.Line, "import 由装载器在合并前展开（不应执行到这里）")
+
+	case *syntax.GoStmt:
+		// 单线程解释器：go 同步立即执行（语义子集，输出确定；decisions #57）
+		_, err := it.evalCall(st.Call, env)
+		return err
 	}
 	return it.errf(s.Pos(), "未知语句")
 }

@@ -129,7 +129,7 @@ func (p *Parser) expectName() (string, error) {
 // —— 顶层 ——
 
 var reserved = map[Kind]string{
-	KwGo: "go", KwChan: "chan", KwInterface: "interface",
+	KwChan: "chan", KwInterface: "interface",
 }
 
 func (p *Parser) parseTop() (Stmt, error) {
@@ -274,6 +274,18 @@ func (p *Parser) parseStmt() (Stmt, error) {
 			return nil, err
 		}
 		return &ForInStmt{Var: name, Iter: iter, Body: body, Line: t.Line}, nil
+
+	case KwGo:
+		p.next()
+		callee, err := p.parseExpr(0)
+		if err != nil {
+			return nil, err
+		}
+		call, ok := callee.(*CallEx)
+		if !ok {
+			return nil, p.errAt(t, "go 的目标须是函数调用")
+		}
+		return &GoStmt{Call: call, Line: t.Line}, nil
 
 	case KwBreak, KwContinue:
 		p.next()

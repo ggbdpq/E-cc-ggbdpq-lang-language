@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 
@@ -37,6 +38,12 @@ func transpileSrc(t *testing.T, prog []syntax.Stmt) string {
 		t.Fatalf("转译失败: %v", err)
 	}
 	return out
+}
+
+func sortLines(s string) string {
+	lines := strings.Split(strings.TrimRight(s, "\n"), "\n")
+	sort.Strings(lines)
+	return strings.Join(lines, "\n")
 }
 
 func interpRun(t *testing.T, src string) string {
@@ -200,4 +207,17 @@ func Test等价_示例程序(t *testing.T) {
 			}
 		})
 	}
+	// goroutine 例外：→Go 真并行行序不定，只比排序后的行集合
+	t.Run("goroutine", func(t *testing.T) {
+		srcBytes, err := os.ReadFile(filepath.Join("..", "..", "examples", "goroutine", "main.ling"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		src := string(srcBytes)
+		want := sortLines(interpRun(t, src))
+		got := sortLines(goRun(t, transpile(t, src)))
+		if got != want {
+			t.Fatalf("行集合不一致\n=== 解释器 ===\n%q\n=== Go 编译执行 ===\n%q", want, got)
+		}
+	})
 }
