@@ -1,9 +1,7 @@
 // wbi.ling —— WBI 参数签名纯函数部分（移植自 linkpull bilibili/wbi.go）
 // 不含网络与缓存（wbiKeys 依赖 Bilibili 结构体，属于 linkpull 侧，不在 M4 范围）。
 // 语义对齐说明：ling 映射为单值键值表（Go url.Values 支持多值，本协议用不到）。
-
 let MIXIN_KEY_ENC_TAB = [46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49, 33, 9, 42, 19, 29, 28, 14, 39, 12, 38, 41, 13, 37, 48, 7, 16, 24, 55, 40, 61, 26, 17, 0, 1, 60, 51, 30, 4, 22, 25, 54, 21, 56, 59, 6, 63, 57, 62, 11, 36, 20, 34, 44, 52]
-
 let HEXU = "0123456789ABCDEF"
 
 // indexOf 单字符首次出现位置，无则 -1
@@ -104,7 +102,7 @@ fn sortStrings(xs: [any]): [any] {
 
 // isUnreserved RFC 3986 unreserved + Go QueryEscape 的保留集
 fn isUnreserved(b: int): bool {
-    return (b >= 97 && b <= 122) || (b >= 65 && b <= 90) || (b >= 48 && b <= 57) || b == 45 || b == 95 || b == 46 || b == 126
+    return b >= 97 && b <= 122 || b >= 65 && b <= 90 || b >= 48 && b <= 57 || b == 45 || b == 95 || b == 46 || b == 126
 }
 
 // queryEscape 对齐 Go url.QueryEscape：空格转 +，其余非保留集转大写 %XX

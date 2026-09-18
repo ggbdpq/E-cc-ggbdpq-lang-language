@@ -1,6 +1,5 @@
 // video.ling —— video.go 纯函数层移植（linkpull bilibili）
 // 不含 probeVideo 网络编排（属 linkpull 结构体层）；dashStream 只保留纯函数用到的字段。
-
 struct DashStream {
     codecs: string
     codecid: int
@@ -66,7 +65,7 @@ fn pickCodec(streams: [DashStream], pref: string): DashStream {
     var best = streams[0]
     for i in 1..len(streams) {
         let s = streams[i]
-        if score(s) < score(best) || (score(s) == score(best) && s.bandwidth > best.bandwidth) {
+        if score(s) < score(best) || score(s) == score(best) && s.bandwidth > best.bandwidth {
             best = s
         }
     }

@@ -1,6 +1,5 @@
 // result —— Result/? 链式错误处理（对照 Go 的 if err != nil）
 // 预载：enum Result[T, E] { Ok(T)  Err(E) }   struct error { msg: string }
-
 fn parseAge(s: string): Result[int, error] {
     if len(s) == 0 {
         return Err(err("空输入"))
@@ -10,7 +9,6 @@ fn parseAge(s: string): Result[int, error] {
     }
     return Ok(int(s))
 }
-
 fn check(s: string): Result[string, error] {
     // ? 把 Err 原样上抛，Ok 解包——一行顶 Go 的三行
     let age = parseAge(s)?
@@ -19,14 +17,12 @@ fn check(s: string): Result[string, error] {
     }
     return Ok("年龄 " + str(age) + " 已登记")
 }
-
 fn show(s: string) {
     match check(s) {
         Ok(msg) => println("√", msg)
         Err(e) => println("×", e.msg)
     }
 }
-
 fn main() {
     show("28")
     show("0")

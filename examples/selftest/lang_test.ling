@@ -1,5 +1,4 @@
 // lang_test.ling —— ling 自测（ling test 运行当前目录 *_test.ling 的 test* 函数）
-
 fn test算术与字符串() {
     assert(1 + 2 * 3 == 7, "优先级")
     assert(10 / 3 == 3, "整除")
@@ -7,7 +6,6 @@ fn test算术与字符串() {
     assert("he" + "llo" == "hello", "拼接")
     assert(int("42") == 42, "转换")
 }
-
 fn test值语义与引用() {
     struct P {
         x: int
@@ -21,7 +19,6 @@ fn test值语义与引用() {
     r.x = 5
     assert(a.x == 5, "引用写须穿透")
 }
-
 fn testResult传播() {
     fn half(n: int): Result[int, error] {
         if n % 2 != 0 {
@@ -38,7 +35,6 @@ fn testResult传播() {
         Err(e) => assert(e.msg == "奇数不能折半", "Err 传播")
     }
 }
-
 fn testMatch穷尽() {
     enum E {
         A(int)
@@ -53,7 +49,6 @@ fn testMatch穷尽() {
     assert(f(A(7)) == 7, "构造模式")
     assert(f(B) == 0, "零参 case")
 }
-
 fn test容器() {
     var m = {"a": 1, "b": 2}
     m["c"] = 3

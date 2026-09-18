@@ -11,6 +11,7 @@ import (
 	"os"
 	"strings"
 
+	"ling/internal/format"
 	"ling/internal/interp"
 	"ling/internal/load"
 	"ling/internal/syntax"
@@ -31,6 +32,8 @@ func cliMain() int {
 		return runFile(entryFile)
 	case "test":
 		return runTests()
+	case "fmt":
+		return runFmt()
 	case "version", "--version", "-v":
 		fmt.Println("ling", version)
 		return 0
@@ -55,6 +58,42 @@ func usage() {
 
 文档: docs/spec.md（语言规范）  docs/decisions.md（设计决策）
 `)
+}
+
+// runFmt 就地格式化当前目录全部 .ling（不递归），打印改动的文件
+func runFmt() int {
+	entries, err := os.ReadDir(".")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "读目录失败:", err)
+		return 2
+	}
+	changed := 0
+	for _, e := range entries {
+		name := e.Name()
+		if e.IsDir() || !strings.HasSuffix(name, ".ling") {
+			continue
+		}
+		src, err := os.ReadFile(name)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "读文件失败:", err)
+			return 1
+		}
+		out, err := format.Format(string(src))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "格式化 %s 失败: %v\n", name, err)
+			return 1
+		}
+		if out != string(src) {
+			if err := os.WriteFile(name, []byte(out), 0o644); err != nil {
+				fmt.Fprintln(os.Stderr, "写文件失败:", err)
+				return 1
+			}
+			fmt.Println(name)
+			changed++
+		}
+	}
+	fmt.Printf("%d 个文件已格式化\n", changed)
+	return 0
 }
 
 func runFile(path string) int {

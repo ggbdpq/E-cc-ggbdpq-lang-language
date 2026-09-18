@@ -128,11 +128,44 @@ func isCont(k Kind) bool {
 }
 
 type lexError struct {
-	msg  string
-	line int
+	msg     string
+	line    int
+	snippet string
 }
 
-func (e *lexError) Error() string { return fmt.Sprintf("第%d行: %s", e.line, e.msg) }
+func (e *lexError) Error() string {
+	if e.snippet == "" {
+		return fmt.Sprintf("第%d行: %s", e.line, e.msg)
+	}
+	return fmt.Sprintf("第%d行: %s\n  | %s", e.line, e.msg, e.snippet)
+}
+
+// lexErrAt 构造带当前行摘录的词法错误（输出末尾报错时摘录前一行）
+func (l *Lexer) lexErrAt(msg string) error {
+	line := l.line
+	if line > 1 && l.i >= len(l.runes) {
+		line--
+	}
+	text := ""
+	if line >= 1 {
+		start, cur := 0, 1
+		for i := 0; i < len(l.runes) && cur < line; i++ {
+			if l.runes[i] == '\n' {
+				cur++
+				start = i + 1
+			}
+		}
+		end := len(l.runes)
+		for i := start; i < len(l.runes); i++ {
+			if l.runes[i] == '\n' {
+				end = i
+				break
+			}
+		}
+		text = strings.TrimSpace(string(l.runes[start:end]))
+	}
+	return &lexError{msg: msg, line: l.line, snippet: text}
+}
 
 type Lexer struct {
 	runes []rune
@@ -154,6 +187,7 @@ func Lex(src string) ([]Token, error) {
 			l.i++
 		case r == '\n':
 			l.i++
+			l.line++
 			l.emitNewline()
 		case r == '/' && l.peek(1) == '/':
 			for l.i < len(l.runes) && l.runes[l.i] != '\n' {
@@ -231,7 +265,7 @@ func (l *Lexer) stringLit() error {
 	var b strings.Builder
 	for {
 		if l.i >= len(l.runes) || l.runes[l.i] == '\n' {
-			return &lexError{"字符串未闭合", l.line}
+			return l.lexErrAt("字符串未闭合")
 		}
 		r := l.runes[l.i]
 		if r == '"' {
@@ -241,7 +275,7 @@ func (l *Lexer) stringLit() error {
 		if r == '\\' {
 			l.i++
 			if l.i >= len(l.runes) {
-				return &lexError{"字符串未闭合", l.line}
+				return l.lexErrAt("字符串未闭合")
 			}
 			switch l.runes[l.i] {
 			case 'n':
@@ -255,7 +289,7 @@ func (l *Lexer) stringLit() error {
 			case '\\':
 				b.WriteByte('\\')
 			default:
-				return &lexError{fmt.Sprintf("不支持的转义 \\%c", l.runes[l.i]), l.line}
+				return l.lexErrAt(fmt.Sprintf("不支持的转义 \\%c", l.runes[l.i]))
 			}
 			l.i++
 			continue
@@ -385,7 +419,7 @@ func (l *Lexer) op() error {
 		}
 		l.emit(k, string(r))
 	default:
-		return &lexError{fmt.Sprintf("非法字符 %c", r), l.line}
+		return l.lexErrAt(fmt.Sprintf("非法字符 %c", r))
 	}
 	return nil
 }

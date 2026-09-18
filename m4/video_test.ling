@@ -1,5 +1,4 @@
 // video_test.ling —— fixture 取自 m4/gofixture（video.go 纯函数实测输出）
-
 fn testCodecName() {
     assert(codecName(DashStream{codecs: "avc1.64001F", codecid: 0, bandwidth: 0, height: 0}) == "h264", "avc 前缀")
     assert(codecName(DashStream{codecs: "hvc1.2.4", codecid: 0, bandwidth: 0, height: 0}) == "hevc", "hvc 前缀")
@@ -7,7 +6,6 @@ fn testCodecName() {
     assert(codecName(DashStream{codecs: "", codecid: 13, bandwidth: 0, height: 0}) == "av1", "codecid 13")
     assert(codecName(DashStream{codecs: "mp4a.40.2", codecid: 0, bandwidth: 0, height: 0}) == "mp4a.40.2", "未知透传")
 }
-
 fn testFpsOf() {
     assert(fpsOf("") == 0, "空串")
     assert(fpsOf("30") == 30, "整数")
@@ -15,7 +13,6 @@ fn testFpsOf() {
     assert(fpsOf("abc") == 0, "非法按 0")
     assert(fpsOf("1000/0") == 1000, "分母 0 按 1")
 }
-
 fn testPickCodec() {
     var streams = [DashStream{codecs: "avc1", codecid: 7, bandwidth: 1000, height: 1080}, DashStream{codecs: "hev1", codecid: 12, bandwidth: 1500, height: 1080}, DashStream{codecs: "av01", codecid: 13, bandwidth: 1200, height: 1080}]
     assert(pickCodec(streams, "h264").bandwidth == 1000, "h264 偏好")
@@ -23,7 +20,6 @@ fn testPickCodec() {
     assert(pickCodec(streams, "av1").bandwidth == 1200, "av1 偏好")
     assert(pickCodec(streams, "unknown").bandwidth == 1000, "未知偏好按 h264")
 }
-
 fn testPageOf() {
     var q: map[string]string = {}
     q["p"] = "3"

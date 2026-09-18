@@ -1,21 +1,17 @@
 // wbi_test.ling —— fixture 取自 m4/gofixture（linkpull 原版实现的实测输出）
-
 fn testKeyOf() {
     // 原版 quirk 保真：TrimSuffix 只去末尾一个点，.png 结尾会带扩展名返回
     assert(keyOf("https://i0.hdslb.com/bfs/wbi/721eadf611e6e185ab5be6a99a29af84.png") == "721eadf611e6e185ab5be6a99a29af84.png", "保留扩展名（bug-for-bug）")
     assert(keyOf("https://i0.hdslb.com/bfs/wbi/abc123.") == "abc123", "尾点去除")
     assert(keyOf("nokey") == "nokey", "无斜杠")
 }
-
 fn testGetMixinKey() {
     assert(getMixinKey("721eadf611e6e185ab5be6a99a29af84", "63a34e3d5df4b3d30a2bec68fc9a9cd6") == "d351c19652e49e3394da31fbfa8de3d1", "置换表前 32 位")
 }
-
 fn testStripSpecial() {
     assert(stripSpecial("a!b'c(d)e*f") == "abcdef", "剔除五特殊字符")
     assert(stripSpecial("无特殊") == "无特殊", "中文不受影响")
 }
-
 fn testSignWBI() {
     let mixin = getMixinKey("721eadf611e6e185ab5be6a99a29af84", "63a34e3d5df4b3d30a2bec68fc9a9cd6")
     var p: map[string]string = {}
@@ -25,7 +21,6 @@ fn testSignWBI() {
     let s = signWBI(p, 1702204800, mixin)
     assert(s["w_rid"] == "b69e3712de2ee331f4fcf0bb51b923dc", "文档示例 w_rid")
     assert(encodeQuery(s) == "bar=three&foo=one&w_rid=b69e3712de2ee331f4fcf0bb51b923dc&wts=1702204800&zab=two", "排序编码含 w_rid")
-
     var p2: map[string]string = {}
     p2["q"] = "a b+c&d=e!f'g(h)i*j"
     p2["foo"] = "中文"

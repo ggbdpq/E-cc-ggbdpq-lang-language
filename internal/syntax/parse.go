@@ -3,22 +3,51 @@ package syntax
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"unicode"
 )
 
-// Error 解析错误。Incomplete 为 true 表示输入在语法中途截断，REPL 据此续行。
+// Error 解析错误。Incomplete 为 true 表示输入在语法中途截断，REPL 据此续行；
+// Snippet 为出错行的源码摘录（空白行回退前一行）。
 type Error struct {
 	Msg        string
 	Line       int
 	Incomplete bool
+	Snippet    string
 }
 
-func (e *Error) Error() string { return fmt.Sprintf("第%d行: %s", e.Line, e.Msg) }
+func (e *Error) Error() string {
+	if e.Snippet == "" {
+		return fmt.Sprintf("第%d行: %s", e.Line, e.Msg)
+	}
+	return fmt.Sprintf("第%d行: %s\n  | %s", e.Line, e.Msg, e.Snippet)
+}
+
+// lineSnippet 取 1-based 行号的内容（trim 后）；空行回退前一行
+func lineSnippet(lines []string, line int) string {
+	if line < 1 {
+		line = 1
+	}
+	if line > len(lines) {
+		line = len(lines)
+	}
+	if line < 1 {
+		return ""
+	}
+	if t := strings.TrimSpace(lines[line-1]); t != "" {
+		return t
+	}
+	if line > 1 {
+		return strings.TrimSpace(lines[line-2])
+	}
+	return ""
+}
 
 type Parser struct {
 	toks     []Token
 	i        int
-	noStruct int // >0 时处于控制头位置，禁止裸 struct 字面量（spec §3.4）
+	noStruct int      // >0 时处于控制头位置，禁止裸 struct 字面量（spec §3.4）
+	lines    []string // 源码行（错误摘录用）
 }
 
 // Parse 解析整个源文件/REPL 片段，返回语句序列
@@ -27,7 +56,7 @@ func Parse(src string) ([]Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := &Parser{toks: toks}
+	p := &Parser{toks: toks, lines: strings.Split(src, "\n")}
 	var prog []Stmt
 	for {
 		p.skipNl()
@@ -69,7 +98,12 @@ func (p *Parser) accept(k Kind) bool {
 }
 
 func (p *Parser) errAt(t Token, format string, args ...any) *Error {
-	return &Error{Msg: fmt.Sprintf(format, args...), Line: t.Line, Incomplete: t.Kind == EOF}
+	return &Error{
+		Msg:        fmt.Sprintf(format, args...),
+		Line:       t.Line,
+		Incomplete: t.Kind == EOF,
+		Snippet:    lineSnippet(p.lines, t.Line),
+	}
 }
 
 func (p *Parser) expect(k Kind) (Token, error) {

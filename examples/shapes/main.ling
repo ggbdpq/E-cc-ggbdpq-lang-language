@@ -3,22 +3,18 @@ struct Point {
     x: int
     y: int
 }
-
 struct Rect {
     w: float
     h: float
 }
-
 enum Shape {
     Circle(float)
     Rect(float, float)
     Unit
 }
-
 fn (r Rect).area(): float {
     return r.w * r.h
 }
-
 fn describe(s: Shape): string {
     return match s {
         Circle(r) => "圆 r=" + str(r)
@@ -26,7 +22,6 @@ fn describe(s: Shape): string {
         Unit => "空"
     }
 }
-
 fn area(s: Shape): float {
     return match s {
         Circle(r) => 3.14159 * r * r
@@ -34,7 +29,6 @@ fn area(s: Shape): float {
         Unit => 0.0
     }
 }
-
 fn main() {
     // 值语义：q 是 p 的拷贝，改 q 不影响 p
     var p = Point{x: 1, y: 2}

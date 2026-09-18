@@ -5,6 +5,7 @@ package syntax
 
 import (
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -103,5 +104,32 @@ func Test函数类型注解(t *testing.T) {
 		if _, err := Parse(src); err != nil {
 			t.Fatalf("函数类型应可解析: %v\n源码: %s", err, src)
 		}
+	}
+}
+
+func Test错误带源码摘录(t *testing.T) {
+	// Q22：错误信息附出错行内容，不用翻文件定位。
+	// EOF 场景行号是输入末尾之后（正确行为），摘录回退到最后非空行。
+	src := "let a = 1\nlet b = 2\nprintln(a +\n"
+	_, err := Parse(src)
+	if err == nil {
+		t.Fatal("应报错")
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, "println(a +") {
+		t.Fatalf("错误应含源码行摘录: %v", msg)
+	}
+	// 词法错误同样带摘录
+	_, err = Parse("let s = \"未闭合")
+	if err == nil {
+		t.Fatal("词法错误应报错")
+	}
+	if !strings.Contains(err.Error(), "let s =") {
+		t.Fatalf("词法错误应含源码行摘录: %v", err)
+	}
+	// 非结尾错误行号精确（行号修复的回归锁）
+	_, err = Parse("let a = 1\nlet b = 2\nlet = 3\n")
+	if err == nil || !strings.Contains(err.Error(), "第3行") {
+		t.Fatalf("中间行错误应报第 3 行: %v", err)
 	}
 }

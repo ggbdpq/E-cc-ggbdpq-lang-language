@@ -1,6 +1,5 @@
 // list_test.ling —— fixture 取自 m4/gofixture（list.go 纯函数实测输出）
 // 注：match 臂体是表达式，多断言用 && 串联
-
 fn testParseArchives() {
     let refs = match parseArchives("{\"archives\":[{\"bvid\":\"BV1a\",\"title\":\"第一集\"},{\"bvid\":\"\",\"title\":\"跳过\"},{\"bvid\":\"BV1b\",\"title\":null}]}") {
         Ok(rs) => rs
@@ -15,7 +14,6 @@ fn testParseArchives() {
     }
     assert(len(empty) == 0, "无 archives 键")
 }
-
 fn testListKindOf() {
     var q1: map[string]string = {}
     q1["sid"] = "456"
