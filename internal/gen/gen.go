@@ -1120,7 +1120,7 @@ func (g *gen) inScope(name string) bool {
 	}
 	return false
 }
-func (g *gen) popScope()  { g.scopes = g.scopes[:len(g.scopes)-1] }
+func (g *gen) popScope() { g.scopes = g.scopes[:len(g.scopes)-1] }
 
 func (g *gen) emitForIn(st *syntax.ForInStmt) error {
 	if rg, ok := st.Iter.(*syntax.RangeEx); ok {
