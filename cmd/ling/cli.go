@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"ling/internal/format"
+	"ling/internal/genjs"
 	"ling/internal/interp"
 	"ling/internal/load"
 	"ling/internal/syntax"
@@ -34,6 +35,8 @@ func cliMain() int {
 		return runTests()
 	case "fmt":
 		return runFmt()
+	case "check":
+		return runCheck()
 	case "version", "--version", "-v":
 		fmt.Println("ling", version)
 		return 0
@@ -93,6 +96,22 @@ func runFmt() int {
 		}
 	}
 	fmt.Printf("%d 个文件已格式化\n", changed)
+	return 0
+}
+
+// runCheck 静态检查（decisions #49）：复用 →JS 转译器的前置检查
+// （match 穷尽、? 约束、参数注解、未定义名），产物丢弃
+func runCheck() int {
+	prog, _, err := load.Program(".", false)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "装载失败:", err)
+		return 1
+	}
+	if _, err := genjs.TranspileJS(prog); err != nil {
+		fmt.Fprintln(os.Stderr, "检查未通过:", err)
+		return 1
+	}
+	fmt.Println("检查通过")
 	return 0
 }
 

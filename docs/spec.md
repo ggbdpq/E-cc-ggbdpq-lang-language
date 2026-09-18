@@ -172,6 +172,7 @@ M2b 起：内建映射到后端宿主（`http`、`json`、`time` 等，见 decis
 - **模块根** = 放 `ling.toml` 的目录；该文件 v0 仅作标记，无构建配置。
 - **导入**：`import "./x"`（仅同模块相对路径；目标是 `x.ling` 文件或 `x/` 目录）。装载器在合并前递归展开：目录即包 + import 图合并为一个程序；循环导入报错，菱形导入去重，越出模块根目录报错。`ling.toml` 仍免（v0 以 cwd 为模块根）。
 - **CLI（v0.1）**：`ling run` 与 `ling test` 均按**目录即包**装载——当前目录全部非测试 `.ling` 按文件名序合并为一个程序，`ling test` 再把 `*_test.ling` 追加在后并依序执行所有 `test` 前缀无参函数，任一断言失败则退出码 1。CLI 不接收路径参数（安全边界：文件输入无 `..` 穿越面）。普通 `ling run` 不执行 `*_test.ling`。
+- **静态检查**：`ling check` 复用 →JS 转译器的前置检查（match 穷尽、`?` 约束、参数注解、未定义名），产物丢弃（decisions #49）。
 
 ## 6. 平台差异与 →Go 映射（M3 起生效）
 
@@ -199,18 +200,35 @@ M2b 起：内建映射到后端宿主（`http`、`json`、`time` 等，见 decis
 4. enum 的 match 只支持构造/通配模式；字面量模式的 match 只支持非 enum 值。
 5. **match 穷尽性在编译期检查**（解释器侧仍是运行时检查——这是静态检查器的第一块落地）。
 
-### 6.3 并行度与标准库委托
+### 6.3 →JS 后端映射（v0.2 起生效）
 
-| 差异点 | →Go 后端 | →JS 后端（未实现） |
+| ling 概念 | JS 产物 |
+|-----------|---------|
+| `int` | **BigInt**（64 位语义精确，位运算/掩码惯用法与解释器一致——JS 原生位运算是 32 位，不能用 number） |
+| `float` | number |
+| 数组 / 映射 | Array / Map（保插入序，语义契合） |
+| struct | plain object（带 `__lingStruct` 名）；赋值/传参/返回处 `lingCopy` 值拷贝（数组/映射共享） |
+| enum / Option / Result / error | 带标记属性的对象（`__lingEnum` 等） |
+| `&x` 取引用 | 直接生成 `x`（JS 对象赋值即共享，语义天然对齐） |
+| 方法调用 | `lf_<Struct>_<name>(obj, ...)`（方法名须全局唯一） |
+| async | 全部函数生成 async（http 委托是异步；同步调用 await 无害） |
+| `==` / 排序 | `lingEq` / 原生比较（`==` 不能用 JS 原生——BigInt 与 number 不等价） |
+
+验收方式同 →Go：解释器输出 vs Node 执行产物输出逐字节一致（examples 五程序 + m4 全家桶对齐 gofixture）。
+
+### 6.4 并行度与标准库委托
+
+| 差异点 | →Go 后端 | →JS 后端 |
 |--------|----------|----------|
-| 并行度 | 真 goroutine 并行 | 单线程协作式：`go`→微任务、channel→队列 |
+| 并行度 | 真 goroutine 并行 | 全 async 单线程（`go`/`chan` v0.2 遇到即报未支持） |
 | GC | Go 运行时 | JS 引擎 |
-| 标准库委托 | Go stdlib | 内置对象 + fetch |
-| 整数 | int64 | number（安全整数范围内一致） |
+| 标准库委托 | Go stdlib | 内置对象 + fetch（Node 18+） |
+| 整数 | int64 | BigInt；JSON 解析数字为 number（>2^53 精度丢失，文档化差异） |
+| 浮点打印 | Go `'g'` | JS toString（极端指数场景存在差异，等价测试避开） |
 
-### 6.4 验收方式
+### 6.5 验收方式
 
-→Go 后端的判据是**输出等价**：同一 ling 程序，解释器执行与转译后 Go 编译执行的 stdout 逐字节一致（`internal/gen` 的 E2E 测试机械化此判定，当前覆盖 examples 全部四个程序）。
+两个后端的判据同为**输出等价**：同一 ling 程序，解释器执行与转译产物执行（Go 编译 / Node）的 stdout 逐字节一致（`internal/gen` 与 `internal/genjs` 的 E2E 测试机械化此判定，覆盖 examples 全部程序与 m4 移植全家桶）。
 
 ## 7. 明确不做（v1）
 
