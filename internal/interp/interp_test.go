@@ -15,7 +15,7 @@ func runSrc(t *testing.T, src string) (string, error) {
 	t.Helper()
 	prog, err := syntax.Parse(src)
 	if err != nil {
-		t.Fatalf("解析失败: %v\n源码:\n%s", err, src)
+		return "", err
 	}
 	var out bytes.Buffer
 	it := interp.New(&out)
@@ -452,6 +452,17 @@ println(bs[0])
 println(bs[1])`, "4\n97\n228\n")
 	wantOut(t, `println(char(97) + char(20320))`, "a你\n")
 	wantOut(t, `println(len(bytes("")) == 0)`, "true\n")
+}
+
+// —— Q28：十六进制字面量 ——
+
+func Test十六进制字面量(t *testing.T) {
+	wantOut(t, "println(0xFF)", "255\n")
+	wantOut(t, "println(0xff)", "255\n")
+	wantOut(t, "println(0x10 + 1)", "17\n")
+	wantOut(t, "println(0xDEADBEEF & 4294967295)", "3735928559\n")
+	wantErr(t, "println(0x)", "十六进制")
+	wantErr(t, "println(0xG1)", "十六进制")
 }
 
 // —— M4 收口前置：json / http / extern ——

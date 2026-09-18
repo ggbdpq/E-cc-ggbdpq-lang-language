@@ -9,9 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"ling/internal/format"
+	"ling/internal/gen"
 	"ling/internal/genjs"
 	"ling/internal/interp"
 	"ling/internal/load"
@@ -37,6 +39,12 @@ func cliMain() int {
 		return runFmt()
 	case "check":
 		return runCheck()
+	case "build":
+		target := "go"
+		if len(args) >= 2 {
+			target = args[1]
+		}
+		return runBuild(target)
 	case "version", "--version", "-v":
 		fmt.Println("ling", version)
 		return 0
@@ -61,6 +69,48 @@ func usage() {
 
 文档: docs/spec.md（语言规范）  docs/decisions.md（设计决策）
 `)
+}
+
+// runBuild 静态检查 + 产物写入 out/（Q21）：ling build → out/main.go，
+// ling build js → out/main.mjs。写路径为常量，无用户输入参与。
+func runBuild(target string) int {
+	prog, _, err := load.Program(".", false)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "装载失败:", err)
+		return 1
+	}
+	if err := os.MkdirAll("out", 0o755); err != nil {
+		fmt.Fprintln(os.Stderr, "建 out/ 失败:", err)
+		return 1
+	}
+	switch target {
+	case "go":
+		src, err := gen.Transpile(prog)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "→Go 转译失败:", err)
+			return 1
+		}
+		if err := os.WriteFile(filepath.Join("out", "main.go"), []byte(src), 0o644); err != nil {
+			fmt.Fprintln(os.Stderr, "写产物失败:", err)
+			return 1
+		}
+		fmt.Println("out/main.go（go build ./out 或 go run ./out/main.go 执行）")
+		return 0
+	case "js":
+		src, err := genjs.TranspileJS(prog)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "→JS 转译失败:", err)
+			return 1
+		}
+		if err := os.WriteFile(filepath.Join("out", "main.mjs"), []byte(src), 0o644); err != nil {
+			fmt.Fprintln(os.Stderr, "写产物失败:", err)
+			return 1
+		}
+		fmt.Println("out/main.mjs（node out/main.mjs 执行）")
+		return 0
+	}
+	fmt.Fprintln(os.Stderr, "未知目标:", target, "（可选 go / js）")
+	return 2
 }
 
 // runFmt 就地格式化当前目录全部 .ling（不递归），打印改动的文件

@@ -2,6 +2,7 @@ package syntax
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"unicode"
 )
@@ -199,7 +200,9 @@ func Lex(src string) ([]Token, error) {
 				l.i++
 			}
 		case unicode.IsDigit(r):
-			l.number()
+			if err := l.number(); err != nil {
+				return nil, err
+			}
 		case r == '"':
 			if err := l.stringLit(); err != nil {
 				return nil, err
@@ -217,6 +220,10 @@ func Lex(src string) ([]Token, error) {
 }
 
 func isIdentStart(r rune) bool { return r == '_' || unicode.IsLetter(r) }
+
+func isHexDigit(r rune) bool {
+	return (r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')
+}
 
 func (l *Lexer) peek(n int) rune {
 	if l.i+n < len(l.runes) {
@@ -243,8 +250,28 @@ func (l *Lexer) emitNewline() {
 	l.last = Token{Newline, "\n", l.line}
 }
 
-func (l *Lexer) number() {
+func (l *Lexer) number() error {
 	start := l.i
+
+	// 十六进制 0x/0X 前缀（Q28）：记号文本统一为十进制，fmt 无损输出
+	if l.runes[l.i] == '0' && l.i+1 < len(l.runes) && (l.runes[l.i+1] == 'x' || l.runes[l.i+1] == 'X') {
+		l.i += 2
+		digits := l.i
+		for l.i < len(l.runes) && isHexDigit(l.runes[l.i]) {
+			l.i++
+		}
+		if l.i == digits {
+			return l.lexErrAt("十六进制字面量缺少数字（如 0xFF）")
+		}
+		text := string(l.runes[start:l.i])
+		val, err := strconv.ParseInt(text, 0, 64)
+		if err != nil {
+			return l.lexErrAt("十六进制字面量超出 int 范围: " + text)
+		}
+		l.emit(TokInt, strconv.FormatInt(val, 10))
+		return nil
+	}
+
 	for l.i < len(l.runes) && unicode.IsDigit(l.runes[l.i]) {
 		l.i++
 	}
@@ -263,6 +290,7 @@ func (l *Lexer) number() {
 	} else {
 		l.emit(TokInt, lit)
 	}
+	return nil
 }
 
 func (l *Lexer) stringLit() error {

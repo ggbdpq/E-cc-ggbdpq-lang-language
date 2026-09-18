@@ -161,6 +161,33 @@ fn main() {
 	}
 }
 
+func TestImport与Extern保留(t *testing.T) {
+	src := `import "./lib"
+extern "go" {
+    fn hostFn(x: int): int
+}
+fn main() {
+    println(1)
+}
+`
+	out, err := Format(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`import "./lib"`, `extern "go" {`, "fn hostFn(x: int): int"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("丢失 %q\n=== 输出 ===\n%s", want, out)
+		}
+	}
+	once, err := Format(out)
+	if err != nil {
+		t.Fatalf("二次格式化失败: %v\n%s", err, out)
+	}
+	if once != out {
+		t.Fatalf("extern/import 场景不幂等\n=== 一次 ===\n%s\n=== 二次 ===\n%s", out, once)
+	}
+}
+
 func Test缩进规范化(t *testing.T) {
 	out, err := Format("fn main() {\nprintln(1)\nif true {\nprintln(2)\n}\n}\n")
 	if err != nil {

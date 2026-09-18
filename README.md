@@ -21,7 +21,9 @@ cd vibe/labs/ling
 go build -o ling.exe ./cmd/ling
 
 (cd examples/hello && ../../ling.exe run)     # 每个示例目录一个 main.ling
+(cd examples/tour && ../../ling.exe run)      # 十分钟可执行入门教程
 (cd examples/selftest && ../../ling.exe test) # ling 自测
+(cd examples/compound && ../../ling.exe build) # 产物写入 out/（build js 为 →JS）
 ./ling.exe                                    # REPL（:quit 退出）
 go test -p 1 ./...                            # 本机编译器并发易崩，固定 -p 1
 ```
@@ -39,7 +41,7 @@ internal/syntax/     词法器 + AST + 解析器
 internal/interp/     树遍历解释器 + 内建
 internal/gen/        →Go 转译器 + 运行时 prelude
 cmd/ling/            CLI 与 REPL（main.go 薄入口 + cli.go）
-examples/<名>/main.ling  示例：hello / shapes / result / closures / json / compound
+examples/<名>/main.ling  示例：hello / shapes / result / closures / json / compound / tour
 examples/selftest/   ling 语言自测（ling test）
 m4/                  M4 移植：md5.ling / wbi.ling / main.ling + 测试
 m4/gofixture/        linkpull 原版逐字拷贝的对照 fixture 生成器
