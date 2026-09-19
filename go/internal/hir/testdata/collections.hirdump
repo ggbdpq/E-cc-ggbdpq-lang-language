@@ -1,0 +1,35 @@
+prog
+  struct Point  sym#28
+    field x @int
+    field y @int
+  fn main()  sym#29
+    (let xs @[int] sym#30)
+      (arr @[int])
+        (lit 1 @int)
+        (lit 2 @int)
+        (lit 3 @int)
+    (let m @map[string]int sym#31)
+      (map @map[string]int)
+        (lit "a" @string)
+        (lit 1 @int)
+    (let p @Point sym#32)
+      (struct Point sym#28 @Point)
+        .x
+        (lit 1 @int)
+        .y
+        (lit 2 @int)
+    (assign = @int)
+      (index @unknown)
+        (local xs sym#30 @[int])
+        (lit 0 @int)
+      (lit 9 @int)
+    (eval)
+      (builtin println @())
+        (local xs sym#30 @[int])
+        (local m sym#31 @map[string]int)
+        (field .x @int)
+          (local p sym#32 @Point)
+        (builtin len @int)
+          (range @range)
+            (lit 0 @int)
+            (lit 3 @int)

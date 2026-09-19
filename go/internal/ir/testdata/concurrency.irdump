@@ -1,0 +1,16 @@
+prog
+  fn emit(ch @chan[string])#28
+    (eval)
+      (builtin send @())
+        (get ch @chan[string])
+        (const "hi" @string)
+  fn main()#29
+    local ch @chan[unknown]
+    (let ch @chan[unknown])
+      (builtin makeChan @chan[unknown])
+    (go emit#28)
+      (get ch @chan[unknown])
+    (eval)
+      (builtin println @())
+        (builtin recv @Result[unknown, error])
+          (get ch @chan[unknown])

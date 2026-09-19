@@ -1,0 +1,40 @@
+prog
+  fn parse(s @string) @Result[int, error]#28
+    (if)
+      (binary == @bool)
+        (get s @string)
+        (const "" @string)
+      (return @Result[int, error])
+        (ctor Err#27 @Result[int, error])
+          (builtin err @error)
+            (const "空" @string)
+    (return @Result[int, error])
+      (ctor Ok#26 @Result[int, error])
+        (builtin int @int)
+          (get s @string)
+  fn run(s @string) @Result[int, error]#29
+    local v @int
+    (let v @int)
+      (try @unknown)
+        (call parse#28 @Result[int, error])
+          (get s @string)
+    (return @Result[int, error])
+      (ctor Ok#26 @Result[int, error])
+        (binary * @int)
+          (get v @int)
+          (const 2 @int)
+  fn main()#30
+    (eval)
+      (builtin println @())
+        (match result @int)
+          (call run#29 @Result[int, error])
+            (const "21" @string)
+          arm @int
+            (ctorpat Ok#26)
+              (bind v @int)
+            (get v @int)
+          arm @int
+            (ctorpat Err#27)
+              (bind e @error)
+            (unary - @int)
+              (const 1 @int)

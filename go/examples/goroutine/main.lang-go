@@ -1,0 +1,13 @@
+// goroutine —— go 语句：后台任务（decisions #57）
+// 语义：fire-and-forget，进程退出前 join；任务结果读取时序与 Go 一致（程序员责任）。
+// →Go 真并行（行序不定）；→JS/解释器单线程同步执行（顺序确定）。
+
+fn work(tag: string) {
+    println("task " + tag)
+}
+
+fn main() {
+    go work("a")
+    go work("b")
+    println("main")
+}

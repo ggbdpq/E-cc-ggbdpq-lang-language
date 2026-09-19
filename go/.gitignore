@@ -1,0 +1,4 @@
+lang-go.exe
+out/
+*.exe
+.mimosa/

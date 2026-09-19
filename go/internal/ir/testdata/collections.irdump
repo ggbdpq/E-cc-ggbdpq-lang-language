@@ -1,0 +1,47 @@
+prog
+  struct Point
+    field x @int
+    field y @int
+  fn main()#29
+    local xs @[int]
+    local m @map[string]int
+    local p @Point
+    local mut total @int
+    (let xs @[int])
+      (arr @[int])
+        (const 1 @int)
+        (const 2 @int)
+        (const 3 @int)
+    (let m @map[string]int)
+      (map @map[string]int)
+        (const "a" @string)
+        (const 1 @int)
+    (let p @Point)
+      (struct Point @Point)
+        .x
+        (const 1 @int)
+        .y
+        (const 2 @int)
+    (assign =)
+      (index @unknown)
+        (get xs @[int])
+        (const 0 @int)
+      (const 9 @int)
+    (let total @int)
+      (const 0 @int)
+    (for x @int iter:slice)
+      (get xs @[int])
+      (assign +=)
+        (get total @int)
+        (get x @int)
+    (eval)
+      (builtin println @())
+        (get xs @[int])
+        (get m @map[string]int)
+        (field .x @int)
+          (get p @Point)
+        (get total @int)
+        (builtin len @int)
+          (range @range)
+            (const 0 @int)
+            (const 3 @int)

@@ -1,0 +1,15 @@
+// json —— 标准库委托最小面：jsonParse / jsonStringify
+fn main() {
+    println(jsonParse("42"))
+    println(jsonParse("2.5"))
+    println(jsonParse("\"hi\""))
+    println(jsonParse("true"))
+    println(jsonParse("null") == None)
+    let a = jsonParse("[1, \"a\", null]")
+    println(len(a), a[1], a[2] == None)
+    println(jsonStringify(jsonParse("[1, 2.5, \"a\"]")))
+    println(jsonStringify(jsonParse("{\"b\": 1, \"a\": 2}")))
+    var m: map[string]string = {}
+    m["k"] = "v"
+    println(jsonStringify(m))
+}

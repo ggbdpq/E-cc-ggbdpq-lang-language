@@ -1,0 +1,37 @@
+// channel —— chan 阻塞语义（decisions #63）+ go 组合
+// recv 阻塞直到有值：「go 生产者 + 主流程 recv」是三路一致的确定性模式
+// （解释器/→JS 的 go 在语句处同步执行完；→Go 真 goroutine 由阻塞 recv 等待）
+// 死锁程序（recv 后永远无人 send）：解释器/→JS 立即 Err，→Go 由 Go runtime panic 兜底
+
+fn squares(ch: chan[int], n: int) {
+    var i = 0
+    while i < n {
+        send(ch, i * i)
+        i += 1
+    }
+}
+
+fn sumN(ch: chan[int], n: int): Result[int, error] {
+    var sum = 0
+    var k = 0
+    while k < n {
+        let v = recv(ch)?
+        sum += v
+        k += 1
+    }
+    return Ok(sum)
+}
+
+fn main() {
+    // 主流程内同步 send/recv
+    var ch = makeChan()
+    send(ch, 42)
+    send(ch, 7)
+    println(recv(ch))
+    println(recv(ch))
+
+    // go 生产者 + 主流程阻塞 recv：0² + 1² + 2² = 5
+    var ch2 = makeChan()
+    go squares(ch2, 3)
+    println(sumN(ch2, 3))
+}

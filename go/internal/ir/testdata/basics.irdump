@@ -1,0 +1,15 @@
+prog
+  fn add(a @int, b @int) @int#28
+    (return @int)
+      (binary + @int)
+        (get a @int)
+        (get b @int)
+  fn main()#29
+    local n @int
+    (let n @int)
+      (call add#28 @int)
+        (const 1 @int)
+        (const 2 @int)
+    (eval)
+      (builtin println @())
+        (get n @int)

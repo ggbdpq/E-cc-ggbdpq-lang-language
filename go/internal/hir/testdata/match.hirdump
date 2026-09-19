@@ -1,0 +1,23 @@
+prog
+  enum Shape  sym#28
+    case Circle(@float) sym#29
+    case Unit() sym#30
+  fn area(s @Shape) @float  sym#31
+    (return @float)
+      (match enum @float)
+        (local s sym#33 @Shape)
+        arm @float
+          (ctorpat Circle sym#29)
+            (bind r @float)
+          (binary * @float)
+            (lit 3 @float)
+            (local r sym#34 @float)
+        arm @float
+          (ctorpat Unit sym#30)
+          (lit 0 @float)
+  fn main()  sym#32
+    (eval)
+      (builtin println @())
+        (call area sym#31 @float)
+          (ctor Circle sym#29 @Shape)
+            (lit 2 @float)

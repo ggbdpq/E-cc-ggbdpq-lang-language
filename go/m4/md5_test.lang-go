@@ -1,0 +1,13 @@
+// md5_test.lang-go —— RFC 1321 官方向量（与 linkpull md5_test.go 同源）
+// 运行：在 m4 目录下 `lang-go test`（先装载 main.lang-go 之前的实现文件不需要：
+// 实现在 md5.lang-go/wbi.lang-go —— 由 lang-go test 的多文件装载顺序保证，
+// 见 wbi_test.lang-go 头注与 cli 约定）。
+fn testMD5RFC1321向量() {
+    assert(md5Hex("") == "d41d8cd98f00b204e9800998ecf8427e", "空串")
+    assert(md5Hex("a") == "0cc175b9c0f1b6a831c399e269772661", "a")
+    assert(md5Hex("abc") == "900150983cd24fb0d6963f7d28e17f72", "abc")
+    assert(md5Hex("message digest") == "f96b697d7cb7938d525a2f31aaf161d0", "message digest")
+    assert(md5Hex("abcdefghijklmnopqrstuvwxyz") == "c3fcd3d76192e4007dfb496cca67e13b", "字母表")
+    assert(md5Hex("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789") == "d174ab98d277d9f5a5611c2c9f419d9f", "62 字符")
+    assert(md5Hex("12345678901234567890123456789012345678901234567890123456789012345678901234567890") == "57edf4a22be3c955ac49da2e2107b67a", "8 组 0-9")
+}
