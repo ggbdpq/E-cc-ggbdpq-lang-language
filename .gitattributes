@@ -1,0 +1,3 @@
+# 统一文本文件 LF 检出——字节级差分测试（gofixture 等）依赖稳定行尾
+* text=auto eol=lf
+*.exe binary
