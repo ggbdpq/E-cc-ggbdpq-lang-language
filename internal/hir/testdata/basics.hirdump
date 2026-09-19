@@ -1,0 +1,14 @@
+prog
+  fn add(a @int, b @int) @int  sym#28
+    (return @int)
+      (binary + @int)
+        (local a sym#30 @int)
+        (local b sym#31 @int)
+  fn main()  sym#29
+    (let n @int sym#32)
+      (call add sym#28 @int)
+        (lit 1 @int)
+        (lit 2 @int)
+    (eval)
+      (builtin println @())
+        (local n sym#32 @int)
