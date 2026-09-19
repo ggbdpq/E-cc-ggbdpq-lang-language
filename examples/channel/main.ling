@@ -1,0 +1,28 @@
+// channel —— chan 最小面（decisions #59）
+// v0 语义：无限缓冲队列——send 不阻塞；recv 空即 Err（非阻塞）
+// chan[T] 注解仅作文档（→Go 装箱 chan any）
+// 注意：go 任务与 recv 的跨协程时序 v0 不定（→Go 并行、→JS/解释器同步），
+// 示例只演示主协程内的确定性用法
+
+fn pop(ch: chan[int]): Result[int, error] {
+    let v = recv(ch)?
+    return Ok(v * 2)
+}
+
+fn main() {
+    var ch = makeChan()
+    send(ch, 42)
+    send(ch, 7)
+    println(recv(ch))
+    println(pop(ch))
+
+    // 空接收：Err 而非阻塞
+    println(recv(ch))
+
+    // ? 链：连续取空即 Err 传播
+    let last = match pop(ch) {
+        Ok(v) => v
+        Err(e) => -1
+    }
+    println(last)
+}

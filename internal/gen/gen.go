@@ -213,6 +213,10 @@ func (g *gen) goTypeWith(tps map[string]bool, t syntax.TypeEx) (string, error) {
 		if tt.Name == "any" {
 			return "any", nil
 		}
+		if tt.Name == "chan" {
+			// v0 装箱：chan any（元素经 any 收窄），T 注解仅作文档
+			return "chan any", nil
+		}
 		if tt.Name == "Result" {
 			if len(tt.Args) != 2 {
 				return "", fmt.Errorf("Result 需要两个类型参数")
@@ -331,6 +335,12 @@ func (g *gen) infer(e syntax.Expr) string {
 				return "string"
 			case "isNone":
 				return "bool"
+			case "makeChan":
+				return "chan any"
+			case "send":
+				return "any"
+			case "recv":
+				return "LingRes[any]"
 			case "bytes":
 				return "*LingArr[any]"
 			case "char":
@@ -833,11 +843,16 @@ func (g *gen) emitLet(name string, typ syntax.TypeEx, init syntax.Expr, line int
 			return err
 		}
 		if name != "_" {
+			// 收窄源是 ? 操作数的 Result T（recv → any；用户函数按其注解）
 			bindType := "any"
-			if vt, err := g.resultT(); err == nil {
-				bindType = vt
+			if ot := g.infer(init); strings.HasPrefix(ot, "LingRes[") {
+				bindType = ot[len("LingRes[") : len(ot)-1]
 			}
-			g.w(name + " := " + tmp + ".v")
+			rhs := tmp + ".v"
+			if bindType != "any" {
+				rhs = "lingTo[" + bindType + "](" + rhs + ")"
+			}
+			g.w(name + " := " + rhs)
 			g.scopes[len(g.scopes)-1][name] = bindType
 		}
 		return nil
@@ -1009,7 +1024,7 @@ func isVoidCall(e syntax.Expr, g *gen) bool {
 		return false
 	}
 	switch id.Name {
-	case "println", "print", "push", "assert":
+	case "println", "print", "push", "assert", "send":
 		// →Go 里这些调用无返回值，语句位置不能加 _ =
 		return true
 	}
@@ -2150,7 +2165,7 @@ func (g *gen) emitFnLit(x *syntax.FnLit) (string, error) {
 
 func (g *gen) isBuiltinFn(name string) bool {
 	switch name {
-	case "println", "print", "len", "str", "int", "float", "keys", "values", "has", "push", "assert", "err", "bytes", "char", "jsonParse", "jsonStringify", "isNone":
+	case "println", "print", "len", "str", "int", "float", "keys", "values", "has", "push", "assert", "err", "bytes", "char", "jsonParse", "jsonStringify", "isNone", "makeChan", "send", "recv":
 		return true
 	}
 	return false
@@ -2162,6 +2177,7 @@ var builtinMap = map[string]string{
 	"keys": "lingKeys", "values": "lingValues", "has": "lingHas",
 	"push": "lingPush", "assert": "lingAssert", "err": "lingErr",
 	"bytes": "lingBytes", "char": "lingChar",
+	"makeChan": "lingNewChan", "send": "lingSend", "recv": "lingRecv",
 	"jsonParse": "lingJSONParse", "jsonStringify": "lingJSONStringify",
 	"isNone": "lingIsNone",
 }

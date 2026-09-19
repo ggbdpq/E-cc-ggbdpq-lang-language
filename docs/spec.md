@@ -221,7 +221,8 @@ M2b 起：内建映射到后端宿主（`http`、`json`、`time` 等，见 decis
 
 | 差异点 | →Go 后端 | →JS 后端 |
 |--------|----------|----------|
-| 并行度 | 真 goroutine 并行 | 全 async 单线程（`go`/`chan` v0.2 遇到即报未支持） |
+| 并行度 | 真 goroutine 并行（`go` 语句 + WaitGroup join） | 全 async 单线程；`go` 同步执行（顺序确定子集） |
+| chan | 原生 `chan any`（缓冲 1024，满则运行时错） | 队列模拟（send 不阻塞、recv 空即 Err，与 →Go 判定一致） |
 | GC | Go 运行时 | JS 引擎 |
 | 标准库委托 | Go stdlib | 内置对象 + fetch（Node 18+） |
 | 整数 | int64 | BigInt；JSON 解析数字为 number（>2^53 精度丢失，文档化差异） |

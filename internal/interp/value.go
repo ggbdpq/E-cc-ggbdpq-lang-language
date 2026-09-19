@@ -102,6 +102,9 @@ type EnumVal struct {
 
 type PtrVal struct{ Cell *Value }
 
+// ChanVal 通道（v0 无限缓冲队列；send 不阻塞、recv 空即 Err，decisions #59）
+type ChanVal struct{ Items []Value }
+
 type Closure struct {
 	Name string
 	Decl *syntax.FnDecl
@@ -200,6 +203,8 @@ func typeName(v Value) string {
 		return "内建函数"
 	case *PtrVal:
 		return "引用"
+	case *ChanVal:
+		return "chan"
 	}
 	return "未知值"
 }

@@ -1395,7 +1395,7 @@ func (g *jsgen) emitArmReturn(arm *syntax.Arm) error {
 
 func (g *jsgen) isBuiltinFn(name string) bool {
 	switch name {
-	case "println", "print", "len", "str", "int", "float", "keys", "values", "has", "push", "assert", "err", "bytes", "char", "jsonParse", "jsonStringify", "isNone":
+	case "println", "print", "len", "str", "int", "float", "keys", "values", "has", "push", "assert", "err", "bytes", "char", "jsonParse", "jsonStringify", "isNone", "makeChan", "send", "recv":
 		return true
 	}
 	return false
@@ -1441,7 +1441,8 @@ func (g *jsgen) emitCall(x *syntax.CallEx) (string, error) {
 		"keys": "lingKeys", "has": "lingHas", "push": "lingPush",
 		"assert": "lingAssert", "err": "lingErr", "bytes": "lingBytes",
 		"char": "lingChar", "jsonParse": "lingJSONParse", "jsonStringify": "lingJSONStringify",
-		"isNone": "lingIsNone",
+		"isNone": "lingIsNone", "makeChan": "lingNewChan",
+		"send": "lingChanSend", "recv": "lingChanRecv",
 	}
 	if bf, ok := builtins[id.Name]; ok {
 		if id.Name == "values" {

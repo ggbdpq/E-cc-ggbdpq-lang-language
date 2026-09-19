@@ -292,6 +292,16 @@ function lingMul(a, b) {
   if (typeof a === 'number' && typeof b === 'number') return a * b;
   throw new Error("*= 类型不符");
 }
+function lingNewChan() { return { __lingChan: true, items: [] }; }
+function lingChanSend(ch, v) {
+  if (!ch || !ch.__lingChan) throw new Error("send 需要通道");
+  ch.items.push(v);
+}
+function lingChanRecv(ch) {
+  if (!ch || !ch.__lingChan) throw new Error("recv 需要通道");
+  if (ch.items.length === 0) return { __lingRes: true, ok: false, v: undefined, e: lingErr("channel 空") };
+  return { __lingRes: true, ok: true, v: ch.items.shift(), e: undefined };
+}
 function lingIsNone(v) { return !!(v && v.__lingOpt && !v.has); }
 
 // ———— 标准库委托：json ————

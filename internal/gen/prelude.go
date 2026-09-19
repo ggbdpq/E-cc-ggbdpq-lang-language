@@ -401,6 +401,27 @@ func lingAdd(a, b any) any {
 	panic("+= 类型不符")
 }
 
+// —— 并发：chan（v0 无限缓冲语义：send 不阻塞、recv 空即 Err；缓冲上限 1024） ————
+
+func lingNewChan() chan any { return make(chan any, 1024) }
+
+func lingSend(ch chan any, v any) {
+	select {
+	case ch <- v:
+	default:
+		panic("channel 缓冲已满（1024）")
+	}
+}
+
+func lingRecv(ch chan any) LingRes[any] {
+	select {
+	case v := <-ch:
+		return LingOk[any](v)
+	default:
+		return LingResErr[any](lingErr("channel 空"))
+	}
+}
+
 // —— 并发：go 语句 ——
 
 var lingWG sync.WaitGroup

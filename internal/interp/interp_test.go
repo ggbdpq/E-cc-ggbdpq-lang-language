@@ -471,6 +471,30 @@ fn main() {
 	wantErr(t, "fn main() {\n    go 1 + 1\n}", "go")
 }
 
+// —— chan 最小面（decisions #59）：无限缓冲队列，send 不阻塞、recv 空即 Err ——
+
+func TestChannel(t *testing.T) {
+	wantOut(t, `var ch = makeChan()
+send(ch, 42)
+println(recv(ch))`, "Ok(42)\n")
+	wantOut(t, `var ch = makeChan()
+send(ch, "a")
+send(ch, "b")
+println(recv(ch))
+println(recv(ch))`, "Ok(\"a\")\nOk(\"b\")\n")
+	// 空接收 → Err（非阻塞语义）
+	wantOut(t, `var ch = makeChan()
+println(recv(ch))`, "Err(error{msg: \"channel 空\"})\n")
+	// recv 解包 ?（函数边界合成 Err）
+	wantOut(t, `fn pop(ch): Result[int, error] {
+    let v = recv(ch)?
+    return Ok(v * 2)
+}
+var ch = makeChan()
+send(ch, 21)
+println(pop(ch))`, "Ok(42)\n")
+}
+
 // —— Q28：十六进制字面量 ——
 
 func Test十六进制字面量(t *testing.T) {

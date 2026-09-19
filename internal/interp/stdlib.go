@@ -33,6 +33,38 @@ func (it *Interp) preludeStdlib() {
 	}
 	reg("jsonParse", jsonParseBuiltin)
 	reg("jsonStringify", jsonStringifyBuiltin)
+	reg("makeChan", func(it *Interp, args []Value) (Value, error) {
+		if len(args) != 0 {
+			return nil, fmt.Errorf("makeChan 不需要参数")
+		}
+		return &ChanVal{}, nil
+	})
+	reg("send", func(it *Interp, args []Value) (Value, error) {
+		if len(args) != 2 {
+			return nil, fmt.Errorf("send 需要 2 个参数（ch, v），得到 %d 个", len(args))
+		}
+		ch, ok := args[0].(*ChanVal)
+		if !ok {
+			return nil, fmt.Errorf("send 需要通道，得到 %s", typeName(args[0]))
+		}
+		ch.Items = append(ch.Items, args[1])
+		return UnitVal{}, nil
+	})
+	reg("recv", func(it *Interp, args []Value) (Value, error) {
+		if len(args) != 1 {
+			return nil, fmt.Errorf("recv 需要 1 个参数（ch），得到 %d 个", len(args))
+		}
+		ch, ok := args[0].(*ChanVal)
+		if !ok {
+			return nil, fmt.Errorf("recv 需要通道，得到 %s", typeName(args[0]))
+		}
+		if len(ch.Items) == 0 {
+			return errResult(it, "channel 空"), nil
+		}
+		v := ch.Items[0]
+		ch.Items = ch.Items[1:]
+		return &EnumVal{Def: it.enums["Result"], Case: 0, Payloads: []Value{v}}, nil
+	})
 	reg("isNone", func(it *Interp, args []Value) (Value, error) {
 		if err := it.arity("isNone", args, 1); err != nil {
 			return nil, err

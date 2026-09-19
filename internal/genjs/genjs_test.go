@@ -134,6 +134,15 @@ func Test等价JS_goroutine(t *testing.T) {
 	}
 }
 
+func Test等价JS_channel(t *testing.T) {
+	prog := loadDir(t, "examples/channel")
+	want := interpRunJS(t, prog)
+	got := nodeRun(t, transpileJS(t, prog))
+	if got != want {
+		t.Fatalf("channel 输出不一致: 解释器 %q Node %q", want, got)
+	}
+}
+
 func Test等价JS_M4移植(t *testing.T) {
 	prog := loadDir(t, "m4")
 	want := interpRunJS(t, prog)

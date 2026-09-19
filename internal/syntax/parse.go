@@ -604,6 +604,19 @@ func (p *Parser) parseEnum() (Stmt, error) {
 func (p *Parser) parseType() (TypeEx, error) {
 	t := p.cur()
 	switch t.Kind {
+	case KwChan: // chan[T] 通道类型（decisions #59）
+		p.next()
+		if !p.accept(LBracket) {
+			return nil, p.errAt(t, "chan 需要 elem 类型参数，如 chan[int]")
+		}
+		elem, err := p.parseType()
+		if err != nil {
+			return nil, err
+		}
+		if _, err := p.expect(RBracket); err != nil {
+			return nil, err
+		}
+		return &NamedType{Name: "chan", Args: []TypeEx{elem}}, nil
 	case Amp:
 		p.next()
 		elem, err := p.parseType()
