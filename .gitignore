@@ -1,0 +1,8 @@
+# 构建产物与本地状态
+out/
+out_m4/
+*.exe
+.mimosa/
+finding-ledger/
+history/
+hook-state/
