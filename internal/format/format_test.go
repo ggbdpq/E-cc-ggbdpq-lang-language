@@ -198,3 +198,22 @@ func Test缩进规范化(t *testing.T) {
 		t.Fatalf("缩进不符\n=== 期望 ===\n%q\n=== 实际 ===\n%q", want, out)
 	}
 }
+
+// —— chan 类型注解输出（decisions #59/#63）：chan[T] 经 NamedType 路径原样输出 ——
+
+func TestChan注解输出(t *testing.T) {
+	out, err := Format("fn prod(ch: chan[int], n: int) {\nsend(ch, n)\n}\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out, "fn prod(ch: chan[int], n: int)") {
+		t.Fatalf("chan 注解输出不符\n=== 输出 ===\n%s", out)
+	}
+	once, err := Format(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if once != out {
+		t.Fatalf("chan 注解场景不幂等\n=== 一次 ===\n%s\n=== 二次 ===\n%s", out, once)
+	}
+}

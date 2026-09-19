@@ -221,3 +221,33 @@ func Test等价_示例程序(t *testing.T) {
 		}
 	})
 }
+
+// —— recv 阻塞语义（decisions #63）：recv 等待直到有值 ————
+
+// 确定性判据：send 延迟 50ms 到达，recv 必须等到它。
+// 非阻塞旧实现（select-default）会立即返回 Err——此测试即为红绿判定点。
+// prelude 是字符串模板，故经 goRun 执行「prelude + 手写 main」的完整产物验证。
+func TestRecv阻塞语义(t *testing.T) {
+	if testing.Short() {
+		t.Skip("short 模式跳过 go build")
+	}
+	src := prelude + `
+func main() {
+	ch := lingNewChan()
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		lingSend(ch, 42)
+	}()
+	r := lingRecv(ch)
+	if !r.ok {
+		fmt.Println("ERR")
+		return
+	}
+	fmt.Println("OK", r.v)
+}
+`
+	got := goRun(t, src)
+	if got != "OK 42\n" {
+		t.Fatalf("recv 应阻塞等到延迟 send 的值，实际输出 %q（ERR=非阻塞旧实现）", got)
+	}
+}

@@ -14,7 +14,7 @@ ling 是一门覆盖前端、后端与日常工具开发的个人语言：源码
 | 错误 | `Result[T, E]` 值 + `?` 传播 + `match` 处理；**无异常** |
 | null | **不存在**；可选值只有 `Option[T]` |
 | 内存 | GC 由宿主承担（→Go 用 Go GC，→JS 用引擎 GC）；struct 值语义，slice/map 引用语义 |
-| 并发 | goroutine 语义预留；v0 解释器顺序执行，`go`/`chan` 为保留字 |
+| 并发 | `go` 语句 + `chan[T]`（v0.2 已交付，decisions #57/#59/#63）；解释器/→JS 为顺序确定的同步子集，→Go 真 goroutine（平台差异见 §6.4） |
 | 元编程 | 无宏、无反射 |
 | 模块 | 目录=包，`ling.toml` 标模块根；v0 解释器单文件运行 |
 
@@ -24,7 +24,7 @@ ling 是一门覆盖前端、后端与日常工具开发的个人语言：源码
 - 注释：`//` 行注释，无块注释（v0）。
 - 标识符：Unicode 字母或 `_` 开头，后接字母/数字/`_`；单独的 `_` 是通配符记号。
 - 关键字（15 个）：`let var fn return if else while for in match struct enum true false break continue`。
-- 保留字（5 个，v0 使用即报错"尚未启用"）：`go chan import extern interface`。
+- 保留字（5 个）：`go chan import extern interface`。go/chan/import/extern 已启用（§3.2、§4、§5）；`interface` v0 使用即报错"尚未启用"。
 - 整数字面量：十进制或十六进制 `0x`/`0X` 前缀（如 `0xFF`），类型 `int`（64 位）。浮点字面量：含 `.` 的数字串（`.` 后须为数字，故 `1..3` 是两个整数夹区间），类型 `float`（64 位）。无科学计数法（v0）。fmt 统一输出十进制。
 - 字符串字面量：双引号，转义支持 `\n \t \r \" \\`；不可变；按 Unicode 码点索引/切片，`len()` 返回码点数。
 - 无分号。**换行即语句结束**；仅当上一记号为运算符、逗号、冒号、`=>`、`..`、`.` 或开括号 `(` `[` `{` 时，该换行被忽略（续行）。因此多行字面量与多行实参表须在行尾留逗号。match 分支之间靠换行分隔，且 match 可作实参——其分支的换行同样存活（v0.1 实现时废弃了"括号深度内压制换行"的初版规则，因为它会吞掉实参位置 match 的分支分隔）。
@@ -77,6 +77,7 @@ fn (r Rect).area(): float {
 | 循环 | `while c { }`；`for x in 迭代器 { }` | 支持 `break`/`continue` |
 | 返回 | `return` / `return e` | 无值返回得到 `()`（unit） |
 | 表达式语句 | `f(x)` | 求值后丢弃 |
+| 并发 | `go <具名函数调用>` | fire-and-forget 后台任务（decisions #57）；→Go 真 goroutine + main 尾部 join，解释器/→JS 在语句处同步执行。实参在 go 语句处求值 |
 
 `for` 迭代器：数组（元素）、映射（键）、字符串（单字符字符串）、区间 `lo..hi`（半开，int）。
 
@@ -161,6 +162,7 @@ struct error { msg: string }
 | `jsonStringify` | `(any) → string` | 标量/数组/映射/None→null；映射键按字母序输出（两端确定） |
 | `isNone` | `(any) → bool` | 判 `None`（JSON null 的 ling 表示） |
 | `http.get` | `(url: string, headers: map[string]string) → Result[HttpResp, error]` | 网络错误=Err；任何响应（含 4xx/5xx）=Ok。`HttpResp{status: int, body: string}` 预载 |
+| `makeChan` / `send` / `recv` | `()` / `(ch, v)` / `(ch) → Result[T, error]` | chan 最小面（decisions #59/#63）。`chan[T]` 类型注解（→Go 装箱 `chan any`，T 仅文档）；send 不阻塞（缓冲 1024，满则运行时错）；**recv 阻塞直到有值**——解释器/→JS 的 go 同步执行语义下 recv 时要么有值、要么永远无人 send（死锁程序错误 → Err"channel 空"），→Go 原生阻塞、确无 send 方时 Go runtime panic 兜底 |
 | `assert` | `(cond, msg?)` | 失败即运行时错误，测试用 |
 | `err` | `(msg: string) → error` | 构造 error |
 
@@ -222,7 +224,7 @@ M2b 起：内建映射到后端宿主（`http`、`json`、`time` 等，见 decis
 | 差异点 | →Go 后端 | →JS 后端 |
 |--------|----------|----------|
 | 并行度 | 真 goroutine 并行（`go` 语句 + WaitGroup join） | 全 async 单线程；`go` 同步执行（顺序确定子集） |
-| chan | 原生 `chan any`（缓冲 1024，满则运行时错） | 队列模拟（send 不阻塞、recv 空即 Err，与 →Go 判定一致） |
+| chan | 原生 `chan any`（缓冲 1024，满则运行时错）；recv 原生阻塞，死锁由 Go runtime panic 兜底 | 队列模拟（send 不阻塞；go 同步语义下 recv 时要么有值要么死锁 Err，与解释器一致） |
 | GC | Go 运行时 | JS 引擎 |
 | 标准库委托 | Go stdlib | 内置对象 + fetch（Node 18+） |
 | 整数 | int64 | BigInt；JSON 解析数字为 number（>2^53 精度丢失，文档化差异） |

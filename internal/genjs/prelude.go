@@ -292,6 +292,8 @@ function lingMul(a, b) {
   if (typeof a === 'number' && typeof b === 'number') return a * b;
   throw new Error("*= 类型不符");
 }
+// —— 并发：chan（decisions #59/#63）。recv 语义为阻塞直到有值；→JS 的 go 在语句处
+// 同步执行完（decisions #57），故 recv 执行时要么有值、要么永远无人 send（死锁 → Err）
 function lingNewChan() { return { __lingChan: true, items: [] }; }
 function lingChanSend(ch, v) {
   if (!ch || !ch.__lingChan) throw new Error("send 需要通道");

@@ -981,7 +981,8 @@ func (g *gen) emitCompoundAssign(st *syntax.AssignStmt) error {
 			g.w(tgt.Name + " = lingPushFrom(" + tgt.Name + ", " + expr + ")")
 			return nil
 		}
-		g.w(tgt.Name + " " + op + " " + expr)
+		// any 右值（如 recv(ch)? 解包）按目标类型收窄，Go 原生 += 不接受 any（#40 统一出口）
+		g.w(tgt.Name + " " + op + " " + g.maybeWrap(lt, g.infer(st.Val), expr))
 		return nil
 	case *syntax.FieldEx:
 		obj, err := g.expr(tgt.Obj)

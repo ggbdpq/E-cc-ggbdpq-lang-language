@@ -471,7 +471,8 @@ fn main() {
 	wantErr(t, "fn main() {\n    go 1 + 1\n}", "go")
 }
 
-// —— chan 最小面（decisions #59）：无限缓冲队列，send 不阻塞、recv 空即 Err ——
+// —— chan（decisions #59/#63）：send 不阻塞；recv 阻塞语义，解释器同步模型下
+// recv 时要么有值、要么永远无人 send（死锁程序错误 → Err"channel 空"）——
 
 func TestChannel(t *testing.T) {
 	wantOut(t, `var ch = makeChan()
@@ -482,7 +483,7 @@ send(ch, "a")
 send(ch, "b")
 println(recv(ch))
 println(recv(ch))`, "Ok(\"a\")\nOk(\"b\")\n")
-	// 空接收 → Err（非阻塞语义）
+	// 空接收且无人会 send → 死锁程序错误（解释器/→JS 表现为 Err；→Go 由 Go runtime panic 兜底）
 	wantOut(t, `var ch = makeChan()
 println(recv(ch))`, "Err(error{msg: \"channel 空\"})\n")
 	// recv 解包 ?（函数边界合成 Err）
@@ -493,6 +494,13 @@ println(recv(ch))`, "Err(error{msg: \"channel 空\"})\n")
 var ch = makeChan()
 send(ch, 21)
 println(pop(ch))`, "Ok(42)\n")
+	// go 生产者 + 主流程 recv：go 同步执行语义下 recv 时值已就绪（→Go 侧由阻塞 recv 等待，decisions #63）
+	wantOut(t, `fn prod(ch: chan[int]) {
+    send(ch, 5)
+}
+var ch = makeChan()
+go prod(ch)
+println(recv(ch))`, "Ok(5)\n")
 }
 
 // —— Q28：十六进制字面量 ——

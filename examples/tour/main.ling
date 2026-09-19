@@ -34,6 +34,11 @@ fn parseAge(s: string): Result[int, error] {
     return Ok(int(s))
 }
 
+fn emit(ch: chan[string], who: string) {
+    send(ch, "hi " + who)
+    send(ch, "bye " + who)
+}
+
 fn main() {
     // ===== 1. 绑定与基本类型 =====
     // let 不可重绑，var 可以；int 与 float 不隐式转换
@@ -114,4 +119,11 @@ fn main() {
     // 动态值：null 变 None，对象键排序
     let v = jsonParse("{\"b\": 2, \"a\": [1, null]}")
     println("== 9 JSON ==", v["a"][0], v["a"][1] == None, jsonStringify(v))
+
+    // ===== 10. 并发：go 与 chan =====
+    // go 启动后台任务（→Go 真 goroutine + 进程退出前 join；解释器/→JS 在语句处同步执行）；
+    // recv 阻塞直到有值：go 生产者 + 主流程 recv 是三路一致的确定性模式（decisions #63）
+    var ch = makeChan()
+    go emit(ch, "ling")
+    println("== 10 并发 ==", recv(ch), recv(ch))
 }

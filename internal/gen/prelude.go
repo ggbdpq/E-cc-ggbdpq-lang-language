@@ -401,7 +401,7 @@ func lingAdd(a, b any) any {
 	panic("+= 类型不符")
 }
 
-// —— 并发：chan（v0 无限缓冲语义：send 不阻塞、recv 空即 Err；缓冲上限 1024） ————
+// —— 并发：chan（阻塞 recv 语义：recv 等待直到有值；send 不阻塞、缓冲上限 1024） ————
 
 func lingNewChan() chan any { return make(chan any, 1024) }
 
@@ -413,13 +413,10 @@ func lingSend(ch chan any, v any) {
 	}
 }
 
+// lingRecv 阻塞直到有值（decisions #63）；无人 send 的死锁程序由 Go runtime panic 兜底
 func lingRecv(ch chan any) LingRes[any] {
-	select {
-	case v := <-ch:
-		return LingOk[any](v)
-	default:
-		return LingResErr[any](lingErr("channel 空"))
-	}
+	v := <-ch
+	return LingOk[any](v)
 }
 
 // —— 并发：go 语句 ——

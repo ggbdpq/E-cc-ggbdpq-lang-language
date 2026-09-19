@@ -12,7 +12,7 @@
 | M4 | 移植 linkpull bilibili 提取器核心 | **完成**：md5/wbi/video/list 纯函数层，`ling test` 11/11，E2E（解释器 = →Go = gofixture 原版输出）全绿 |
 | M5 | →JS 后端 + 格式化器 + 最小检查器 + CLI 子目录 | 未开始（见 docs/roadmap.md） |
 
-v0 解释器的边界（诚实声明）：不做静态类型检查（注解为文档性）、match 穷尽性在解释器运行时检查、单模块运行（import 仅限模块根内相对路径）、单线程。→Go 转译的约束与映射表见 spec §6。
+v0 解释器的边界（诚实声明）：不做静态类型检查（注解为文档性）、match 穷尽性在解释器运行时检查、单模块运行（import 仅限模块根内相对路径）、单线程（go 同步执行，chan 阻塞语义见 decisions #63）。→Go 转译的约束与映射表见 spec §6。
 
 ## 上手
 
