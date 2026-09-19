@@ -228,9 +228,19 @@ func SymbolsEnvelope(prog []syntax.Stmt, res *semantic.Result, ty *types.Result)
 	return Envelope{SchemaVersion: SchemaVersion, ToolVersion: ToolVersion, Kind: KindInspectSymbols, Symbols: Symbols(prog, res, ty)}
 }
 
-// ReferencesEnvelope inspect refs --json
-func ReferencesEnvelope(prog []syntax.Stmt, res *semantic.Result) Envelope {
-	return Envelope{SchemaVersion: SchemaVersion, ToolVersion: ToolVersion, Kind: KindInspectRefs, References: References(prog, res)}
+// ReferencesEnvelope inspect refs --json；symbolID >= 0 时按符号过滤
+func ReferencesEnvelope(prog []syntax.Stmt, res *semantic.Result, symbolID int) Envelope {
+	refs := References(prog, res)
+	if symbolID >= 0 {
+		filtered := refs[:0]
+		for _, r := range refs {
+			if r.SymbolID == symbolID {
+				filtered = append(filtered, r)
+			}
+		}
+		refs = filtered
+	}
+	return Envelope{SchemaVersion: SchemaVersion, ToolVersion: ToolVersion, Kind: KindInspectRefs, References: refs}
 }
 
 // TypeEnvelope inspect type --json；未命中 ok=false（负载为结构化 error）

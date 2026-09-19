@@ -285,7 +285,13 @@ func runInspect(args []string) int {
 	case "symbols":
 		printJSON(contract.SymbolsEnvelope(prog, a.Res, a.Ty))
 	case "refs":
-		printJSON(contract.ReferencesEnvelope(prog, a.Res))
+		symID := -1
+		for i, a2 := range args {
+			if a2 == "--symbol" && i+1 < len(args) {
+				symID, _ = strconv.Atoi(args[i+1])
+			}
+		}
+		printJSON(contract.ReferencesEnvelope(prog, a.Res, symID))
 	case "type":
 		if line == 0 {
 			printJSON(contract.ErrorEnvelope(kind, "缺少 --line/--column 参数"))

@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
-	"unicode/utf8"
 )
 
 // Error 解析错误。Incomplete 为 true 表示输入在语法中途截断，REPL 据此续行；
@@ -87,14 +86,16 @@ func (p *Parser) next() Token {
 	return t
 }
 
-// lineStarts 每行起始 rune 偏移（0 基）
+// lineStarts 每行起始 rune 偏移（0 基）——与 Lexer 的 rune 偏移同一度量
 func lineStarts(src string) []int {
 	starts := []int{0}
-	nl := rune(10)
-	for i, r := range src {
+	nl := rune(10) // '\n'
+	n := 0
+	for _, r := range src {
 		if r == nl {
-			starts = append(starts, i+utf8.RuneLen(nl))
+			starts = append(starts, n+1)
 		}
+		n++
 	}
 	return starts
 }

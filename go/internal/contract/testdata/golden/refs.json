@@ -10,12 +10,12 @@
         "start": {
           "offset": 257,
           "line": 19,
-          "column": 6
+          "column": 12
         },
         "end": {
           "offset": 259,
           "line": 19,
-          "column": 8
+          "column": 14
         }
       },
       "referenceKind": "call"
@@ -27,12 +27,12 @@
         "start": {
           "offset": 531,
           "line": 33,
-          "column": 3
+          "column": 9
         },
         "end": {
           "offset": 536,
           "line": 33,
-          "column": 8
+          "column": 14
         }
       },
       "referenceKind": "pattern"
@@ -61,12 +61,12 @@
         "start": {
           "offset": 550,
           "line": 34,
-          "column": 3
+          "column": 9
         },
         "end": {
           "offset": 556,
           "line": 34,
-          "column": 9
+          "column": 15
         }
       },
       "referenceKind": "pattern"
@@ -78,12 +78,12 @@
         "start": {
           "offset": 365,
           "line": 27,
-          "column": 7
+          "column": 13
         },
         "end": {
           "offset": 382,
           "line": 27,
-          "column": 24
+          "column": 30
         }
       },
       "referenceKind": "type"
@@ -95,12 +95,12 @@
         "start": {
           "offset": 506,
           "line": 32,
-          "column": 15
+          "column": 21
         },
         "end": {
           "offset": 514,
           "line": 32,
-          "column": 23
+          "column": 29
         }
       },
       "referenceKind": "call"
@@ -112,12 +112,12 @@
         "start": {
           "offset": 444,
           "line": 30,
-          "column": 2
+          "column": 8
         },
         "end": {
           "offset": 448,
           "line": 30,
-          "column": 6
+          "column": 12
         }
       },
       "referenceKind": "call"
@@ -146,12 +146,12 @@
         "start": {
           "offset": 264,
           "line": 19,
-          "column": 13
+          "column": 19
         },
         "end": {
           "offset": 265,
           "line": 19,
-          "column": 14
+          "column": 20
         }
       },
       "referenceKind": "read"
@@ -163,12 +163,12 @@
         "start": {
           "offset": 321,
           "line": 23,
-          "column": 4
+          "column": 10
         },
         "end": {
           "offset": 323,
           "line": 23,
-          "column": 6
+          "column": 12
         }
       },
       "referenceKind": "read"
@@ -180,12 +180,12 @@
         "start": {
           "offset": 333,
           "line": 23,
-          "column": 16
+          "column": 22
         },
         "end": {
           "offset": 336,
           "line": 23,
-          "column": 19
+          "column": 25
         }
       },
       "referenceKind": "read"
@@ -197,12 +197,12 @@
         "start": {
           "offset": 402,
           "line": 28,
-          "column": 14
+          "column": 20
         },
         "end": {
           "offset": 403,
           "line": 28,
-          "column": 15
+          "column": 21
         }
       },
       "referenceKind": "read"
@@ -214,12 +214,12 @@
         "start": {
           "offset": 449,
           "line": 30,
-          "column": 7
+          "column": 13
         },
         "end": {
           "offset": 451,
           "line": 30,
-          "column": 9
+          "column": 15
         }
       },
       "referenceKind": "read"
@@ -231,12 +231,12 @@
         "start": {
           "offset": 481,
           "line": 31,
-          "column": 12
+          "column": 18
         },
         "end": {
           "offset": 483,
           "line": 31,
-          "column": 14
+          "column": 20
         }
       },
       "referenceKind": "read"
@@ -248,12 +248,12 @@
         "start": {
           "offset": 540,
           "line": 33,
-          "column": 12
+          "column": 18
         },
         "end": {
           "offset": 541,
           "line": 33,
-          "column": 13
+          "column": 19
         }
       },
       "referenceKind": "read"
@@ -265,12 +265,12 @@
         "start": {
           "offset": 589,
           "line": 36,
-          "column": 16
+          "column": 22
         },
         "end": {
           "offset": 592,
           "line": 36,
-          "column": 19
+          "column": 25
         }
       },
       "referenceKind": "read"

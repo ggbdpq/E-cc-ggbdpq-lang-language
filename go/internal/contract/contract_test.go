@@ -77,7 +77,7 @@ func TestGolden(t *testing.T) {
 		"hir":          DumpEnvelope(KindDumpHIR, HIRJSON(a.HIR)),
 		"ir":           DumpEnvelope(KindDumpIR, IRJSON(a.Prog)),
 		"symbols":      SymbolsEnvelope(a.AST, a.Res, a.Ty),
-		"refs":         ReferencesEnvelope(a.AST, a.Res),
+		"refs":         ReferencesEnvelope(a.AST, a.Res, -1),
 		"effects":      EffectsEnvelope(Effects(a.Prog)),
 		"dependencies": DependenciesEnvelope(nil),
 	}
