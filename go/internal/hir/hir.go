@@ -17,10 +17,11 @@ import (
 // NodeID 编译内稳定节点编号（先序递增）
 type NodeID int
 
-// Node 元数据嵌入块
+// Node 元数据嵌入块（Span 来自解析器盖章，HIR 保留供契约层输出）
 type Node struct {
 	ID   NodeID
 	Line int
+	Sp   syntax.Span
 	Sym  *semantic.Symbol
 	Typ  *types.Type
 }

@@ -29,12 +29,12 @@ func Build(prog []syntax.Stmt, res *semantic.Result, ty *types.Result) *Prog {
 	return b.out
 }
 
-func (b *builder) node(line int, sym *semantic.Symbol, t *types.Type) Node {
+func (b *builder) node(sp syntax.Span, line int, sym *semantic.Symbol, t *types.Type) Node {
 	b.next++
 	if t == nil {
 		t = types.Unknown
 	}
-	return Node{ID: b.next, Line: line, Sym: sym, Typ: t}
+	return Node{ID: b.next, Line: line, Sp: sp, Sym: sym, Typ: t}
 }
 
 func (b *builder) anno(t syntax.TypeEx, tparams []string) *types.Type {
@@ -113,7 +113,7 @@ func (b *builder) recvStructSym(d *syntax.FnDecl) *semantic.Symbol {
 func (b *builder) structDecl(d *syntax.StructDecl) *StructDecl {
 	sym := b.typeSymByName(d.Name)
 	sd := &StructDecl{
-		Node:       b.node(d.Line, sym, nil),
+		Node:       b.node(d.Sp, d.Line, sym, nil),
 		Name:       d.Name,
 		TypeParams: d.TypeParams,
 	}
@@ -129,7 +129,7 @@ func (b *builder) structDecl(d *syntax.StructDecl) *StructDecl {
 func (b *builder) enumDecl(d *syntax.EnumDecl) *EnumDecl {
 	sym := b.typeSymByName(d.Name)
 	ed := &EnumDecl{
-		Node:       b.node(d.Line, sym, nil),
+		Node:       b.node(d.Sp, d.Line, sym, nil),
 		Name:       d.Name,
 		TypeParams: d.TypeParams,
 	}
@@ -151,7 +151,7 @@ func (b *builder) enumDecl(d *syntax.EnumDecl) *EnumDecl {
 func (b *builder) let(d *syntax.LetStmt) *Let {
 	sym := b.res.DeclSyms[d]
 	return &Let{
-		Node:    b.node(d.Line, sym, b.symType(sym)),
+		Node:    b.node(d.Sp, d.Line, sym, b.symType(sym)),
 		Name:    d.Name,
 		Mutable: d.Mutable,
 		Init:    b.expr(d.Init),
@@ -164,7 +164,7 @@ func (b *builder) fnDecl(d *syntax.FnDecl, sym *semantic.Symbol) *Fn {
 		ret = b.anno(d.Ret, d.TypeParams)
 	}
 	fn := &Fn{
-		Node:       b.node(d.Line, sym, ret),
+		Node:       b.node(d.Sp, d.Line, sym, ret),
 		Name:       d.Name,
 		Sym:        sym,
 		TypeParams: d.TypeParams,
@@ -202,10 +202,10 @@ func (b *builder) stmt(s syntax.Stmt) Stmt {
 
 	case *syntax.ExprStmt:
 		x := b.expr(st.X)
-		return &Eval{Node: b.node(st.Line, nil, types.Unknown), X: x}
+		return &Eval{Node: b.node(st.Sp, st.Line, nil, types.Unknown), X: x}
 
 	case *syntax.ReturnStmt:
-		r := &Return{Node: b.node(st.Line, nil, types.Unknown)}
+		r := &Return{Node: b.node(st.Sp, st.Line, nil, types.Unknown)}
 		if st.Val != nil {
 			r.Val = b.expr(st.Val)
 		}
@@ -213,7 +213,7 @@ func (b *builder) stmt(s syntax.Stmt) Stmt {
 
 	case *syntax.IfStmt:
 		n := &If{
-			Node: b.node(st.Line, nil, types.Unknown),
+			Node: b.node(st.Sp, st.Line, nil, types.Unknown),
 			Cond: b.expr(st.Cond),
 			Then: b.stmts(st.Then),
 			Else: b.stmts(st.Else),
@@ -222,7 +222,7 @@ func (b *builder) stmt(s syntax.Stmt) Stmt {
 
 	case *syntax.WhileStmt:
 		return &While{
-			Node: b.node(st.Line, nil, types.Unknown),
+			Node: b.node(st.Sp, st.Line, nil, types.Unknown),
 			Cond: b.expr(st.Cond),
 			Body: b.stmts(st.Body),
 		}
@@ -230,7 +230,7 @@ func (b *builder) stmt(s syntax.Stmt) Stmt {
 	case *syntax.ForInStmt:
 		sym := b.res.DeclSyms[st]
 		return &ForIn{
-			Node:    b.node(st.Line, sym, types.Unknown),
+			Node:    b.node(st.Sp, st.Line, sym, types.Unknown),
 			Var:     st.Var,
 			VarType: b.symType(sym),
 			Iter:    b.expr(st.Iter),
@@ -238,12 +238,12 @@ func (b *builder) stmt(s syntax.Stmt) Stmt {
 		}
 
 	case *syntax.BreakStmt:
-		return &Break{Node: b.node(st.Line, nil, types.Unknown)}
+		return &Break{Node: b.node(st.Sp, st.Line, nil, types.Unknown)}
 	case *syntax.ContinueStmt:
-		return &Continue{Node: b.node(st.Line, nil, types.Unknown)}
+		return &Continue{Node: b.node(st.Sp, st.Line, nil, types.Unknown)}
 
 	case *syntax.GoStmt:
-		sp := &Spawn{Node: b.node(st.Line, nil, types.Unknown)}
+		sp := &Spawn{Node: b.node(st.Sp, st.Line, nil, types.Unknown)}
 		if id, ok := st.Call.Callee.(*syntax.Ident); ok {
 			sp.Fn = b.res.Refs[id]
 		}
@@ -253,14 +253,14 @@ func (b *builder) stmt(s syntax.Stmt) Stmt {
 		return sp
 
 	case *syntax.FnDecl:
-		return &FnStmt{Node: b.node(st.Line, nil, types.Unknown), Fn: b.fnDecl(st, b.res.DeclSyms[st])}
+		return &FnStmt{Node: b.node(st.Sp, st.Line, nil, types.Unknown), Fn: b.fnDecl(st, b.res.DeclSyms[st])}
 	}
 	return nil
 }
 
 func (b *builder) assign(st *syntax.AssignStmt) *Assign {
 	n := &Assign{
-		Node:   b.node(st.Line, nil, types.Unknown),
+		Node:   b.node(st.Sp, st.Line, nil, types.Unknown),
 		Op:     st.Op,
 		Target: b.assignTarget(st.Target),
 		RHS:    b.expr(st.Val),
@@ -272,11 +272,11 @@ func (b *builder) assignTarget(t syntax.Expr) Expr {
 	switch x := t.(type) {
 	case *syntax.Ident:
 		sym := b.res.Refs[x]
-		return &LocalRef{Node: b.node(x.Line, sym, b.symType(sym)), Name: x.Name}
+		return &LocalRef{Node: b.node(x.Sp, x.Line, sym, b.symType(sym)), Name: x.Name}
 	case *syntax.FieldEx:
-		return &Field{Node: b.node(x.Line, nil, types.Unknown), Obj: b.expr(x.Obj), Name: x.Name}
+		return &Field{Node: b.node(x.Sp, x.Line, nil, types.Unknown), Obj: b.expr(x.Obj), Name: x.Name}
 	case *syntax.IndexEx:
-		return &Index{Node: b.node(x.Line, nil, types.Unknown), Obj: b.expr(x.Obj), Idx: b.expr(x.Idx)}
+		return &Index{Node: b.node(x.Sp, x.Line, nil, types.Unknown), Obj: b.expr(x.Obj), Idx: b.expr(x.Idx)}
 	}
 	return nil
 }
@@ -286,33 +286,33 @@ func (b *builder) assignTarget(t syntax.Expr) Expr {
 func (b *builder) expr(e syntax.Expr) Expr {
 	switch x := e.(type) {
 	case *syntax.IntLit:
-		return &Lit{Node: b.node(x.Line, nil, types.Int), Kind: LitInt, I64: x.Val}
+		return &Lit{Node: b.node(x.Sp, x.Line, nil, types.Int), Kind: LitInt, I64: x.Val}
 	case *syntax.FloatLit:
-		return &Lit{Node: b.node(x.Line, nil, types.Float), Kind: LitFloat, F64: x.Val}
+		return &Lit{Node: b.node(x.Sp, x.Line, nil, types.Float), Kind: LitFloat, F64: x.Val}
 	case *syntax.StrLit:
-		return &Lit{Node: b.node(x.Line, nil, types.String), Kind: LitStr, S: x.Val}
+		return &Lit{Node: b.node(x.Sp, x.Line, nil, types.String), Kind: LitStr, S: x.Val}
 	case *syntax.BoolLit:
-		return &Lit{Node: b.node(x.Line, nil, types.Bool), Kind: LitBool, B: x.Val}
+		return &Lit{Node: b.node(x.Sp, x.Line, nil, types.Bool), Kind: LitBool, B: x.Val}
 
 	case *syntax.Ident:
 		return b.ident(x)
 
 	case *syntax.Unary:
 		return &Unary{
-			Node: b.node(x.Line, nil, b.exprType(x)),
+			Node: b.node(x.Sp, x.Line, nil, b.exprType(x)),
 			Op:   x.Op,
 			X:    b.expr(x.X),
 		}
 
 	case *syntax.Binary:
 		if x.Op == syntax.And {
-			return &AndThen{Node: b.node(x.Line, nil, types.Bool), L: b.expr(x.L), R: b.expr(x.R)}
+			return &AndThen{Node: b.node(x.Sp, x.Line, nil, types.Bool), L: b.expr(x.L), R: b.expr(x.R)}
 		}
 		if x.Op == syntax.Or {
-			return &OrElse{Node: b.node(x.Line, nil, types.Bool), L: b.expr(x.L), R: b.expr(x.R)}
+			return &OrElse{Node: b.node(x.Sp, x.Line, nil, types.Bool), L: b.expr(x.L), R: b.expr(x.R)}
 		}
 		return &Binary{
-			Node: b.node(x.Line, nil, b.exprType(x)),
+			Node: b.node(x.Sp, x.Line, nil, b.exprType(x)),
 			Op:   x.Op,
 			L:    b.expr(x.L),
 			R:    b.expr(x.R),
@@ -320,7 +320,7 @@ func (b *builder) expr(e syntax.Expr) Expr {
 
 	case *syntax.RangeEx:
 		return &Range{
-			Node: b.node(x.Line, nil, types.Range),
+			Node: b.node(x.Sp, x.Line, nil, types.Range),
 			Lo:   b.expr(x.Lo),
 			Hi:   b.expr(x.Hi),
 		}
@@ -330,14 +330,14 @@ func (b *builder) expr(e syntax.Expr) Expr {
 
 	case *syntax.IndexEx:
 		return &Index{
-			Node: b.node(x.Line, nil, b.exprType(x)),
+			Node: b.node(x.Sp, x.Line, nil, b.exprType(x)),
 			Obj:  b.expr(x.Obj),
 			Idx:  b.expr(x.Idx),
 		}
 
 	case *syntax.SliceEx:
 		return &Slice{
-			Node: b.node(x.Line, nil, b.exprType(x)),
+			Node: b.node(x.Sp, x.Line, nil, b.exprType(x)),
 			Obj:  b.expr(x.Obj),
 			Lo:   b.expr(x.Lo),
 			Hi:   b.expr(x.Hi),
@@ -345,23 +345,23 @@ func (b *builder) expr(e syntax.Expr) Expr {
 
 	case *syntax.FieldEx:
 		return &Field{
-			Node: b.node(x.Line, nil, b.exprType(x)),
+			Node: b.node(x.Sp, x.Line, nil, b.exprType(x)),
 			Obj:  b.expr(x.Obj),
 			Name: x.Name,
 		}
 
 	case *syntax.TryEx:
-		return &Try{Node: b.node(x.Line, nil, b.exprType(x)), X: b.expr(x.X)}
+		return &Try{Node: b.node(x.Sp, x.Line, nil, b.exprType(x)), X: b.expr(x.X)}
 
 	case *syntax.StructLit:
-		n := &StructLit{Node: b.node(x.Line, b.res.Refs[x], b.exprType(x))}
+		n := &StructLit{Node: b.node(x.Sp, x.Line, b.res.Refs[x], b.exprType(x))}
 		for _, f := range x.Fields {
 			n.Fields = append(n.Fields, FieldValue{Name: f.Name, Val: b.expr(f.Val)})
 		}
 		return n
 
 	case *syntax.MapLit:
-		n := &MapLit{Node: b.node(x.Line, nil, b.exprType(x))}
+		n := &MapLit{Node: b.node(x.Sp, x.Line, nil, b.exprType(x))}
 		for _, it := range x.Items {
 			n.Keys = append(n.Keys, b.expr(it.Key))
 			n.Vals = append(n.Vals, b.expr(it.Val))
@@ -369,7 +369,7 @@ func (b *builder) expr(e syntax.Expr) Expr {
 		return n
 
 	case *syntax.ArrLit:
-		n := &SliceLit{Node: b.node(x.Line, nil, b.exprType(x))}
+		n := &SliceLit{Node: b.node(x.Sp, x.Line, nil, b.exprType(x))}
 		for _, el := range x.Items {
 			n.Elems = append(n.Elems, b.expr(el))
 		}
@@ -380,7 +380,7 @@ func (b *builder) expr(e syntax.Expr) Expr {
 
 	case *syntax.FnLit:
 		n := &FnLit{
-			Node: b.node(x.Line, nil, b.exprType(x)),
+			Node: b.node(x.Sp, x.Line, nil, b.exprType(x)),
 			Ret:  b.anno(x.Ret, x.TypeParams),
 		}
 		for _, p := range x.Params {
@@ -398,18 +398,18 @@ func (b *builder) ident(x *syntax.Ident) Expr {
 	if sym := b.res.Refs[x]; sym != nil {
 		switch sym.Kind {
 		case semantic.KFn:
-			return &FnRef{Node: b.node(x.Line, sym, t), Name: x.Name}
+			return &FnRef{Node: b.node(x.Sp, x.Line, sym, t), Name: x.Name}
 		case semantic.KCtor:
-			return &Ctor{Node: b.node(x.Line, sym, t), CtorSym: sym}
+			return &Ctor{Node: b.node(x.Sp, x.Line, sym, t), CtorSym: sym}
 		default:
-			return &LocalRef{Node: b.node(x.Line, sym, t), Name: x.Name}
+			return &LocalRef{Node: b.node(x.Sp, x.Line, sym, t), Name: x.Name}
 		}
 	}
 	if b.res.Builtin[x.Name] != nil {
-		return &BuiltinRef{Node: b.node(x.Line, nil, t), Name: x.Name}
+		return &BuiltinRef{Node: b.node(x.Sp, x.Line, nil, t), Name: x.Name}
 	}
 	// 未定义名（checker 已报，构建不该到这里）→ LocalRef 占位
-	return &LocalRef{Node: b.node(x.Line, nil, t), Name: x.Name}
+	return &LocalRef{Node: b.node(x.Sp, x.Line, nil, t), Name: x.Name}
 }
 
 // call 调用脱糖：构造器 / 内建 / 用户 fn / 方法 / 函数值
@@ -419,19 +419,19 @@ func (b *builder) call(x *syntax.CallEx) Expr {
 		sym := b.res.Refs[id]
 		switch {
 		case sym != nil && sym.Kind == semantic.KCtor:
-			n := &Ctor{Node: b.node(x.Line, sym, t), CtorSym: sym}
+			n := &Ctor{Node: b.node(x.Sp, x.Line, sym, t), CtorSym: sym}
 			for _, a := range x.Args {
 				n.Args = append(n.Args, b.expr(a))
 			}
 			return n
 		case sym == nil && b.res.Builtin[id.Name] != nil:
-			n := &Call{Node: b.node(x.Line, nil, t), Builtin: id.Name}
+			n := &Call{Node: b.node(x.Sp, x.Line, nil, t), Builtin: id.Name}
 			for _, a := range x.Args {
 				n.Args = append(n.Args, b.expr(a))
 			}
 			return n
 		case sym != nil && sym.Kind == semantic.KFn:
-			n := &Call{Node: b.node(x.Line, sym, t), Fn: sym}
+			n := &Call{Node: b.node(x.Sp, x.Line, sym, t), Fn: sym}
 			for _, a := range x.Args {
 				n.Args = append(n.Args, b.expr(a))
 			}
@@ -441,7 +441,7 @@ func (b *builder) call(x *syntax.CallEx) Expr {
 	if fe, ok := x.Callee.(*syntax.FieldEx); ok {
 		recv := b.expr(fe.Obj)
 		if st := structOf(Typ(recv)); st != nil && st.Methods[fe.Name] != nil {
-			n := &MethodCall{Node: b.node(x.Line, st.Methods[fe.Name], t), Recv: recv, Method: st.Methods[fe.Name]}
+			n := &MethodCall{Node: b.node(x.Sp, x.Line, st.Methods[fe.Name], t), Recv: recv, Method: st.Methods[fe.Name]}
 			for _, a := range x.Args {
 				n.Args = append(n.Args, b.expr(a))
 			}
@@ -449,21 +449,21 @@ func (b *builder) call(x *syntax.CallEx) Expr {
 		}
 		// http.get：预载服务值 → 内建
 		if id2, ok := fe.Obj.(*syntax.Ident); ok && id2.Name == "http" && fe.Name == "get" && b.res.Builtin["http"] != nil {
-			n := &Call{Node: b.node(x.Line, nil, t), Builtin: "http.get"}
+			n := &Call{Node: b.node(x.Sp, x.Line, nil, t), Builtin: "http.get"}
 			for _, a := range x.Args {
 				n.Args = append(n.Args, b.expr(a))
 			}
 			return n
 		}
 		// 字段持有的函数值
-		n := &MethodCall{Node: b.node(x.Line, nil, t), Recv: recv, Field: fe.Name}
+		n := &MethodCall{Node: b.node(x.Sp, x.Line, nil, t), Recv: recv, Field: fe.Name}
 		for _, a := range x.Args {
 			n.Args = append(n.Args, b.expr(a))
 		}
 		return n
 	}
 	// 表达式 callee（函数值）
-	n := &Call{Node: b.node(x.Line, nil, t), Callee: b.expr(x.Callee)}
+	n := &Call{Node: b.node(x.Sp, x.Line, nil, t), Callee: b.expr(x.Callee)}
 	for _, a := range x.Args {
 		n.Args = append(n.Args, b.expr(a))
 	}
@@ -483,7 +483,7 @@ func structOf(t *types.Type) *semantic.Symbol {
 
 func (b *builder) match(x *syntax.MatchEx) Expr {
 	n := &Match{
-		Node:  b.node(x.Line, nil, b.exprType(x)),
+		Node:  b.node(x.Sp, x.Line, nil, b.exprType(x)),
 		Kind:  b.ty.MatchKind[x],
 		Scrut: b.expr(x.Scrut),
 	}

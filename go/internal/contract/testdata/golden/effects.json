@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1",
+  "toolVersion": "0.4.0",
+  "kind": "inspect.effects",
+  "effects": [
+    {
+      "symbolId": 32,
+      "name": "dist2",
+      "effects": [
+        "PURE"
+      ]
+    },
+    {
+      "symbolId": 33,
+      "name": "parseAge",
+      "effects": [
+        "PURE"
+      ]
+    },
+    {
+      "symbolId": 34,
+      "name": "emit",
+      "effects": [
+        "CHANNEL"
+      ]
+    },
+    {
+      "symbolId": 35,
+      "name": "main",
+      "effects": [
+        "IO",
+        "SPAWN",
+        "CHANNEL"
+      ]
+    }
+  ]
+}

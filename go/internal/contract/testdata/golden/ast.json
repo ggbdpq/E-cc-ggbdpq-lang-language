@@ -1,0 +1,1698 @@
+{
+  "schemaVersion": "1",
+  "toolVersion": "0.4.0",
+  "kind": "dump.ast",
+  "nodes": [
+    {
+      "nodeId": 1,
+      "kind": "struct",
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "offset": 38,
+          "line": 4,
+          "column": 2
+        }
+      },
+      "name": "Point",
+      "children": [
+        {
+          "nodeId": 2,
+          "kind": "field",
+          "span": {
+            "file": "",
+            "start": {
+              "offset": 0,
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "offset": 38,
+              "line": 4,
+              "column": 2
+            }
+          },
+          "type": "annotated",
+          "name": "x"
+        },
+        {
+          "nodeId": 3,
+          "kind": "field",
+          "span": {
+            "file": "",
+            "start": {
+              "offset": 0,
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "offset": 38,
+              "line": 4,
+              "column": 2
+            }
+          },
+          "type": "annotated",
+          "name": "y"
+        }
+      ]
+    },
+    {
+      "nodeId": 4,
+      "kind": "enum",
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 40,
+          "line": 6,
+          "column": 1
+        },
+        "end": {
+          "offset": 81,
+          "line": 9,
+          "column": 2
+        }
+      },
+      "name": "Shape",
+      "children": [
+        {
+          "nodeId": 5,
+          "kind": "case",
+          "name": "Circle",
+          "children": [
+            {
+              "nodeId": 6,
+              "kind": "payload",
+              "type": "annotated",
+              "name": "0"
+            }
+          ]
+        },
+        {
+          "nodeId": 7,
+          "kind": "case",
+          "name": "Unit"
+        }
+      ]
+    },
+    {
+      "nodeId": 8,
+      "kind": "fn",
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 83,
+          "line": 11,
+          "column": 1
+        },
+        "end": {
+          "offset": 145,
+          "line": 13,
+          "column": 2
+        }
+      },
+      "name": "(p) dist2",
+      "children": [
+        {
+          "nodeId": 9,
+          "kind": "return",
+          "span": {
+            "file": "",
+            "start": {
+              "offset": 115,
+              "line": 12,
+              "column": 5
+            },
+            "end": {
+              "offset": 143,
+              "line": 12,
+              "column": 33
+            }
+          },
+          "children": [
+            {
+              "nodeId": 10,
+              "kind": "binary",
+              "span": {
+                "file": "",
+                "start": {
+                  "offset": 132,
+                  "line": 12,
+                  "column": 22
+                },
+                "end": {
+                  "offset": 143,
+                  "line": 12,
+                  "column": 33
+                }
+              },
+              "type": "int",
+              "name": "+",
+              "children": [
+                {
+                  "nodeId": 11,
+                  "kind": "binary",
+                  "span": {
+                    "file": "",
+                    "start": {
+                      "offset": 126,
+                      "line": 12,
+                      "column": 16
+                    },
+                    "end": {
+                      "offset": 131,
+                      "line": 12,
+                      "column": 21
+                    }
+                  },
+                  "type": "int",
+                  "name": "*",
+                  "children": [
+                    {
+                      "nodeId": 12,
+                      "kind": "field_access",
+                      "span": {
+                        "file": "",
+                        "start": {
+                          "offset": 123,
+                          "line": 12,
+                          "column": 13
+                        },
+                        "end": {
+                          "offset": 125,
+                          "line": 12,
+                          "column": 15
+                        }
+                      },
+                      "type": "int",
+                      "name": "x",
+                      "children": [
+                        {
+                          "nodeId": 13,
+                          "kind": "ident",
+                          "span": {
+                            "file": "",
+                            "start": {
+                              "offset": 122,
+                              "line": 12,
+                              "column": 12
+                            },
+                            "end": {
+                              "offset": 123,
+                              "line": 12,
+                              "column": 13
+                            }
+                          },
+                          "type": "Point",
+                          "name": "p"
+                        }
+                      ]
+                    },
+                    {
+                      "nodeId": 14,
+                      "kind": "field_access",
+                      "span": {
+                        "file": "",
+                        "start": {
+                          "offset": 129,
+                          "line": 12,
+                          "column": 19
+                        },
+                        "end": {
+                          "offset": 131,
+                          "line": 12,
+                          "column": 21
+                        }
+                      },
+                      "type": "int",
+                      "name": "x",
+                      "children": [
+                        {
+                          "nodeId": 15,
+                          "kind": "ident",
+                          "span": {
+                            "file": "",
+                            "start": {
+                              "offset": 128,
+                              "line": 12,
+                              "column": 18
+                            },
+                            "end": {
+                              "offset": 129,
+                              "line": 12,
+                              "column": 19
+                            }
+                          },
+                          "type": "Point",
+                          "name": "p"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "nodeId": 16,
+                  "kind": "binary",
+                  "span": {
+                    "file": "",
+                    "start": {
+                      "offset": 138,
+                      "line": 12,
+                      "column": 28
+                    },
+                    "end": {
+                      "offset": 143,
+                      "line": 12,
+                      "column": 33
+                    }
+                  },
+                  "type": "int",
+                  "name": "*",
+                  "children": [
+                    {
+                      "nodeId": 17,
+                      "kind": "field_access",
+                      "span": {
+                        "file": "",
+                        "start": {
+                          "offset": 135,
+                          "line": 12,
+                          "column": 25
+                        },
+                        "end": {
+                          "offset": 137,
+                          "line": 12,
+                          "column": 27
+                        }
+                      },
+                      "type": "int",
+                      "name": "y",
+                      "children": [
+                        {
+                          "nodeId": 18,
+                          "kind": "ident",
+                          "span": {
+                            "file": "",
+                            "start": {
+                              "offset": 134,
+                              "line": 12,
+                              "column": 24
+                            },
+                            "end": {
+                              "offset": 135,
+                              "line": 12,
+                              "column": 25
+                            }
+                          },
+                          "type": "Point",
+                          "name": "p"
+                        }
+                      ]
+                    },
+                    {
+                      "nodeId": 19,
+                      "kind": "field_access",
+                      "span": {
+                        "file": "",
+                        "start": {
+                          "offset": 141,
+                          "line": 12,
+                          "column": 31
+                        },
+                        "end": {
+                          "offset": 143,
+                          "line": 12,
+                          "column": 33
+                        }
+                      },
+                      "type": "int",
+                      "name": "y",
+                      "children": [
+                        {
+                          "nodeId": 20,
+                          "kind": "ident",
+                          "span": {
+                            "file": "",
+                            "start": {
+                              "offset": 140,
+                              "line": 12,
+                              "column": 30
+                            },
+                            "end": {
+                              "offset": 141,
+                              "line": 12,
+                              "column": 31
+                            }
+                          },
+                          "type": "Point",
+                          "name": "p"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nodeId": 21,
+      "kind": "fn",
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 147,
+          "line": 15,
+          "column": 1
+        },
+        "end": {
+          "offset": 269,
+          "line": 20,
+          "column": 1
+        }
+      },
+      "name": "parseAge",
+      "children": [
+        {
+          "nodeId": 22,
+          "kind": "param",
+          "type": "annotated",
+          "name": "s"
+        },
+        {
+          "nodeId": 23,
+          "kind": "if",
+          "span": {
+            "file": "",
+            "start": {
+              "offset": 196,
+              "line": 16,
+              "column": 5
+            },
+            "end": {
+              "offset": 245,
+              "line": 18,
+              "column": 1
+            }
+          },
+          "children": [
+            {
+              "nodeId": 24,
+              "kind": "binary",
+              "span": {
+                "file": "",
+                "start": {
+                  "offset": 201,
+                  "line": 16,
+                  "column": 10
+                },
+                "end": {
+                  "offset": 206,
+                  "line": 16,
+                  "column": 15
+                }
+              },
+              "type": "bool",
+              "name": "==",
+              "children": [
+                {
+                  "nodeId": 25,
+                  "kind": "ident",
+                  "span": {
+                    "file": "",
+                    "start": {
+                      "offset": 199,
+                      "line": 16,
+                      "column": 8
+                    },
+                    "end": {
+                      "offset": 200,
+                      "line": 16,
+                      "column": 9
+                    }
+                  },
+                  "type": "string",
+                  "name": "s"
+                },
+                {
+                  "nodeId": 26,
+                  "kind": "str_lit",
+                  "span": {
+                    "file": "",
+                    "start": {
+                      "offset": 204,
+                      "line": 16,
+                      "column": 13
+                    },
+                    "end": {
+                      "offset": 206,
+                      "line": 16,
+                      "column": 15
+                    }
+                  },
+                  "type": "string"
+                }
+              ]
+            },
+            {
+              "nodeId": 27,
+              "kind": "return",
+              "span": {
+                "file": "",
+                "start": {
+                  "offset": 217,
+                  "line": 17,
+                  "column": 9
+                },
+                "end": {
+                  "offset": 239,
+                  "line": 17,
+                  "column": 31
+                }
+              },
+              "children": [
+                {
+                  "nodeId": 28,
+                  "kind": "call",
+                  "span": {
+                    "file": "",
+                    "start": {
+                      "offset": 227,
+                      "line": 17,
+                      "column": 19
+                    },
+                    "end": {
+                      "offset": 239,
+                      "line": 17,
+                      "column": 31
+                    }
+                  },
+                  "type": "Result[int, error]",
+                  "children": [
+                    {
+                      "nodeId": 29,
+                      "kind": "ident",
+                      "span": {
+                        "file": "",
+                        "start": {
+                          "offset": 224,
+                          "line": 17,
+                          "column": 16
+                        },
+                        "end": {
+                          "offset": 227,
+                          "line": 17,
+                          "column": 19
+                        }
+                      },
+                      "name": "Err"
+                    },
+                    {
+                      "nodeId": 30,
+                      "kind": "call",
+                      "span": {
+                        "file": "",
+                        "start": {
+                          "offset": 231,
+                          "line": 17,
+                          "column": 23
+                        },
+                        "end": {
+                          "offset": 238,
+                          "line": 17,
+                          "column": 30
+                        }
+                      },
+                      "type": "error",
+                      "children": [
+                        {
+                          "nodeId": 31,
+                          "kind": "ident",
+                          "span": {
+                            "file": "",
+                            "start": {
+                              "offset": 228,
+                              "line": 17,
+                              "column": 20
+                            },
+                            "end": {
+                              "offset": 231,
+                              "line": 17,
+                              "column": 23
+                            }
+                          },
+                          "name": "err"
+                        },
+                        {
+                          "nodeId": 32,
+                          "kind": "str_lit",
+                          "span": {
+                            "file": "",
+                            "start": {
+                              "offset": 232,
+                              "line": 17,
+                              "column": 24
+                            },
+                            "end": {
+                              "offset": 237,
+                              "line": 17,
+                              "column": 29
+                            }
+                          },
+                          "type": "string",
+                          "value": "空输入"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nodeId": 33,
+          "kind": "return",
+          "span": {
+            "file": "",
+            "start": {
+              "offset": 250,
+              "line": 19,
+              "column": 1
+            },
+            "end": {
+              "offset": 267,
+              "line": 19,
+              "column": 16
+            }
+          },
+          "children": [
+            {
+              "nodeId": 34,
+              "kind": "call",
+              "span": {
+                "file": "",
+                "start": {
+                  "offset": 259,
+                  "line": 19,
+                  "column": 8
+                },
+                "end": {
+                  "offset": 267,
+                  "line": 19,
+                  "column": 16
+                }
+              },
+              "type": "Result[int, error]",
+              "children": [
+                {
+                  "nodeId": 35,
+                  "kind": "ident",
+                  "span": {
+                    "file": "",
+                    "start": {
+                      "offset": 257,
+                      "line": 19,
+                      "column": 6
+                    },
+                    "end": {
+                      "offset": 259,
+                      "line": 19,
+                      "column": 8
+                    }
+                  },
+                  "name": "Ok"
+                },
+                {
+                  "nodeId": 36,
+                  "kind": "call",
+                  "span": {
+                    "file": "",
+                    "start": {
+                      "offset": 263,
+                      "line": 19,
+                      "column": 12
+                    },
+                    "end": {
+                      "offset": 266,
+                      "line": 19,
+                      "column": 15
+                    }
+                  },
+                  "type": "int",
+                  "children": [
+                    {
+                      "nodeId": 37,
+                      "kind": "ident",
+                      "span": {
+                        "file": "",
+                        "start": {
+                          "offset": 260,
+                          "line": 19,
+                          "column": 9
+                        },
+                        "end": {
+                          "offset": 263,
+                          "line": 19,
+                          "column": 12
+                        }
+                      },
+                      "name": "int"
+                    },
+                    {
+                      "nodeId": 38,
+                      "kind": "ident",
+                      "span": {
+                        "file": "",
+                        "start": {
+                          "offset": 264,
+                          "line": 19,
+                          "column": 13
+                        },
+                        "end": {
+                          "offset": 265,
+                          "line": 19,
+                          "column": 14
+                        }
+                      },
+                      "type": "string",
+                      "name": "s"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nodeId": 39,
+      "kind": "fn",
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 271,
+          "line": 22,
+          "column": 1
+        },
+        "end": {
+          "offset": 339,
+          "line": 24,
+          "column": 1
+        }
+      },
+      "name": "emit",
+      "children": [
+        {
+          "nodeId": 40,
+          "kind": "param",
+          "type": "annotated",
+          "name": "ch"
+        },
+        {
+          "nodeId": 41,
+          "kind": "param",
+          "type": "annotated",
+          "name": "who"
+        },
+        {
+          "nodeId": 42,
+          "kind": "eval",
+          "span": {
+            "file": "",
+            "start": {
+              "offset": 316,
+              "line": 23,
+              "column": 1
+            },
+            "end": {
+              "offset": 337,
+              "line": 23,
+              "column": 20
+            }
+          },
+          "children": [
+            {
+              "nodeId": 43,
+              "kind": "call",
+              "span": {
+                "file": "",
+                "start": {
+                  "offset": 320,
+                  "line": 23,
+                  "column": 3
+                },
+                "end": {
+                  "offset": 337,
+                  "line": 23,
+                  "column": 20
+                }
+              },
+              "type": "()",
+              "children": [
+                {
+                  "nodeId": 44,
+                  "kind": "ident",
+                  "span": {
+                    "file": "",
+                    "start": {
+                      "offset": 316,
+                      "line": 23,
+                      "column": 1
+                    },
+                    "end": {
+                      "offset": 320,
+                      "line": 23,
+                      "column": 3
+                    }
+                  },
+                  "name": "send"
+                },
+                {
+                  "nodeId": 45,
+                  "kind": "ident",
+                  "span": {
+                    "file": "",
+                    "start": {
+                      "offset": 321,
+                      "line": 23,
+                      "column": 4
+                    },
+                    "end": {
+                      "offset": 323,
+                      "line": 23,
+                      "column": 6
+                    }
+                  },
+                  "type": "chan[string]",
+                  "name": "ch"
+                },
+                {
+                  "nodeId": 46,
+                  "kind": "binary",
+                  "span": {
+                    "file": "",
+                    "start": {
+                      "offset": 331,
+                      "line": 23,
+                      "column": 14
+                    },
+                    "end": {
+                      "offset": 336,
+                      "line": 23,
+                      "column": 19
+                    }
+                  },
+                  "type": "string",
+                  "name": "+",
+                  "children": [
+                    {
+                      "nodeId": 47,
+                      "kind": "str_lit",
+                      "span": {
+                        "file": "",
+                        "start": {
+                          "offset": 325,
+                          "line": 23,
+                          "column": 8
+                        },
+                        "end": {
+                          "offset": 330,
+                          "line": 23,
+                          "column": 13
+                        }
+                      },
+                      "type": "string",
+                      "value": "hi "
+                    },
+                    {
+                      "nodeId": 48,
+                      "kind": "ident",
+                      "span": {
+                        "file": "",
+                        "start": {
+                          "offset": 333,
+                          "line": 23,
+                          "column": 16
+                        },
+                        "end": {
+                          "offset": 336,
+                          "line": 23,
+                          "column": 19
+                        }
+                      },
+                      "type": "string",
+                      "name": "who"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nodeId": 49,
+      "kind": "fn",
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 341,
+          "line": 26,
+          "column": 1
+        },
+        "end": {
+          "offset": 595,
+          "line": 37,
+          "column": 1
+        }
+      },
+      "name": "main",
+      "children": [
+        {
+          "nodeId": 50,
+          "kind": "let",
+          "span": {
+            "file": "",
+            "start": {
+              "offset": 357,
+              "line": 27,
+              "column": 1
+            },
+            "end": {
+              "offset": 382,
+              "line": 27,
+              "column": 24
+            }
+          },
+          "type": "Point",
+          "name": "p",
+          "children": [
+            {
+              "nodeId": 51,
+              "kind": "struct_lit",
+              "span": {
+                "file": "",
+                "start": {
+                  "offset": 365,
+                  "line": 27,
+                  "column": 7
+                },
+                "end": {
+                  "offset": 382,
+                  "line": 27,
+                  "column": 24
+                }
+              },
+              "type": "Point",
+              "name": "Point",
+              "children": [
+                {
+                  "nodeId": 52,
+                  "kind": "field_init",
+                  "name": "x",
+                  "children": [
+                    {
+                      "nodeId": 53,
+                      "kind": "int_lit",
+                      "span": {
+                        "file": "",
+                        "start": {
+                          "offset": 374,
+                          "line": 27,
+                          "column": 16
+                        },
+                        "end": {
+                          "offset": 375,
+                          "line": 27,
+                          "column": 17
+                        }
+                      },
+                      "type": "int",
+                      "value": "1"
+                    }
+                  ]
+                },
+                {
+                  "nodeId": 54,
+                  "kind": "field_init",
+                  "name": "y",
+                  "children": [
+                    {
+                      "nodeId": 55,
+                      "kind": "int_lit",
+                      "span": {
+                        "file": "",
+                        "start": {
+                          "offset": 380,
+                          "line": 27,
+                          "column": 22
+                        },
+                        "end": {
+                          "offset": 381,
+                          "line": 27,
+                          "column": 23
+                        }
+                      },
+                      "type": "int",
+                      "value": "2"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nodeId": 56,
+          "kind": "eval",
+          "span": {
+            "file": "",
+            "start": {
+              "offset": 387,
+              "line": 28,
+              "column": 1
+            },
+            "end": {
+              "offset": 412,
+              "line": 28,
+              "column": 24
+            }
+          },
+          "children": [
+            {
+              "nodeId": 57,
+              "kind": "call",
+              "span": {
+                "file": "",
+                "start": {
+                  "offset": 394,
+                  "line": 28,
+                  "column": 6
+                },
+                "end": {
+                  "offset": 412,
+                  "line": 28,
+                  "column": 24
+                }
+              },
+              "type": "()",
+              "children": [
+                {
+                  "nodeId": 58,
+                  "kind": "ident",
+                  "span": {
+                    "file": "",
+                    "start": {
+                      "offset": 387,
+                      "line": 28,
+                      "column": 1
+                    },
+                    "end": {
+                      "offset": 394,
+                      "line": 28,
+                      "column": 6
+                    }
+                  },
+                  "name": "println"
+                },
+                {
+                  "nodeId": 59,
+                  "kind": "str_lit",
+                  "span": {
+                    "file": "",
+                    "start": {
+                      "offset": 395,
+                      "line": 28,
+                      "column": 7
+                    },
+                    "end": {
+                      "offset": 400,
+                      "line": 28,
+                      "column": 12
+                    }
+                  },
+                  "type": "string",
+                  "value": "d ="
+                },
+                {
+                  "nodeId": 60,
+                  "kind": "call",
+                  "span": {
+                    "file": "",
+                    "start": {
+                      "offset": 409,
+                      "line": 28,
+                      "column": 21
+                    },
+                    "end": {
+                      "offset": 411,
+                      "line": 28,
+                      "column": 23
+                    }
+                  },
+                  "type": "int",
+                  "children": [
+                    {
+                      "nodeId": 61,
+                      "kind": "field_access",
+                      "span": {
+                        "file": "",
+                        "start": {
+                          "offset": 403,
+                          "line": 28,
+                          "column": 15
+                        },
+                        "end": {
+                          "offset": 409,
+                          "line": 28,
+                          "column": 21
+                        }
+                      },
+                      "name": "dist2",
+                      "children": [
+                        {
+                          "nodeId": 62,
+                          "kind": "ident",
+                          "span": {
+                            "file": "",
+                            "start": {
+                              "offset": 402,
+                              "line": 28,
+                              "column": 14
+                            },
+                            "end": {
+                              "offset": 403,
+                              "line": 28,
+                              "column": 15
+                            }
+                          },
+                          "type": "Point",
+                          "name": "p"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nodeId": 63,
+          "kind": "let",
+          "span": {
+            "file": "",
+            "start": {
+              "offset": 417,
+              "line": 29,
+              "column": 1
+            },
+            "end": {
+              "offset": 436,
+              "line": 29,
+              "column": 18
+            }
+          },
+          "type": "chan[unknown]",
+          "name": "ch",
+          "children": [
+            {
+              "nodeId": 64,
+              "kind": "call",
+              "span": {
+                "file": "",
+                "start": {
+                  "offset": 434,
+                  "line": 29,
+                  "column": 16
+                },
+                "end": {
+                  "offset": 436,
+                  "line": 29,
+                  "column": 18
+                }
+              },
+              "type": "chan[unknown]",
+              "children": [
+                {
+                  "nodeId": 65,
+                  "kind": "ident",
+                  "span": {
+                    "file": "",
+                    "start": {
+                      "offset": 426,
+                      "line": 29,
+                      "column": 8
+                    },
+                    "end": {
+                      "offset": 434,
+                      "line": 29,
+                      "column": 16
+                    }
+                  },
+                  "name": "makeChan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nodeId": 66,
+          "kind": "spawn",
+          "span": {
+            "file": "",
+            "start": {
+              "offset": 441,
+              "line": 30,
+              "column": 1
+            },
+            "end": {
+              "offset": 463,
+              "line": 30,
+              "column": 21
+            }
+          },
+          "children": [
+            {
+              "nodeId": 67,
+              "kind": "call",
+              "span": {
+                "file": "",
+                "start": {
+                  "offset": 448,
+                  "line": 30,
+                  "column": 6
+                },
+                "end": {
+                  "offset": 463,
+                  "line": 30,
+                  "column": 21
+                }
+              },
+              "children": [
+                {
+                  "nodeId": 68,
+                  "kind": "ident",
+                  "span": {
+                    "file": "",
+                    "start": {
+                      "offset": 444,
+                      "line": 30,
+                      "column": 2
+                    },
+                    "end": {
+                      "offset": 448,
+                      "line": 30,
+                      "column": 6
+                    }
+                  },
+                  "name": "emit"
+                },
+                {
+                  "nodeId": 69,
+                  "kind": "ident",
+                  "span": {
+                    "file": "",
+                    "start": {
+                      "offset": 449,
+                      "line": 30,
+                      "column": 7
+                    },
+                    "end": {
+                      "offset": 451,
+                      "line": 30,
+                      "column": 9
+                    }
+                  },
+                  "type": "chan[unknown]",
+                  "name": "ch"
+                },
+                {
+                  "nodeId": 70,
+                  "kind": "str_lit",
+                  "span": {
+                    "file": "",
+                    "start": {
+                      "offset": 453,
+                      "line": 30,
+                      "column": 11
+                    },
+                    "end": {
+                      "offset": 462,
+                      "line": 30,
+                      "column": 20
+                    }
+                  },
+                  "type": "string",
+                  "value": "lang-go"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nodeId": 71,
+          "kind": "eval",
+          "span": {
+            "file": "",
+            "start": {
+              "offset": 468,
+              "line": 31,
+              "column": 1
+            },
+            "end": {
+              "offset": 485,
+              "line": 31,
+              "column": 16
+            }
+          },
+          "children": [
+            {
+              "nodeId": 72,
+              "kind": "call",
+              "span": {
+                "file": "",
+                "start": {
+                  "offset": 475,
+                  "line": 31,
+                  "column": 6
+                },
+                "end": {
+                  "offset": 485,
+                  "line": 31,
+                  "column": 16
+                }
+              },
+              "type": "()",
+              "children": [
+                {
+                  "nodeId": 73,
+                  "kind": "ident",
+                  "span": {
+                    "file": "",
+                    "start": {
+                      "offset": 468,
+                      "line": 31,
+                      "column": 1
+                    },
+                    "end": {
+                      "offset": 475,
+                      "line": 31,
+                      "column": 6
+                    }
+                  },
+                  "name": "println"
+                },
+                {
+                  "nodeId": 74,
+                  "kind": "call",
+                  "span": {
+                    "file": "",
+                    "start": {
+                      "offset": 480,
+                      "line": 31,
+                      "column": 11
+                    },
+                    "end": {
+                      "offset": 484,
+                      "line": 31,
+                      "column": 15
+                    }
+                  },
+                  "type": "Result[unknown, error]",
+                  "children": [
+                    {
+                      "nodeId": 75,
+                      "kind": "ident",
+                      "span": {
+                        "file": "",
+                        "start": {
+                          "offset": 476,
+                          "line": 31,
+                          "column": 7
+                        },
+                        "end": {
+                          "offset": 480,
+                          "line": 31,
+                          "column": 11
+                        }
+                      },
+                      "name": "recv"
+                    },
+                    {
+                      "nodeId": 76,
+                      "kind": "ident",
+                      "span": {
+                        "file": "",
+                        "start": {
+                          "offset": 481,
+                          "line": 31,
+                          "column": 12
+                        },
+                        "end": {
+                          "offset": 483,
+                          "line": 31,
+                          "column": 14
+                        }
+                      },
+                      "type": "chan[unknown]",
+                      "name": "ch"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nodeId": 77,
+          "kind": "let",
+          "span": {
+            "file": "",
+            "start": {
+              "offset": 490,
+              "line": 32,
+              "column": 1
+            },
+            "end": {
+              "offset": 567,
+              "line": 35,
+              "column": 1
+            }
+          },
+          "type": "int",
+          "name": "age",
+          "children": [
+            {
+              "nodeId": 78,
+              "kind": "match",
+              "span": {
+                "file": "",
+                "start": {
+                  "offset": 500,
+                  "line": 32,
+                  "column": 9
+                },
+                "end": {
+                  "offset": 567,
+                  "line": 35,
+                  "column": 1
+                }
+              },
+              "type": "int",
+              "children": [
+                {
+                  "nodeId": 79,
+                  "kind": "call",
+                  "span": {
+                    "file": "",
+                    "start": {
+                      "offset": 514,
+                      "line": 32,
+                      "column": 23
+                    },
+                    "end": {
+                      "offset": 520,
+                      "line": 32,
+                      "column": 29
+                    }
+                  },
+                  "type": "Result[int, error]",
+                  "children": [
+                    {
+                      "nodeId": 80,
+                      "kind": "ident",
+                      "span": {
+                        "file": "",
+                        "start": {
+                          "offset": 506,
+                          "line": 32,
+                          "column": 15
+                        },
+                        "end": {
+                          "offset": 514,
+                          "line": 32,
+                          "column": 23
+                        }
+                      },
+                      "name": "parseAge"
+                    },
+                    {
+                      "nodeId": 81,
+                      "kind": "str_lit",
+                      "span": {
+                        "file": "",
+                        "start": {
+                          "offset": 515,
+                          "line": 32,
+                          "column": 24
+                        },
+                        "end": {
+                          "offset": 519,
+                          "line": 32,
+                          "column": 28
+                        }
+                      },
+                      "type": "string",
+                      "value": "28"
+                    }
+                  ]
+                },
+                {
+                  "nodeId": 82,
+                  "kind": "arm",
+                  "children": [
+                    {
+                      "nodeId": 83,
+                      "kind": "pattern_ctor",
+                      "span": {
+                        "file": "",
+                        "start": {
+                          "offset": 531,
+                          "line": 33,
+                          "column": 3
+                        },
+                        "end": {
+                          "offset": 536,
+                          "line": 33,
+                          "column": 8
+                        }
+                      },
+                      "name": "Ok",
+                      "children": [
+                        {
+                          "nodeId": 84,
+                          "kind": "pattern_bind",
+                          "span": {
+                            "file": "",
+                            "start": {
+                              "offset": 534,
+                              "line": 33,
+                              "column": 6
+                            },
+                            "end": {
+                              "offset": 535,
+                              "line": 33,
+                              "column": 7
+                            }
+                          },
+                          "name": "v"
+                        }
+                      ]
+                    },
+                    {
+                      "nodeId": 85,
+                      "kind": "ident",
+                      "span": {
+                        "file": "",
+                        "start": {
+                          "offset": 540,
+                          "line": 33,
+                          "column": 12
+                        },
+                        "end": {
+                          "offset": 541,
+                          "line": 33,
+                          "column": 13
+                        }
+                      },
+                      "type": "int",
+                      "name": "v"
+                    }
+                  ]
+                },
+                {
+                  "nodeId": 86,
+                  "kind": "arm",
+                  "children": [
+                    {
+                      "nodeId": 87,
+                      "kind": "pattern_ctor",
+                      "span": {
+                        "file": "",
+                        "start": {
+                          "offset": 550,
+                          "line": 34,
+                          "column": 3
+                        },
+                        "end": {
+                          "offset": 556,
+                          "line": 34,
+                          "column": 9
+                        }
+                      },
+                      "name": "Err",
+                      "children": [
+                        {
+                          "nodeId": 88,
+                          "kind": "pattern_bind",
+                          "span": {
+                            "file": "",
+                            "start": {
+                              "offset": 554,
+                              "line": 34,
+                              "column": 7
+                            },
+                            "end": {
+                              "offset": 555,
+                              "line": 34,
+                              "column": 8
+                            }
+                          },
+                          "name": "e"
+                        }
+                      ]
+                    },
+                    {
+                      "nodeId": 89,
+                      "kind": "int_lit",
+                      "span": {
+                        "file": "",
+                        "start": {
+                          "offset": 560,
+                          "line": 34,
+                          "column": 13
+                        },
+                        "end": {
+                          "offset": 561,
+                          "line": 34,
+                          "column": 14
+                        }
+                      },
+                      "type": "int",
+                      "value": "0"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nodeId": 90,
+          "kind": "eval",
+          "span": {
+            "file": "",
+            "start": {
+              "offset": 572,
+              "line": 36,
+              "column": 1
+            },
+            "end": {
+              "offset": 593,
+              "line": 36,
+              "column": 20
+            }
+          },
+          "children": [
+            {
+              "nodeId": 91,
+              "kind": "call",
+              "span": {
+                "file": "",
+                "start": {
+                  "offset": 579,
+                  "line": 36,
+                  "column": 6
+                },
+                "end": {
+                  "offset": 593,
+                  "line": 36,
+                  "column": 20
+                }
+              },
+              "type": "()",
+              "children": [
+                {
+                  "nodeId": 92,
+                  "kind": "ident",
+                  "span": {
+                    "file": "",
+                    "start": {
+                      "offset": 572,
+                      "line": 36,
+                      "column": 1
+                    },
+                    "end": {
+                      "offset": 579,
+                      "line": 36,
+                      "column": 6
+                    }
+                  },
+                  "name": "println"
+                },
+                {
+                  "nodeId": 93,
+                  "kind": "str_lit",
+                  "span": {
+                    "file": "",
+                    "start": {
+                      "offset": 580,
+                      "line": 36,
+                      "column": 7
+                    },
+                    "end": {
+                      "offset": 587,
+                      "line": 36,
+                      "column": 14
+                    }
+                  },
+                  "type": "string",
+                  "value": "age ="
+                },
+                {
+                  "nodeId": 94,
+                  "kind": "ident",
+                  "span": {
+                    "file": "",
+                    "start": {
+                      "offset": 589,
+                      "line": 36,
+                      "column": 16
+                    },
+                    "end": {
+                      "offset": 592,
+                      "line": 36,
+                      "column": 19
+                    }
+                  },
+                  "type": "int",
+                  "name": "age"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -6,13 +6,16 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"lang-go/internal/bind"
+	"lang-go/internal/contract"
 	"lang-go/internal/format"
 	"lang-go/internal/gen"
 	"lang-go/internal/genjs"
@@ -22,7 +25,26 @@ import (
 	"lang-go/internal/syntax"
 )
 
-const version = "0.3.0"
+func hasFlag(args []string, flag string) bool {
+	for _, a := range args {
+		if a == flag {
+			return true
+		}
+	}
+	return false
+}
+
+// printJSON 统一输出契约 JSON
+func printJSON(v any) {
+	bs, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "JSON 编码失败:", err)
+		return
+	}
+	fmt.Println(string(bs))
+}
+
+const version = contract.ToolVersion // 单一版本源（specs/agent-protocol.md）
 
 // entryFile 固定入口文件名：与 Go「每目录一个 main」的习惯一致
 const entryFile = "main.lang-go"
@@ -40,7 +62,15 @@ func cliMain() int {
 	case "fmt":
 		return runFmt()
 	case "check":
+		rest := args[1:]
+		if hasFlag(rest, "--json") {
+			return runCheckJSON()
+		}
 		return runCheck()
+	case "inspect":
+		return runInspect(args[1:])
+	case "dump":
+		return runDump(args[1:])
 	case "bind":
 		// 包目录固定为当前目录的 bind.d/（安全边界：任何路径输入都不进数据流）
 		return runBind()
@@ -191,6 +221,135 @@ func runCheck() int {
 		return 1
 	}
 	fmt.Println("检查通过")
+	return 0
+}
+
+// runCheckJSON check --json：契约负载
+func runCheckJSON() int {
+	prog, _, err := load.Program(".", false)
+	if err != nil {
+		e := contract.ErrorEnvelope(contract.KindCheck, "装载失败: "+err.Error())
+		printJSON(e)
+		return 1
+	}
+	out := contract.CheckStmts(prog)
+	printJSON(out)
+	if !out.Success {
+		return 1
+	}
+	return 0
+}
+
+// runInspect inspect symbols|refs|type|dependencies|effects --json
+func runInspect(args []string) int {
+	if len(args) == 0 {
+		printJSON(contract.ErrorEnvelope("inspect", "缺少子命令：symbols|refs|type|dependencies|effects"))
+		return 2
+	}
+	sub := args[0]
+	kind := "inspect." + sub
+	if !hasFlag(args, "--json") {
+		fmt.Fprintln(os.Stderr, "inspect 仅支持 --json 输出（v0.4）")
+		return 2
+	}
+	// type 子命令参数
+	file, line, col := "", 0, 0
+	for i, a := range args {
+		switch a {
+		case "--file":
+			if i+1 < len(args) {
+				file = args[i+1]
+			}
+		case "--line":
+			if i+1 < len(args) {
+				line, _ = strconv.Atoi(args[i+1])
+			}
+		case "--column":
+			if i+1 < len(args) {
+				col, _ = strconv.Atoi(args[i+1])
+			}
+		}
+	}
+
+	prog, _, files, err := load.ProgramEx(".", false)
+	if err != nil {
+		printJSON(contract.ErrorEnvelope(kind, "装载失败: "+err.Error()))
+		return 1
+	}
+	a, aerr := pipeline.AnalyzeStmts(prog)
+	if aerr != nil {
+		printJSON(contract.ErrorEnvelope(kind, pipeline.FormatDiags(pipeline.Diagnostics(aerr))))
+		return 1
+	}
+	switch sub {
+	case "symbols":
+		printJSON(contract.SymbolsEnvelope(prog, a.Res, a.Ty))
+	case "refs":
+		printJSON(contract.ReferencesEnvelope(prog, a.Res))
+	case "type":
+		if line == 0 {
+			printJSON(contract.ErrorEnvelope(kind, "缺少 --line/--column 参数"))
+			return 2
+		}
+		env, ok := contract.TypeEnvelope(prog, a.Res, a.Ty, file, line, col)
+		printJSON(env)
+		if !ok {
+			return 1
+		}
+	case "dependencies":
+		printJSON(contract.DependenciesEnvelope(files))
+	case "effects":
+		printJSON(contract.EffectsEnvelope(contract.Effects(a.Prog)))
+	default:
+		printJSON(contract.ErrorEnvelope(kind, "未知子命令 "+sub))
+		return 2
+	}
+	return 0
+}
+
+// runDump dump ast|hir|ir --json
+func runDump(args []string) int {
+	if len(args) == 0 {
+		printJSON(contract.ErrorEnvelope("dump", "缺少子命令：ast|hir|ir"))
+		return 2
+	}
+	sub := args[0]
+	if !hasFlag(args, "--json") {
+		fmt.Fprintln(os.Stderr, "dump 仅支持 --json 输出（v0.4）")
+		return 2
+	}
+	kind := "dump." + sub
+	prog, _, _, err := load.ProgramEx(".", false)
+	if err != nil {
+		printJSON(contract.ErrorEnvelope(kind, "装载失败: "+err.Error()))
+		return 1
+	}
+	switch sub {
+	case "ast":
+		a, aerr := pipeline.AnalyzeStmts(prog)
+		if aerr != nil {
+			printJSON(contract.ErrorEnvelope(kind, pipeline.FormatDiags(pipeline.Diagnostics(aerr))))
+			return 1
+		}
+		printJSON(contract.DumpEnvelope(kind, contract.ASTJSON(prog, a.Res, a.Ty)))
+	case "hir":
+		a, aerr := pipeline.AnalyzeStmts(prog)
+		if aerr != nil {
+			printJSON(contract.ErrorEnvelope(kind, pipeline.FormatDiags(pipeline.Diagnostics(aerr))))
+			return 1
+		}
+		printJSON(contract.DumpEnvelope(kind, contract.HIRJSON(a.HIR)))
+	case "ir":
+		p, aerr := pipeline.CompileStmts(prog)
+		if aerr != nil {
+			printJSON(contract.ErrorEnvelope(kind, pipeline.FormatDiags(pipeline.Diagnostics(aerr))))
+			return 1
+		}
+		printJSON(contract.DumpEnvelope(kind, contract.IRJSON(p)))
+	default:
+		printJSON(contract.ErrorEnvelope(kind, "未知子命令 "+sub))
+		return 2
+	}
 	return 0
 }
 

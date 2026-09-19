@@ -437,42 +437,85 @@ func (n *FnType) isType()        {}
 
 // —— Spanned 接口实现（机械） ——
 
-func (n *Arm) NodeSpan() Span           { return n.Sp }
-func (n *ArrLit) NodeSpan() Span        { return n.Sp }
-func (n *AssignStmt) NodeSpan() Span    { return n.Sp }
-func (n *Binary) NodeSpan() Span        { return n.Sp }
-func (n *BindPat) NodeSpan() Span       { return n.Sp }
-func (n *BoolLit) NodeSpan() Span       { return n.Sp }
-func (n *BreakStmt) NodeSpan() Span     { return n.Sp }
-func (n *CallEx) NodeSpan() Span        { return n.Sp }
-func (n *CasePat) NodeSpan() Span       { return n.Sp }
+func (n *Arm) NodeSpan() *Span          { return &n.Sp }
+func (n *ArrLit) NodeSpan() *Span       { return &n.Sp }
+func (n *AssignStmt) NodeSpan() *Span   { return &n.Sp }
+func (n *Binary) NodeSpan() *Span       { return &n.Sp }
+func (n *BindPat) NodeSpan() *Span      { return &n.Sp }
+func (n *BoolLit) NodeSpan() *Span      { return &n.Sp }
+func (n *BreakStmt) NodeSpan() *Span    { return &n.Sp }
+func (n *CallEx) NodeSpan() *Span       { return &n.Sp }
+func (n *CasePat) NodeSpan() *Span      { return &n.Sp }
 func (n *ContinueStmt) NodeSpan() *Span { return &n.Sp }
-func (n *EnumCase) NodeSpan() Span      { return n.Sp }
-func (n *EnumDecl) NodeSpan() Span      { return n.Sp }
-func (n *ExprStmt) NodeSpan() Span      { return n.Sp }
-func (n *ExternDecl) NodeSpan() Span    { return n.Sp }
-func (n *FieldEx) NodeSpan() Span       { return n.Sp }
-func (n *FloatLit) NodeSpan() Span      { return n.Sp }
-func (n *FnDecl) NodeSpan() Span        { return n.Sp }
-func (n *FnLit) NodeSpan() Span         { return n.Sp }
-func (n *ForInStmt) NodeSpan() Span     { return n.Sp }
-func (n *GoStmt) NodeSpan() Span        { return n.Sp }
-func (n *Ident) NodeSpan() Span         { return n.Sp }
-func (n *IfStmt) NodeSpan() Span        { return n.Sp }
-func (n *ImportStmt) NodeSpan() Span    { return n.Sp }
-func (n *IndexEx) NodeSpan() Span       { return n.Sp }
-func (n *IntLit) NodeSpan() Span        { return n.Sp }
-func (n *LetStmt) NodeSpan() Span       { return n.Sp }
-func (n *LitPat) NodeSpan() Span        { return n.Sp }
-func (n *MapLit) NodeSpan() Span        { return n.Sp }
-func (n *MatchEx) NodeSpan() Span       { return n.Sp }
-func (n *RangeEx) NodeSpan() Span       { return n.Sp }
-func (n *ReturnStmt) NodeSpan() Span    { return n.Sp }
-func (n *SliceEx) NodeSpan() Span       { return n.Sp }
-func (n *StrLit) NodeSpan() Span        { return n.Sp }
-func (n *StructDecl) NodeSpan() Span    { return n.Sp }
-func (n *StructLit) NodeSpan() Span     { return n.Sp }
-func (n *TryEx) NodeSpan() Span         { return n.Sp }
-func (n *Unary) NodeSpan() Span         { return n.Sp }
-func (n *WhileStmt) NodeSpan() Span     { return n.Sp }
-func (n *WildPat) NodeSpan() Span       { return n.Sp }
+func (n *EnumCase) NodeSpan() *Span     { return &n.Sp }
+func (n *EnumDecl) NodeSpan() *Span     { return &n.Sp }
+func (n *ExprStmt) NodeSpan() *Span     { return &n.Sp }
+func (n *ExternDecl) NodeSpan() *Span   { return &n.Sp }
+func (n *FieldEx) NodeSpan() *Span      { return &n.Sp }
+func (n *FloatLit) NodeSpan() *Span     { return &n.Sp }
+func (n *FnDecl) NodeSpan() *Span       { return &n.Sp }
+func (n *FnLit) NodeSpan() *Span        { return &n.Sp }
+func (n *ForInStmt) NodeSpan() *Span    { return &n.Sp }
+func (n *GoStmt) NodeSpan() *Span       { return &n.Sp }
+func (n *Ident) NodeSpan() *Span        { return &n.Sp }
+func (n *IfStmt) NodeSpan() *Span       { return &n.Sp }
+func (n *ImportStmt) NodeSpan() *Span   { return &n.Sp }
+func (n *IndexEx) NodeSpan() *Span      { return &n.Sp }
+func (n *IntLit) NodeSpan() *Span       { return &n.Sp }
+func (n *LetStmt) NodeSpan() *Span      { return &n.Sp }
+func (n *LitPat) NodeSpan() *Span       { return &n.Sp }
+func (n *MapLit) NodeSpan() *Span       { return &n.Sp }
+func (n *MatchEx) NodeSpan() *Span      { return &n.Sp }
+func (n *RangeEx) NodeSpan() *Span      { return &n.Sp }
+func (n *ReturnStmt) NodeSpan() *Span   { return &n.Sp }
+func (n *SliceEx) NodeSpan() *Span      { return &n.Sp }
+func (n *StrLit) NodeSpan() *Span       { return &n.Sp }
+func (n *StructDecl) NodeSpan() *Span   { return &n.Sp }
+func (n *StructLit) NodeSpan() *Span    { return &n.Sp }
+func (n *TryEx) NodeSpan() *Span        { return &n.Sp }
+func (n *Unary) NodeSpan() *Span        { return &n.Sp }
+func (n *WhileStmt) NodeSpan() *Span    { return &n.Sp }
+func (n *WildPat) NodeSpan() *Span      { return &n.Sp }
+
+// 编译期保证：所有带 Sp 的节点都实现 Spanned（漏一个即编译失败）
+var (
+	_ Spanned = (*Arm)(nil)
+	_ Spanned = (*ArrLit)(nil)
+	_ Spanned = (*AssignStmt)(nil)
+	_ Spanned = (*Binary)(nil)
+	_ Spanned = (*BindPat)(nil)
+	_ Spanned = (*BoolLit)(nil)
+	_ Spanned = (*BreakStmt)(nil)
+	_ Spanned = (*CallEx)(nil)
+	_ Spanned = (*CasePat)(nil)
+	_ Spanned = (*ContinueStmt)(nil)
+	_ Spanned = (*EnumCase)(nil)
+	_ Spanned = (*EnumDecl)(nil)
+	_ Spanned = (*ExprStmt)(nil)
+	_ Spanned = (*ExternDecl)(nil)
+	_ Spanned = (*FieldEx)(nil)
+	_ Spanned = (*FloatLit)(nil)
+	_ Spanned = (*FnDecl)(nil)
+	_ Spanned = (*FnLit)(nil)
+	_ Spanned = (*ForInStmt)(nil)
+	_ Spanned = (*GoStmt)(nil)
+	_ Spanned = (*Ident)(nil)
+	_ Spanned = (*IfStmt)(nil)
+	_ Spanned = (*ImportStmt)(nil)
+	_ Spanned = (*IndexEx)(nil)
+	_ Spanned = (*IntLit)(nil)
+	_ Spanned = (*LetStmt)(nil)
+	_ Spanned = (*LitPat)(nil)
+	_ Spanned = (*MapLit)(nil)
+	_ Spanned = (*MatchEx)(nil)
+	_ Spanned = (*RangeEx)(nil)
+	_ Spanned = (*ReturnStmt)(nil)
+	_ Spanned = (*SliceEx)(nil)
+	_ Spanned = (*StrLit)(nil)
+	_ Spanned = (*StructDecl)(nil)
+	_ Spanned = (*StructLit)(nil)
+	_ Spanned = (*TryEx)(nil)
+	_ Spanned = (*Unary)(nil)
+	_ Spanned = (*WhileStmt)(nil)
+	_ Spanned = (*WildPat)(nil)
+)

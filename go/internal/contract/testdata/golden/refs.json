@@ -1,0 +1,347 @@
+{
+  "schemaVersion": "1",
+  "toolVersion": "0.4.0",
+  "kind": "inspect.refs",
+  "references": [
+    {
+      "symbolId": 26,
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 257,
+          "line": 19,
+          "column": 6
+        },
+        "end": {
+          "offset": 259,
+          "line": 19,
+          "column": 8
+        }
+      },
+      "referenceKind": "call"
+    },
+    {
+      "symbolId": 26,
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 531,
+          "line": 33,
+          "column": 3
+        },
+        "end": {
+          "offset": 536,
+          "line": 33,
+          "column": 8
+        }
+      },
+      "referenceKind": "pattern"
+    },
+    {
+      "symbolId": 27,
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 224,
+          "line": 17,
+          "column": 16
+        },
+        "end": {
+          "offset": 227,
+          "line": 17,
+          "column": 19
+        }
+      },
+      "referenceKind": "call"
+    },
+    {
+      "symbolId": 27,
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 550,
+          "line": 34,
+          "column": 3
+        },
+        "end": {
+          "offset": 556,
+          "line": 34,
+          "column": 9
+        }
+      },
+      "referenceKind": "pattern"
+    },
+    {
+      "symbolId": 28,
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 365,
+          "line": 27,
+          "column": 7
+        },
+        "end": {
+          "offset": 382,
+          "line": 27,
+          "column": 24
+        }
+      },
+      "referenceKind": "type"
+    },
+    {
+      "symbolId": 33,
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 506,
+          "line": 32,
+          "column": 15
+        },
+        "end": {
+          "offset": 514,
+          "line": 32,
+          "column": 23
+        }
+      },
+      "referenceKind": "call"
+    },
+    {
+      "symbolId": 34,
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 444,
+          "line": 30,
+          "column": 2
+        },
+        "end": {
+          "offset": 448,
+          "line": 30,
+          "column": 6
+        }
+      },
+      "referenceKind": "call"
+    },
+    {
+      "symbolId": 36,
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 199,
+          "line": 16,
+          "column": 8
+        },
+        "end": {
+          "offset": 200,
+          "line": 16,
+          "column": 9
+        }
+      },
+      "referenceKind": "read"
+    },
+    {
+      "symbolId": 36,
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 264,
+          "line": 19,
+          "column": 13
+        },
+        "end": {
+          "offset": 265,
+          "line": 19,
+          "column": 14
+        }
+      },
+      "referenceKind": "read"
+    },
+    {
+      "symbolId": 37,
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 321,
+          "line": 23,
+          "column": 4
+        },
+        "end": {
+          "offset": 323,
+          "line": 23,
+          "column": 6
+        }
+      },
+      "referenceKind": "read"
+    },
+    {
+      "symbolId": 38,
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 333,
+          "line": 23,
+          "column": 16
+        },
+        "end": {
+          "offset": 336,
+          "line": 23,
+          "column": 19
+        }
+      },
+      "referenceKind": "read"
+    },
+    {
+      "symbolId": 39,
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 402,
+          "line": 28,
+          "column": 14
+        },
+        "end": {
+          "offset": 403,
+          "line": 28,
+          "column": 15
+        }
+      },
+      "referenceKind": "read"
+    },
+    {
+      "symbolId": 40,
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 449,
+          "line": 30,
+          "column": 7
+        },
+        "end": {
+          "offset": 451,
+          "line": 30,
+          "column": 9
+        }
+      },
+      "referenceKind": "read"
+    },
+    {
+      "symbolId": 40,
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 481,
+          "line": 31,
+          "column": 12
+        },
+        "end": {
+          "offset": 483,
+          "line": 31,
+          "column": 14
+        }
+      },
+      "referenceKind": "read"
+    },
+    {
+      "symbolId": 41,
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 540,
+          "line": 33,
+          "column": 12
+        },
+        "end": {
+          "offset": 541,
+          "line": 33,
+          "column": 13
+        }
+      },
+      "referenceKind": "read"
+    },
+    {
+      "symbolId": 43,
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 589,
+          "line": 36,
+          "column": 16
+        },
+        "end": {
+          "offset": 592,
+          "line": 36,
+          "column": 19
+        }
+      },
+      "referenceKind": "read"
+    },
+    {
+      "symbolId": 44,
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 122,
+          "line": 12,
+          "column": 12
+        },
+        "end": {
+          "offset": 123,
+          "line": 12,
+          "column": 13
+        }
+      },
+      "referenceKind": "read"
+    },
+    {
+      "symbolId": 44,
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 128,
+          "line": 12,
+          "column": 18
+        },
+        "end": {
+          "offset": 129,
+          "line": 12,
+          "column": 19
+        }
+      },
+      "referenceKind": "read"
+    },
+    {
+      "symbolId": 44,
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 134,
+          "line": 12,
+          "column": 24
+        },
+        "end": {
+          "offset": 135,
+          "line": 12,
+          "column": 25
+        }
+      },
+      "referenceKind": "read"
+    },
+    {
+      "symbolId": 44,
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 140,
+          "line": 12,
+          "column": 30
+        },
+        "end": {
+          "offset": 141,
+          "line": 12,
+          "column": 31
+        }
+      },
+      "referenceKind": "read"
+    }
+  ]
+}

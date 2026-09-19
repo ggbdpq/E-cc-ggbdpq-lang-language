@@ -163,3 +163,14 @@ null、异常、宏、继承、隐式数值转换、包管理器、LSP、调试�
 | 70b | **Go 后端 gt()（生成侧 Go 类型追踪）**：取代旧 infer() 的角色——langGoIndex/langGoSlice/langGoField 等运行时边界为 any、langGoTo 收窄后的局部为目标类型、+ 传播字符串；语义类型与运行时形态分离 | 后端不再做「类型推断」，只做「类型映射 + 动态边界追踪」；这是 IR 契约的关键部分 |
 
 ## 语法糖策略
+
+## v0.4 Agent Contract（2026-09-20 追加）
+
+| # | 决定 | 理由 |
+|---|------|------|
+| 71 | **契约层单一边界**：internal/contract 是内部模型 → 稳定 JSON 的唯一转换层（禁 import gen/genjs/interp，go list -deps 可验）；统一信封 schemaVersion/toolVersion/kind；dump 与 inspect 共用 Node 形态 | Agent 只依赖公开契约；内部 struct 重构不破坏协议 |
+| 72 | **列级 Span 落地**：Token.Start/End（rune 偏移）+ Parser prevEnd/prevLine 跟踪（next/accept 双出口）+ 全节点盖 Span + load 逐文件盖章 Span.File（修复多文件归属缺失）；Span 与 Line 并存，后端零改动 | v0.4 协议需要 offset/line/column；Line 字段保留使既有消费方（interp/format/semantic）零风险 |
+| 73 | **Effect Metadata 从 IR 推导**：直接效果来自 IR 节点（println/print→IO、http.get→NET、chan 内建→CHANNEL、extern→FFI、go→SPAWN），沿调用图 fixpoint 传播；fnlit 效果归属定义所在函数（保守）；FS/TIME/RANDOM 保留枚举 | 禁止源码字符串搜索；IR 是调用关系真值源；无生产者的效果显式保留 |
+| 74 | **dump ir 不含 span**（span 见 dump.hir）：IR 保持精简执行视图；nodeId 由契约层分配 | 避免 IR 元数据膨胀；协议在 v0.4.x 内可加字段 |
+| 75 | **诊断定位 v0.4 为行级**（primarySpan.column 恒 1）：列级 span 基础已落地（#72），诊断收紧到列是 v0.5 目标 | 结构即契约（字段已冻结），精度提升为兼容变更 |
+| 76 | **版本单一源**：CLI version 复用 contract.ToolVersion | 消除 version 三处漂移（v0.3 漂移 #2 的根治） |

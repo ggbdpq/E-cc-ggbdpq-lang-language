@@ -15,28 +15,41 @@ import (
 	"lang-go/internal/syntax"
 )
 
+// FileInfo 文件装载信息（v0.4 inspect dependencies）
+type FileInfo struct {
+	Path    string   // 模块根相对路径（/ 分隔）
+	Imports []string // 该文件声明的 import 路径（源码原文，依出现序）
+	Order   int      // 装载顺序（0 起）
+}
+
 // Program 装载 dir 为一个合并程序。includeTests 时 *_test.lang-go 追加在后，
 // 并返回其中全部 test 前缀无参函数名（按文件名序）。
 func Program(dir string, includeTests bool) ([]syntax.Stmt, []string, error) {
+	prog, tests, _, err := ProgramEx(dir, includeTests)
+	return prog, tests, err
+}
+
+// ProgramEx 装载并返回文件级依赖信息
+func ProgramEx(dir string, includeTests bool) ([]syntax.Stmt, []string, []FileInfo, error) {
 	root, err := filepath.Abs(dir)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	l := &loader{root: root, inProgress: map[string]bool{}, done: map[string]bool{}}
 	prog, err := l.loadDir(root)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	var tests []string
 	if includeTests {
 		testFiles, err := listLangGo(root, true)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		for _, f := range testFiles {
 			stmts, err := l.loadFile(filepath.Join(root, f))
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 			prog = append(prog, stmts...)
 			for _, s := range stmts {
@@ -48,13 +61,14 @@ func Program(dir string, includeTests bool) ([]syntax.Stmt, []string, error) {
 			}
 		}
 	}
-	return prog, tests, nil
+	return prog, tests, l.files, nil
 }
 
 type loader struct {
 	root       string
 	inProgress map[string]bool // 正在展开的路径（真环检测）
 	done       map[string]bool // 已完整装载的路径（菱形去重）
+	files      []FileInfo      // 文件装载信息（依装载序）
 }
 
 func listLangGo(dir string, tests bool) ([]string, error) {
@@ -114,7 +128,15 @@ func (l *loader) loadFile(ap string) ([]syntax.Stmt, error) {
 	if err != nil {
 		rel = filepath.Base(ap)
 	}
-	stampFile(stmts, filepath.ToSlash(rel))
+	rel = filepath.ToSlash(rel)
+	stampFile(stmts, rel)
+	fi := FileInfo{Path: rel, Order: len(l.files)}
+	for _, st := range stmts {
+		if imp, ok := st.(*syntax.ImportStmt); ok {
+			fi.Imports = append(fi.Imports, imp.Path)
+		}
+	}
+	l.files = append(l.files, fi)
 	return stmts, nil
 }
 

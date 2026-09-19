@@ -270,7 +270,15 @@ Source
 规范/语义决策见 docs/decisions.md（#65 起）与仓库根 docs/adr/0001；
 语料判据：同一程序三路 stdout 逐字节一致（examples + m4 全量差分）。
 
-## 10. 里程碑
+## 10. Agent Contract（v0.4）
+
+机器接口统一 JSON 信封（schemaVersion/toolVersion/kind），实现于 internal/contract：
+`check/inspect symbols·refs·type·dependencies·effects/dump ast·hir·ir --json`。
+诊断带稳定码（§5）与行级 primarySpan；列级 span 见 dump.ast/dump.hir；
+Effect Metadata（PURE/IO/FS/NET/TIME/RANDOM/SPAWN/CHANNEL/FFI）从 IR 推导。
+协议规范：仓库根 specs/agent-protocol.md + schemas/agent-protocol.schema.json。
+
+## 11. 里程碑
 
 - **M1** 本规范 + 决策台账（已完成）
 - **M2** Go 实现：词法器、解析器、树遍历解释器、REPL、`lang-go run`/`lang-go test`（已完成）

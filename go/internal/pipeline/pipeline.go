@@ -80,14 +80,46 @@ func Check(src string) ([]Diagnostic, error) {
 	return nil, nil
 }
 
-// Compile 源码 → IR（检查全过才降级）
-func Compile(src string) (*ir.Prog, error) {
+// Analyzed 全前端产物（HIR/IR/符号/类型），契约层一次性取用
+type Analyzed struct {
+	AST  []syntax.Stmt
+	Res  *semantic.Result
+	Ty   *types.Result
+	HIR  *hir.Prog
+	Prog *ir.Prog
+}
+
+// Analyze 源码 → 全前端产物
+func Analyze(src string) (*Analyzed, error) {
 	prog, err := syntax.Parse(src)
 	if err != nil {
 		d := parseDiag(err)
 		return nil, ErrorList{d}
 	}
-	return CompileStmts(prog)
+	return AnalyzeStmts(prog)
+}
+
+// AnalyzeStmts 已解析语句 → 全前端产物
+func AnalyzeStmts(prog []syntax.Stmt) (*Analyzed, error) {
+	res := semantic.Resolve(prog)
+	if res.HasErrors() {
+		return nil, ErrorList(convertSemantic(res.Diags))
+	}
+	ty := types.Check(prog, res)
+	if ty.HasErrors() {
+		return nil, ErrorList(convertTypes(ty.Diags))
+	}
+	h := hir.Build(prog, res, ty)
+	return &Analyzed{AST: prog, Res: res, Ty: ty, HIR: h, Prog: ir.Lower(h)}, nil
+}
+
+// Compile 源码 → IR（检查全过才降级）
+func Compile(src string) (*ir.Prog, error) {
+	a, err := Analyze(src)
+	if err != nil {
+		return nil, err
+	}
+	return a.Prog, nil
 }
 
 // CheckStmts 前端检查（已解析语句序列）
@@ -107,15 +139,11 @@ func CheckStmts(prog []syntax.Stmt) ([]Diagnostic, error) {
 
 // CompileStmts 已解析语句序列 → IR（装载器合并后的程序用）
 func CompileStmts(prog []syntax.Stmt) (*ir.Prog, error) {
-	res := semantic.Resolve(prog)
-	if res.HasErrors() {
-		return nil, ErrorList(convertSemantic(res.Diags))
+	a, err := AnalyzeStmts(prog)
+	if err != nil {
+		return nil, err
 	}
-	ty := types.Check(prog, res)
-	if ty.HasErrors() {
-		return nil, ErrorList(convertTypes(ty.Diags))
-	}
-	return ir.Lower(hir.Build(prog, res, ty)), nil
+	return a.Prog, nil
 }
 
 func convertSemantic(list []semantic.Diagnostic) []Diagnostic {

@@ -1,0 +1,549 @@
+{
+  "schemaVersion": "1",
+  "toolVersion": "0.4.0",
+  "kind": "dump.ir",
+  "nodes": [
+    {
+      "nodeId": 1,
+      "kind": "struct",
+      "name": "Point",
+      "children": [
+        {
+          "nodeId": 2,
+          "kind": "field",
+          "type": "int",
+          "name": "x"
+        },
+        {
+          "nodeId": 3,
+          "kind": "field",
+          "type": "int",
+          "name": "y"
+        }
+      ]
+    },
+    {
+      "nodeId": 4,
+      "kind": "enum",
+      "name": "Shape",
+      "children": [
+        {
+          "nodeId": 5,
+          "kind": "case",
+          "name": "Circle"
+        },
+        {
+          "nodeId": 6,
+          "kind": "case",
+          "name": "Unit"
+        }
+      ]
+    },
+    {
+      "nodeId": 7,
+      "kind": "fn",
+      "type": "Result[int, error]",
+      "name": "parseAge",
+      "children": [
+        {
+          "nodeId": 8,
+          "kind": "param",
+          "type": "string",
+          "name": "s"
+        },
+        {
+          "nodeId": 9,
+          "kind": "if",
+          "children": [
+            {
+              "nodeId": 10,
+              "kind": "binary",
+              "type": "bool",
+              "name": "==",
+              "children": [
+                {
+                  "nodeId": 11,
+                  "kind": "local",
+                  "type": "string",
+                  "name": "s"
+                },
+                {
+                  "nodeId": 12,
+                  "kind": "const",
+                  "type": "string"
+                }
+              ]
+            },
+            {
+              "nodeId": 13,
+              "kind": "return",
+              "children": [
+                {
+                  "nodeId": 14,
+                  "kind": "ctor",
+                  "type": "Result[int, error]",
+                  "name": "Err",
+                  "children": [
+                    {
+                      "nodeId": 15,
+                      "kind": "builtin_call",
+                      "type": "error",
+                      "name": "err",
+                      "children": [
+                        {
+                          "nodeId": 16,
+                          "kind": "const",
+                          "type": "string",
+                          "value": "空输入"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nodeId": 17,
+          "kind": "return",
+          "children": [
+            {
+              "nodeId": 18,
+              "kind": "ctor",
+              "type": "Result[int, error]",
+              "name": "Ok",
+              "children": [
+                {
+                  "nodeId": 19,
+                  "kind": "builtin_call",
+                  "type": "int",
+                  "name": "int",
+                  "children": [
+                    {
+                      "nodeId": 20,
+                      "kind": "local",
+                      "type": "string",
+                      "name": "s"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nodeId": 21,
+      "kind": "fn",
+      "type": "unknown",
+      "name": "emit",
+      "children": [
+        {
+          "nodeId": 22,
+          "kind": "param",
+          "type": "chan[string]",
+          "name": "ch"
+        },
+        {
+          "nodeId": 23,
+          "kind": "param",
+          "type": "string",
+          "name": "who"
+        },
+        {
+          "nodeId": 24,
+          "kind": "eval",
+          "children": [
+            {
+              "nodeId": 25,
+              "kind": "builtin_call",
+              "type": "()",
+              "name": "send",
+              "children": [
+                {
+                  "nodeId": 26,
+                  "kind": "local",
+                  "type": "chan[string]",
+                  "name": "ch"
+                },
+                {
+                  "nodeId": 27,
+                  "kind": "binary",
+                  "type": "string",
+                  "name": "+",
+                  "children": [
+                    {
+                      "nodeId": 28,
+                      "kind": "const",
+                      "type": "string",
+                      "value": "hi "
+                    },
+                    {
+                      "nodeId": 29,
+                      "kind": "local",
+                      "type": "string",
+                      "name": "who"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nodeId": 30,
+      "kind": "fn",
+      "type": "unknown",
+      "name": "main",
+      "children": [
+        {
+          "nodeId": 31,
+          "kind": "let",
+          "type": "Point",
+          "name": "p",
+          "children": [
+            {
+              "nodeId": 32,
+              "kind": "struct_lit",
+              "type": "Point",
+              "name": "Point",
+              "children": [
+                {
+                  "nodeId": 33,
+                  "kind": "field_init",
+                  "name": "x",
+                  "children": [
+                    {
+                      "nodeId": 34,
+                      "kind": "const",
+                      "type": "int",
+                      "value": "1"
+                    }
+                  ]
+                },
+                {
+                  "nodeId": 35,
+                  "kind": "field_init",
+                  "name": "y",
+                  "children": [
+                    {
+                      "nodeId": 36,
+                      "kind": "const",
+                      "type": "int",
+                      "value": "2"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nodeId": 37,
+          "kind": "eval",
+          "children": [
+            {
+              "nodeId": 38,
+              "kind": "builtin_call",
+              "type": "()",
+              "name": "println",
+              "children": [
+                {
+                  "nodeId": 39,
+                  "kind": "const",
+                  "type": "string",
+                  "value": "d ="
+                },
+                {
+                  "nodeId": 40,
+                  "kind": "method",
+                  "type": "int",
+                  "name": "dist2",
+                  "children": [
+                    {
+                      "nodeId": 41,
+                      "kind": "local",
+                      "type": "Point",
+                      "name": "p"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nodeId": 42,
+          "kind": "let",
+          "type": "chan[unknown]",
+          "name": "ch",
+          "children": [
+            {
+              "nodeId": 43,
+              "kind": "builtin_call",
+              "type": "chan[unknown]",
+              "name": "makeChan"
+            }
+          ]
+        },
+        {
+          "nodeId": 44,
+          "kind": "spawn",
+          "name": "emit",
+          "children": [
+            {
+              "nodeId": 45,
+              "kind": "local",
+              "type": "chan[unknown]",
+              "name": "ch"
+            },
+            {
+              "nodeId": 46,
+              "kind": "const",
+              "type": "string",
+              "value": "lang-go"
+            }
+          ]
+        },
+        {
+          "nodeId": 47,
+          "kind": "eval",
+          "children": [
+            {
+              "nodeId": 48,
+              "kind": "builtin_call",
+              "type": "()",
+              "name": "println",
+              "children": [
+                {
+                  "nodeId": 49,
+                  "kind": "builtin_call",
+                  "type": "Result[unknown, error]",
+                  "name": "recv",
+                  "children": [
+                    {
+                      "nodeId": 50,
+                      "kind": "local",
+                      "type": "chan[unknown]",
+                      "name": "ch"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nodeId": 51,
+          "kind": "let",
+          "type": "int",
+          "name": "age",
+          "children": [
+            {
+              "nodeId": 52,
+              "kind": "match",
+              "type": "int",
+              "name": "result",
+              "children": [
+                {
+                  "nodeId": 53,
+                  "kind": "call",
+                  "type": "Result[int, error]",
+                  "name": "parseAge",
+                  "children": [
+                    {
+                      "nodeId": 54,
+                      "kind": "const",
+                      "type": "string",
+                      "value": "28"
+                    }
+                  ]
+                },
+                {
+                  "nodeId": 55,
+                  "kind": "arm",
+                  "children": [
+                    {
+                      "nodeId": 56,
+                      "kind": "pattern_ctor",
+                      "name": "Ok",
+                      "children": [
+                        {
+                          "nodeId": 57,
+                          "kind": "pattern_bind",
+                          "type": "int",
+                          "name": "v"
+                        }
+                      ]
+                    },
+                    {
+                      "nodeId": 58,
+                      "kind": "local",
+                      "type": "int",
+                      "name": "v"
+                    }
+                  ]
+                },
+                {
+                  "nodeId": 59,
+                  "kind": "arm",
+                  "children": [
+                    {
+                      "nodeId": 60,
+                      "kind": "pattern_ctor",
+                      "name": "Err",
+                      "children": [
+                        {
+                          "nodeId": 61,
+                          "kind": "pattern_bind",
+                          "type": "error",
+                          "name": "e"
+                        }
+                      ]
+                    },
+                    {
+                      "nodeId": 62,
+                      "kind": "const",
+                      "type": "int",
+                      "value": "0"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nodeId": 63,
+          "kind": "eval",
+          "children": [
+            {
+              "nodeId": 64,
+              "kind": "builtin_call",
+              "type": "()",
+              "name": "println",
+              "children": [
+                {
+                  "nodeId": 65,
+                  "kind": "const",
+                  "type": "string",
+                  "value": "age ="
+                },
+                {
+                  "nodeId": 66,
+                  "kind": "local",
+                  "type": "int",
+                  "name": "age"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nodeId": 67,
+      "kind": "fn",
+      "type": "int",
+      "name": "dist2",
+      "children": [
+        {
+          "nodeId": 68,
+          "kind": "recv",
+          "type": "Point",
+          "name": "p"
+        },
+        {
+          "nodeId": 69,
+          "kind": "return",
+          "children": [
+            {
+              "nodeId": 70,
+              "kind": "binary",
+              "type": "int",
+              "name": "+",
+              "children": [
+                {
+                  "nodeId": 71,
+                  "kind": "binary",
+                  "type": "int",
+                  "name": "*",
+                  "children": [
+                    {
+                      "nodeId": 72,
+                      "kind": "field_access",
+                      "type": "int",
+                      "name": "x",
+                      "children": [
+                        {
+                          "nodeId": 73,
+                          "kind": "local",
+                          "type": "Point",
+                          "name": "p"
+                        }
+                      ]
+                    },
+                    {
+                      "nodeId": 74,
+                      "kind": "field_access",
+                      "type": "int",
+                      "name": "x",
+                      "children": [
+                        {
+                          "nodeId": 75,
+                          "kind": "local",
+                          "type": "Point",
+                          "name": "p"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "nodeId": 76,
+                  "kind": "binary",
+                  "type": "int",
+                  "name": "*",
+                  "children": [
+                    {
+                      "nodeId": 77,
+                      "kind": "field_access",
+                      "type": "int",
+                      "name": "y",
+                      "children": [
+                        {
+                          "nodeId": 78,
+                          "kind": "local",
+                          "type": "Point",
+                          "name": "p"
+                        }
+                      ]
+                    },
+                    {
+                      "nodeId": 79,
+                      "kind": "field_access",
+                      "type": "int",
+                      "name": "y",
+                      "children": [
+                        {
+                          "nodeId": 80,
+                          "kind": "local",
+                          "type": "Point",
+                          "name": "p"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

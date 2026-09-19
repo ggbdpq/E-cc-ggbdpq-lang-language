@@ -1,0 +1,113 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "lang-go agent protocol envelope (schemaVersion 1)",
+  "type": "object",
+  "required": ["schemaVersion", "toolVersion", "kind"],
+  "properties": {
+    "schemaVersion": {"const": "1"},
+    "toolVersion": {"type": "string"},
+    "kind": {
+      "enum": [
+        "check", "dump.ast", "dump.hir", "dump.ir",
+        "inspect.symbols", "inspect.refs", "inspect.type",
+        "inspect.dependencies", "inspect.effects"
+      ]
+    },
+    "success": {"type": "boolean"},
+    "error": {"type": "string"},
+    "span": {"$ref": "#/definitions/span"},
+    "diagnostics": {"type": "array", "items": {"$ref": "#/definitions/diagnostic"}},
+    "symbols": {"type": "array", "items": {"$ref": "#/definitions/symbol"}},
+    "references": {"type": "array", "items": {"$ref": "#/definitions/reference"}},
+    "dependencies": {"type": "array", "items": {"$ref": "#/definitions/dependency"}},
+    "effects": {"type": "array", "items": {"$ref": "#/definitions/effect"}},
+    "nodes": {"type": "array", "items": {"$ref": "#/definitions/node"}}
+  },
+  "definitions": {
+    "position": {
+      "type": "object",
+      "required": ["offset", "line", "column"],
+      "properties": {
+        "offset": {"type": "integer", "minimum": 0},
+        "line": {"type": "integer", "minimum": 1},
+        "column": {"type": "integer", "minimum": 1}
+      }
+    },
+    "span": {
+      "type": "object",
+      "required": ["file", "start", "end"],
+      "properties": {
+        "file": {"type": "string"},
+        "start": {"$ref": "#/definitions/position"},
+        "end": {"$ref": "#/definitions/position"}
+      }
+    },
+    "diagnostic": {
+      "type": "object",
+      "required": ["code", "severity", "message", "primarySpan", "relatedSpans", "help"],
+      "properties": {
+        "code": {"type": "string", "pattern": "^E[0-9]{4}$"},
+        "severity": {"enum": ["error", "warning"]},
+        "message": {"type": "string"},
+        "primarySpan": {"$ref": "#/definitions/span"},
+        "relatedSpans": {"type": "array", "items": {"$ref": "#/definitions/span"}},
+        "help": {"type": "string"}
+      }
+    },
+    "symbol": {
+      "type": "object",
+      "required": ["symbolId", "name", "kind", "definition", "type", "visibility", "module"],
+      "properties": {
+        "symbolId": {"type": "integer", "minimum": 1},
+        "name": {"type": "string"},
+        "kind": {"enum": ["function", "method", "variable", "parameter", "struct", "enum", "constructor"]},
+        "definition": {"$ref": "#/definitions/span"},
+        "type": {"type": "string"},
+        "visibility": {"enum": ["public", "local"]},
+        "module": {"type": "string"}
+      }
+    },
+    "reference": {
+      "type": "object",
+      "required": ["symbolId", "span", "referenceKind"],
+      "properties": {
+        "symbolId": {"type": "integer"},
+        "span": {"$ref": "#/definitions/span"},
+        "referenceKind": {"enum": ["read", "write", "call", "pattern", "type"]}
+      }
+    },
+    "dependency": {
+      "type": "object",
+      "required": ["module", "imports"],
+      "properties": {
+        "module": {"type": "string"},
+        "imports": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "effect": {
+      "type": "object",
+      "required": ["symbolId", "name", "effects"],
+      "properties": {
+        "symbolId": {"type": "integer"},
+        "name": {"type": "string"},
+        "effects": {
+          "type": "array",
+          "items": {"enum": ["PURE", "IO", "FS", "NET", "TIME", "RANDOM", "SPAWN", "CHANNEL", "FFI"]}
+        }
+      }
+    },
+    "node": {
+      "type": "object",
+      "required": ["nodeId", "kind"],
+      "properties": {
+        "nodeId": {"type": "integer"},
+        "kind": {"type": "string"},
+        "span": {"$ref": "#/definitions/span"},
+        "type": {"type": "string"},
+        "name": {"type": "string"},
+        "value": {"type": "string"},
+        "children": {"type": "array", "items": {"$ref": "#/definitions/node"}}
+      }
+    }
+  }
+}
