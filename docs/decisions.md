@@ -108,7 +108,11 @@
 |---|------|------|
 | 54 | **十六进制字面量 `0x/0X` 兑现**（Q28）：词法统一转十进制记号，fmt 输出十进制 | 源码可读性收益兑现；fmt 单一形态保证幂等 |
 | 55 | **`lang-go build [go\|js]` 兑现**（Q21）：静态检查通过后写 out/main.go 或 out/main.mjs | 产物落盘供人工审查与外部工具链（go build/node）消费；写路径常量，无穿越面 |
-| 56 | **Q23 REPL `:format` 判定跳过** | REPL 无持久 buffer，格式化对象不存在；等价能力已由 `lang-go fmt` 覆盖 |## 明确不做（v1）
+| 56 | **Q23 REPL `:format` 判定跳过** | REPL 无持久 buffer，格式化对象不存在；等价能力已由 `lang-go fmt` 覆盖 |
+
+## 明确不做（v1）
+
+null、异常、宏、继承、隐式数值转换、包管理器、LSP、调试器、LLVM、指针算术、.d.ts 自动摄入。
 
 ## 并发第一批（2026-09-19 追加，候选清单全部批准）
 
@@ -122,7 +126,7 @@
 | # | 决定 | 理由 |
 |---|------|------|
 | 59 | **chan 最小面**：`chan[T]` 类型注解（→Go 装箱 `chan any`，T 仅文档）+ `makeChan()`/`send(ch, v)`/`recv(ch) → Result[T, error]` 内建。**非阻塞语义**：send 不阻塞（→Go 缓冲 1024、满则运行时错）；recv 空即 Err（→Go select-default、→JS/解释器队列判空） | 三路一致的可测语义：阻塞语义在单线程解释器无法忠实模拟，非阻塞队列可用且确定；跨 goroutine 时序依赖标记为 v0 不定 |
-| 60 | **`lang-go check` 的转译约束覆盖扩展**：channel 示例的参数注解缺失被 check 拦下（chan[T] 解析 + goTypeWith 同步落地） | check 即转译前置检查的设计（#49）自然获得新语法覆盖 |null、异常、宏、继承、隐式数值转换、包管理器、LSP、调试器、LLVM 原生 codegen、指针算术、.d.ts 自动摄入。
+| 60 | **`lang-go check` 的转译约束覆盖扩展**：channel 示例的参数注解缺失被 check 拦下（chan[T] 解析 + goTypeWith 同步落地） | check 即转译前置检查的设计（#49）自然获得新语法覆盖（v0.3 起由 #66 取代） |
 
 ## extern 自动绑定（2026-09-19 追加，#58 候选转正第一批）
 
@@ -145,3 +149,17 @@
 ## 语法糖策略
 
 最小核 + 按需加：spec 审查时逐条增删，不预埋"以后可能要"的糖。v0 已按此裁掉的：字符串插值、三元运算符、`+=` 复合赋值、多模式 `A | B` 臂、模式守卫、块注释。
+
+## v0.3 Semantic Core（2026-09-20 追加）
+
+| # | 决定 | 理由 |
+|---|------|------|
+| 65 | **语义层四件套**：internal/semantic（resolver，稳定 SymbolID，值/类型双命名空间）→ internal/types（checker，统一 Type 模型）→ internal/hir（Typed HIR：NodeId/Span/Symbol/Type，脱糖唯一发生地）→ internal/ir（Core IR：局部槽位化 + 迭代协议 + match 分类结论固化） | 三份查名/两份约束检查的重复实现收敛为单点定义；为多宿主实现（TS/Python/Rust）提供宿主无关契约；详见 docs/adr/0001 |
+| 66 | **check 走独立前端**（取代 #49）：`lang-go check` = resolver + 类型检查器，诊断带稳定码（E1xxx 词法/解析、E2xxx resolver、E3xxx 类型、E4xxx 模式）；不再依赖 →JS 转译器 | 检查能力寄生在后端里无法独立演进；v0.3 gate 明确要求 check 与 JS generator 解耦 |
+| 67 | **转译约束收编**：参数注解必填（E3007）、? 位置/约束（E3005/E3008）、Result 函数 return 形态（E3006，含 Ok/Err 仅限 return）、match 分类与穷尽（E4001-E4003）全部上移到 types；后端删除对应实现 | 逐字重复的五组函数/规则单点化；后端只做平台映射 |
+| 68 | **分歧收口**：未定义名统一编译期 E2002（此前 →JS 路径完全不查，spec 声称覆盖属漂移）；嵌套类型声明 E2010（此前 →JS 静默丢弃）；Result 单臂 match E4001（此前 interp 运行时错 / →Go·→JS 语句位置静默 no-op）；enum match 混字面量臂 E4002（从双后端行为） | 静默丢语义/三路分歧不可接受；一律收紧为编译期显式拒绝 + 回归测试 |
+| 69 | **checker 保守性铁律**：Any/Unknown/TypeArg 参与即放行；容器与代数类型按元素协变（运行时容器是擦除的）；fn 参数逆协变 + 返回协变 | 现有合法程序零误杀由 TestCorpus零诊断机械锁定（examples + m4） |
+| 70 | **interp 保持消费 AST**（v0.3 不迁 IR 执行）：解释器继续作为参考语义；迁移通道 = 共享前端诊断（check 面）；v0.4+ 评估 IR 执行 | IR 执行器是高风险重写，v0.3 gate 只要求迁移通道；差分测试兜底语义一致 |
+| 70b | **Go 后端 gt()（生成侧 Go 类型追踪）**：取代旧 infer() 的角色——langGoIndex/langGoSlice/langGoField 等运行时边界为 any、langGoTo 收窄后的局部为目标类型、+ 传播字符串；语义类型与运行时形态分离 | 后端不再做「类型推断」，只做「类型映射 + 动态边界追踪」；这是 IR 契约的关键部分 |
+
+## 语法糖策略

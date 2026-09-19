@@ -175,7 +175,16 @@ M2b 起：内建映射到后端宿主（`http`、`json`、`time` 等，见 decis
 - **模块根** = 放 `lang-go.toml` 的目录；该文件 v0 仅作标记，无构建配置。
 - **导入**：`import "./x"`（仅同模块相对路径；目标是 `x.lang-go` 文件或 `x/` 目录）。装载器在合并前递归展开：目录即包 + import 图合并为一个程序；循环导入报错，菱形导入去重，越出模块根目录报错。`lang-go.toml` 仍免（v0 以 cwd 为模块根）。
 - **CLI（v0.1）**：`lang-go run` 与 `lang-go test` 均按**目录即包**装载——当前目录全部非测试 `.lang-go` 按文件名序合并为一个程序，`lang-go test` 再把 `*_test.lang-go` 追加在后并依序执行所有 `test` 前缀无参函数，任一断言失败则退出码 1。CLI 不接收路径参数（安全边界：文件输入无 `..` 穿越面）。普通 `lang-go run` 不执行 `*_test.lang-go`。
-- **静态检查**：`lang-go check` 复用 →JS 转译器的前置检查（match 穷尽、`?` 约束、参数注解、未定义名），产物丢弃（decisions #49）。
+- **静态检查**：`lang-go check` 走独立语义前端（v0.3，decisions #66 取代 #49）：resolver（名字解析）→ 类型检查器。诊断带稳定码：
+  - `E1xxx` 词法/解析（如 E1001 解析错误）
+  - `E2xxx` 名字解析：E2001 重复定义、E2002 未定义名、E2003 构造器重名、E2004 方法接收者未知 struct、E2005 对不可变绑定赋值、E2006 case 与内建名冲突、E2007 break/continue 在循环外、E2008 return 在函数外、E2010 嵌套类型声明
+  - `E3xxx` 类型系统：E3001 类型不匹配、E3002 int/float 无隐式转换、E3003 调用参数个数、E3004 字段/方法不存在、E3005 `?` 位置/注解约束、E3006 Result 函数 return 形态、E3007 参数缺注解、E3008 `?` 操作数须 Result、E3009 Result 第二参数须 error、E3010 不可迭代、E3011 一元/逻辑运算不适用、E3012 `&` 仅限变量、E3013 索引须 int、E3014 映射键类型
+  - `E4xxx` 模式匹配：E4001 match 不穷尽、E4002 enum/代数类型混字面量臂、E4003 模式混用
+
+  诊断码是稳定协议：只能追加，不能改义（v0.4 JSON 协议依赖）。
+  `lang-go build` 先检查后转译；转译目标只做平台映射（后端不再做名字解析、
+  类型推断或语义校验）。顶层仅允许声明（fn/struct/enum/let/extern/import），
+  脚本式顶层语句仅解释器可执行（转译目标会显式拒绝，见 ADR-0001）。
 
 ## 6. 平台差异与 →Go 映射（M3 起生效）
 
@@ -244,9 +253,27 @@ null、异常、宏、继承、隐式数值转换、包管理器、LSP、调试�
 
 错误信息约定：解析/词法错误附出错行摘录（`  | 源码行`）；EOF 处报错的行号为输入末尾之后，摘录回退到最后非空行。
 
-## 9. 里程碑
+## 9. 实现架构（v0.3）
+
+```text
+Source
+ ↓ Lexer / Parser（AST：保留用户写法，fmt/REPL/解释器消费）
+ ↓ semantic/resolver（符号表 + 引用绑定，稳定 SymbolID）
+ ↓ types/checker（统一类型模型 + 语义校验，稳定诊断码）
+ ↓ hir（Typed HIR：NodeId/行号/Symbol/Type；脱糖唯一发生地）
+ ↓ ir（Core IR：后端契约，局部槽位 + 迭代协议 + match 分类结论）
+ ├─ interp（树遍历解释器，v0.3 仍消费 AST＝参考语义）
+ ├─ gen   （IR → Go，只做映射与 any 边界追踪）
+ └─ genjs （IR → JS，只做映射）
+```
+
+规范/语义决策见 docs/decisions.md（#65 起）与仓库根 docs/adr/0001；
+语料判据：同一程序三路 stdout 逐字节一致（examples + m4 全量差分）。
+
+## 10. 里程碑
 
 - **M1** 本规范 + 决策台账（已完成）
-- **M2** Go 实现：词法器、解析器、树遍历解释器、REPL、`lang-go run`/`lang-go test`（本轮交付）
-- **M3** →Go、→JS 双转译后端 + 静态类型检查器 + import
-- **M4** 移植 linkpull bilibili 提取器核心（`video/wbi/md5/list`），测试全绿即验收
+- **M2** Go 实现：词法器、解析器、树遍历解释器、REPL、`lang-go run`/`lang-go test`（已完成）
+- **M3** →Go、→JS 双转译后端 + 静态类型检查器 + import（已完成）
+- **M4** 移植 linkpull bilibili 提取器核心（已完成，v0.2.0）
+- **v0.3** Semantic Core：resolver/类型检查器/HIR/IR + check 独立前端（已完成）
