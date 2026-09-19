@@ -559,9 +559,6 @@ func (it *Interp) applyOp(op syntax.Kind, old, v Value, line int) (Value, error)
 	return nil, it.errf(line, "%s 与 %s 不可做该运算（无隐式转换）", typeName(old), typeName(v))
 }
 
-// assignCompound 复合赋值（+= -= *= /=）：读旧值、运算、写回。
-// 数组 += 是原位 push（引用可见），不做读改写。
-
 func (it *Interp) intIndex(v Value, length, line int) (int, error) {
 	i, ok := v.(IntVal)
 	if !ok {
