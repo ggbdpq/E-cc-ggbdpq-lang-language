@@ -99,7 +99,8 @@ func (l *loader) loadDir(dir string) ([]syntax.Stmt, error) {
 	return l.expand(raw, dir)
 }
 
-// loadFile 解析单个文件（import 语句保留给上层 expand）
+// loadFile 解析单个文件（import 语句保留给上层 expand），
+// 并给全部节点盖上文件归属（Span.File，模块根相对路径）
 func (l *loader) loadFile(ap string) ([]syntax.Stmt, error) {
 	src, err := os.ReadFile(ap)
 	if err != nil {
@@ -109,7 +110,30 @@ func (l *loader) loadFile(ap string) ([]syntax.Stmt, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", filepath.Base(ap), err)
 	}
+	rel, err := filepath.Rel(l.root, ap)
+	if err != nil {
+		rel = filepath.Base(ap)
+	}
+	stampFile(stmts, filepath.ToSlash(rel))
 	return stmts, nil
+}
+
+// stampFile Span.File 归属（v0.4 Agent Contract）
+func stampFile(stmts []syntax.Stmt, file string) {
+	set := func(n syntax.Spanned) { n.NodeSpan().File = file }
+	syntax.WalkStmts(stmts, func(s syntax.Stmt) {
+		if sp, ok := s.(syntax.Spanned); ok {
+			set(sp)
+		}
+	}, func(e syntax.Expr) {
+		if sp, ok := e.(syntax.Spanned); ok {
+			set(sp)
+		}
+	}, func(pt syntax.Pat) {
+		if sp, ok := pt.(syntax.Spanned); ok {
+			set(sp)
+		}
+	})
 }
 
 // expand 展开语句序列里的 ImportStmt：相对 fromDir 解析 "./x" → x.lang-go 或 x/ 目录

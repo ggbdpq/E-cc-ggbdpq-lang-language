@@ -3,6 +3,25 @@ package syntax
 // Node 语法树节点统一带行号
 type Node interface{ Pos() int }
 
+// Spanned 携带源码区间的节点（v0.4 Agent Contract 用；Span 与 Line 同源于解析器）
+type Spanned interface {
+	NodeSpan() *Span
+}
+
+// Position 源码位置：Offset 为 0 基 rune 偏移，Line/Col 为 1 基
+type Position struct {
+	Offset int
+	Line   int
+	Col    int
+}
+
+// Span 源码区间 [Start, End)
+type Span struct {
+	File  string
+	Start Position
+	End   Position
+}
+
 type Expr interface {
 	Node
 	isExpr()
@@ -22,32 +41,38 @@ type TypeEx interface{ isType() }
 type IntLit struct {
 	Val  int64
 	Line int
+	Sp   Span
 }
 
 type FloatLit struct {
 	Val  float64
 	Line int
+	Sp   Span
 }
 
 type StrLit struct {
 	Val  string
 	Line int
+	Sp   Span
 }
 
 type BoolLit struct {
 	Val  bool
 	Line int
+	Sp   Span
 }
 
 type Ident struct {
 	Name string
 	Line int
+	Sp   Span
 }
 
 type Unary struct {
 	Op   Kind
 	X    Expr
 	Line int
+	Sp   Span
 }
 
 type Binary struct {
@@ -55,23 +80,27 @@ type Binary struct {
 	L    Expr
 	R    Expr
 	Line int
+	Sp   Span
 }
 
 type RangeEx struct {
 	Lo, Hi Expr
 	Line   int
+	Sp     Span
 }
 
 type CallEx struct {
 	Callee Expr
 	Args   []Expr
 	Line   int
+	Sp     Span
 }
 
 type IndexEx struct {
 	Obj  Expr
 	Idx  Expr
 	Line int
+	Sp   Span
 }
 
 // SliceEx a[lo:hi]，lo/hi 必填
@@ -80,18 +109,21 @@ type SliceEx struct {
 	Lo   Expr
 	Hi   Expr
 	Line int
+	Sp   Span
 }
 
 type FieldEx struct {
 	Obj  Expr
 	Name string
 	Line int
+	Sp   Span
 }
 
 // TryEx e? —— Result 传播
 type TryEx struct {
 	X    Expr
 	Line int
+	Sp   Span
 }
 
 type FieldLit struct {
@@ -103,6 +135,7 @@ type StructLit struct {
 	TypeName string
 	Fields   []FieldLit
 	Line     int
+	Sp       Span
 }
 
 type MapItem struct {
@@ -113,23 +146,27 @@ type MapItem struct {
 type MapLit struct {
 	Items []MapItem
 	Line  int
+	Sp    Span
 }
 
 type ArrLit struct {
 	Items []Expr
 	Line  int
+	Sp    Span
 }
 
 type Arm struct {
 	Pat  Pat
 	Body Expr
 	Line int
+	Sp   Span
 }
 
 type MatchEx struct {
 	Scrut Expr
 	Arms  []Arm
 	Line  int
+	Sp    Span
 }
 
 // FnLit 匿名函数表达式
@@ -139,21 +176,27 @@ type FnLit struct {
 	Ret        TypeEx
 	Body       []Stmt
 	Line       int
+	Sp         Span
 }
 
 // —— 模式 ——
 
-type WildPat struct{ Line int }
+type WildPat struct {
+	Line int
+	Sp   Span
+}
 
 type BindPat struct {
 	Name string
 	Line int
+	Sp   Span
 }
 
 // LitPat 字面量模式（Int/Float/Str/Bool）
 type LitPat struct {
 	Val  Expr
 	Line int
+	Sp   Span
 }
 
 // CasePat 枚举构造模式，Subs 为载荷子模式
@@ -161,6 +204,7 @@ type CasePat struct {
 	Name string
 	Subs []Pat
 	Line int
+	Sp   Span
 }
 
 // —— 语句 ——
@@ -176,6 +220,7 @@ type LetStmt struct {
 	Typ     TypeEx
 	Init    Expr
 	Line    int
+	Sp      Span
 }
 
 type AssignStmt struct {
@@ -183,16 +228,19 @@ type AssignStmt struct {
 	Val    Expr
 	Op     Kind // Assign（=）或 PlusAssign/MinusAssign/StarAssign/SlashAssign
 	Line   int
+	Sp     Span
 }
 
 type ExprStmt struct {
 	X    Expr
 	Line int
+	Sp   Span
 }
 
 type ReturnStmt struct {
 	Val  Expr // 可空：bare return
 	Line int
+	Sp   Span
 }
 
 type IfStmt struct {
@@ -200,12 +248,14 @@ type IfStmt struct {
 	Then []Stmt
 	Else []Stmt // 可空；else if 展开为单元素块
 	Line int
+	Sp   Span
 }
 
 type WhileStmt struct {
 	Cond Expr
 	Body []Stmt
 	Line int
+	Sp   Span
 }
 
 type ForInStmt struct {
@@ -213,11 +263,18 @@ type ForInStmt struct {
 	Iter Expr
 	Body []Stmt
 	Line int
+	Sp   Span
 }
 
-type BreakStmt struct{ Line int }
+type BreakStmt struct {
+	Line int
+	Sp   Span
+}
 
-type ContinueStmt struct{ Line int }
+type ContinueStmt struct {
+	Line int
+	Sp   Span
+}
 
 // —— 声明（顶层与嵌套共用） ——
 
@@ -229,6 +286,7 @@ type FnDecl struct {
 	Ret        TypeEx
 	Body       []Stmt
 	Line       int
+	Sp         Span
 }
 
 type StructDecl struct {
@@ -236,12 +294,14 @@ type StructDecl struct {
 	TypeParams []string
 	Fields     []Param
 	Line       int
+	Sp         Span
 }
 
 type EnumCase struct {
 	Name     string
 	Payloads []TypeEx
 	Line     int
+	Sp       Span
 }
 
 type EnumDecl struct {
@@ -249,18 +309,21 @@ type EnumDecl struct {
 	TypeParams []string
 	Cases      []EnumCase
 	Line       int
+	Sp         Span
 }
 
 // GoStmt go <调用>：后台任务，主函数结束前 join（decisions #57）
 type GoStmt struct {
 	Call *CallEx
 	Line int
+	Sp   Span
 }
 
 // ImportStmt import "./md5"（装载器在合并前展开，解释器不会执行到）
 type ImportStmt struct {
 	Path string
 	Line int
+	Sp   Span
 }
 
 // ExternDecl extern "go" { fn 签名 } 声明块：宿主函数手写签名（decisions #17/#35）
@@ -268,6 +331,7 @@ type ExternDecl struct {
 	Host string
 	Fns  []*FnDecl // 无函数体
 	Line int
+	Sp   Span
 }
 
 // —— 类型注解（v0 解释器不检查，供 M3 静态检查器使用） ——
@@ -370,3 +434,45 @@ func (n *ArrType) isType()       {}
 func (n *MapType) isType()       {}
 func (n *PtrType) isType()       {}
 func (n *FnType) isType()        {}
+
+// —— Spanned 接口实现（机械） ——
+
+func (n *Arm) NodeSpan() Span           { return n.Sp }
+func (n *ArrLit) NodeSpan() Span        { return n.Sp }
+func (n *AssignStmt) NodeSpan() Span    { return n.Sp }
+func (n *Binary) NodeSpan() Span        { return n.Sp }
+func (n *BindPat) NodeSpan() Span       { return n.Sp }
+func (n *BoolLit) NodeSpan() Span       { return n.Sp }
+func (n *BreakStmt) NodeSpan() Span     { return n.Sp }
+func (n *CallEx) NodeSpan() Span        { return n.Sp }
+func (n *CasePat) NodeSpan() Span       { return n.Sp }
+func (n *ContinueStmt) NodeSpan() *Span { return &n.Sp }
+func (n *EnumCase) NodeSpan() Span      { return n.Sp }
+func (n *EnumDecl) NodeSpan() Span      { return n.Sp }
+func (n *ExprStmt) NodeSpan() Span      { return n.Sp }
+func (n *ExternDecl) NodeSpan() Span    { return n.Sp }
+func (n *FieldEx) NodeSpan() Span       { return n.Sp }
+func (n *FloatLit) NodeSpan() Span      { return n.Sp }
+func (n *FnDecl) NodeSpan() Span        { return n.Sp }
+func (n *FnLit) NodeSpan() Span         { return n.Sp }
+func (n *ForInStmt) NodeSpan() Span     { return n.Sp }
+func (n *GoStmt) NodeSpan() Span        { return n.Sp }
+func (n *Ident) NodeSpan() Span         { return n.Sp }
+func (n *IfStmt) NodeSpan() Span        { return n.Sp }
+func (n *ImportStmt) NodeSpan() Span    { return n.Sp }
+func (n *IndexEx) NodeSpan() Span       { return n.Sp }
+func (n *IntLit) NodeSpan() Span        { return n.Sp }
+func (n *LetStmt) NodeSpan() Span       { return n.Sp }
+func (n *LitPat) NodeSpan() Span        { return n.Sp }
+func (n *MapLit) NodeSpan() Span        { return n.Sp }
+func (n *MatchEx) NodeSpan() Span       { return n.Sp }
+func (n *RangeEx) NodeSpan() Span       { return n.Sp }
+func (n *ReturnStmt) NodeSpan() Span    { return n.Sp }
+func (n *SliceEx) NodeSpan() Span       { return n.Sp }
+func (n *StrLit) NodeSpan() Span        { return n.Sp }
+func (n *StructDecl) NodeSpan() Span    { return n.Sp }
+func (n *StructLit) NodeSpan() Span     { return n.Sp }
+func (n *TryEx) NodeSpan() Span         { return n.Sp }
+func (n *Unary) NodeSpan() Span         { return n.Sp }
+func (n *WhileStmt) NodeSpan() Span     { return n.Sp }
+func (n *WildPat) NodeSpan() Span       { return n.Sp }

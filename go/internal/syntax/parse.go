@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 )
 
 // Error 解析错误。Incomplete 为 true 表示输入在语法中途截断，REPL 据此续行；
@@ -44,10 +45,13 @@ func lineSnippet(lines []string, line int) string {
 }
 
 type Parser struct {
-	toks     []Token
-	i        int
-	noStruct int      // >0 时处于控制头位置，禁止裸 struct 字面量（spec §3.4）
-	lines    []string // 源码行（错误摘录用）
+	toks      []Token
+	i         int
+	noStruct  int      // >0 时处于控制头位置，禁止裸 struct 字面量（spec §3.4）
+	lines     []string // 源码行（错误摘录用）
+	lineStart []int    // 每行起始 rune 偏移（0 基）
+	prevEnd   int      // 最近消费记号的终点偏移
+	prevLine  int      // 最近消费记号的行
 }
 
 // Parse 解析整个源文件/REPL 片段，返回语句序列
@@ -56,7 +60,7 @@ func Parse(src string) ([]Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := &Parser{toks: toks, lines: strings.Split(src, "\n")}
+	p := &Parser{toks: toks, lines: strings.Split(src, "\n"), lineStart: lineStarts(src), prevLine: 1}
 	var prog []Stmt
 	for {
 		p.skipNl()
@@ -75,10 +79,44 @@ func (p *Parser) cur() Token { return p.toks[p.i] }
 
 func (p *Parser) next() Token {
 	t := p.toks[p.i]
+	p.prevEnd = t.End
+	p.prevLine = t.Line
 	if p.i < len(p.toks)-1 {
 		p.i++
 	}
 	return t
+}
+
+// lineStarts 每行起始 rune 偏移（0 基）
+func lineStarts(src string) []int {
+	starts := []int{0}
+	nl := rune(10)
+	for i, r := range src {
+		if r == nl {
+			starts = append(starts, i+utf8.RuneLen(nl))
+		}
+	}
+	return starts
+}
+
+// posAt 偏移+行 → Position（Col 1 基）
+func (p *Parser) posAt(offset, line int) Position {
+	if line < 1 {
+		line = 1
+	}
+	if line > len(p.lineStart) {
+		line = len(p.lineStart)
+	}
+	col := offset - p.lineStart[line-1] + 1
+	if col < 1 {
+		col = 1
+	}
+	return Position{Offset: offset, Line: line, Col: col}
+}
+
+// spanOf 从起始记号到最近消费记号的区间
+func (p *Parser) spanOf(startTok Token) Span {
+	return Span{Start: p.posAt(startTok.Start, startTok.Line), End: p.posAt(p.prevEnd, p.prevLine)}
 }
 
 func (p *Parser) at(k Kind) bool { return p.toks[p.i].Kind == k }
@@ -91,6 +129,9 @@ func (p *Parser) skipNl() {
 
 func (p *Parser) accept(k Kind) bool {
 	if p.at(k) {
+		t := p.toks[p.i]
+		p.prevEnd = t.End
+		p.prevLine = t.Line
 		p.i++
 		return true
 	}
@@ -144,7 +185,7 @@ func (p *Parser) parseTop() (Stmt, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &ImportStmt{Path: path.Lit, Line: t.Line}, nil
+		return &ImportStmt{Path: path.Lit, Line: t.Line, Sp: p.spanOf(t)}, nil
 	case KwExtern:
 		return p.parseExtern()
 	}
@@ -161,7 +202,7 @@ func (p *Parser) parseExtern() (Stmt, error) {
 	if _, err := p.expect(LBrace); err != nil {
 		return nil, err
 	}
-	decl := &ExternDecl{Host: host.Lit, Line: t.Line}
+	decl := &ExternDecl{Host: host.Lit, Line: t.Line, Sp: p.spanOf(t)}
 	for {
 		p.skipNl()
 		if p.accept(RBrace) {
@@ -170,8 +211,9 @@ func (p *Parser) parseExtern() (Stmt, error) {
 		if p.at(EOF) {
 			return nil, p.errAt(p.cur(), "extern 块未闭合")
 		}
-		if _, err := p.expect(KwFn); err != nil {
-			return nil, err
+		fnTok, err2 := p.expect(KwFn)
+		if err2 != nil {
+			return nil, err2
 		}
 		name, err := p.expectName()
 		if err != nil {
@@ -193,7 +235,7 @@ func (p *Parser) parseExtern() (Stmt, error) {
 			}
 		}
 		decl.Fns = append(decl.Fns, &FnDecl{
-			Name: name, TypeParams: tps, Params: params, Ret: ret, Line: t.Line,
+			Name: name, TypeParams: tps, Params: params, Ret: ret, Line: fnTok.Line, Sp: p.spanOf(fnTok),
 		})
 	}
 }
@@ -223,7 +265,7 @@ func (p *Parser) parseStmt() (Stmt, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &LetStmt{Name: name, Mutable: t.Kind == KwVar, Typ: typ, Init: init, Line: t.Line}, nil
+		return &LetStmt{Name: name, Mutable: t.Kind == KwVar, Typ: typ, Init: init, Line: t.Line, Sp: p.spanOf(t)}, nil
 
 	case KwReturn:
 		p.next()
@@ -235,7 +277,7 @@ func (p *Parser) parseStmt() (Stmt, error) {
 				return nil, err
 			}
 		}
-		return &ReturnStmt{Val: val, Line: t.Line}, nil
+		return &ReturnStmt{Val: val, Line: t.Line, Sp: p.spanOf(t)}, nil
 
 	case KwIf:
 		return p.parseIf()
@@ -252,7 +294,7 @@ func (p *Parser) parseStmt() (Stmt, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &WhileStmt{Cond: cond, Body: body, Line: t.Line}, nil
+		return &WhileStmt{Cond: cond, Body: body, Line: t.Line, Sp: p.spanOf(t)}, nil
 
 	case KwFor:
 		p.next()
@@ -273,7 +315,7 @@ func (p *Parser) parseStmt() (Stmt, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &ForInStmt{Var: name, Iter: iter, Body: body, Line: t.Line}, nil
+		return &ForInStmt{Var: name, Iter: iter, Body: body, Line: t.Line, Sp: p.spanOf(t)}, nil
 
 	case KwGo:
 		p.next()
@@ -285,14 +327,14 @@ func (p *Parser) parseStmt() (Stmt, error) {
 		if !ok {
 			return nil, p.errAt(t, "go 的目标须是函数调用")
 		}
-		return &GoStmt{Call: call, Line: t.Line}, nil
+		return &GoStmt{Call: call, Line: t.Line, Sp: p.spanOf(t)}, nil
 
 	case KwBreak, KwContinue:
 		p.next()
 		if t.Kind == KwBreak {
-			return &BreakStmt{Line: t.Line}, nil
+			return &BreakStmt{Line: t.Line, Sp: p.spanOf(t)}, nil
 		}
-		return &ContinueStmt{Line: t.Line}, nil
+		return &ContinueStmt{Line: t.Line, Sp: p.spanOf(t)}, nil
 
 	case KwFn:
 		return p.parseFnDecl()
@@ -316,7 +358,7 @@ func (p *Parser) parseStmt() (Stmt, error) {
 			if err != nil {
 				return nil, err
 			}
-			return &AssignStmt{Target: e, Val: v, Op: Assign, Line: t.Line}, nil
+			return &AssignStmt{Target: e, Val: v, Op: Assign, Line: t.Line, Sp: p.spanOf(t)}, nil
 		}
 		for _, op := range []Kind{PlusAssign, MinusAssign, StarAssign, SlashAssign} {
 			if p.accept(op) {
@@ -327,10 +369,10 @@ func (p *Parser) parseStmt() (Stmt, error) {
 				if err != nil {
 					return nil, err
 				}
-				return &AssignStmt{Target: e, Val: v, Op: op, Line: t.Line}, nil
+				return &AssignStmt{Target: e, Val: v, Op: op, Line: t.Line, Sp: p.spanOf(t)}, nil
 			}
 		}
-		return &ExprStmt{X: e, Line: t.Line}, nil
+		return &ExprStmt{X: e, Line: t.Line, Sp: p.spanOf(t)}, nil
 	}
 }
 
@@ -360,7 +402,7 @@ func (p *Parser) parseIf() (Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	st := &IfStmt{Cond: cond, Then: then, Line: t.Line}
+	st := &IfStmt{Cond: cond, Then: then, Line: t.Line, Sp: p.spanOf(t)}
 	p.skipNl()
 	if p.accept(KwElse) {
 		if p.at(KwIf) {
@@ -377,6 +419,7 @@ func (p *Parser) parseIf() (Stmt, error) {
 			st.Else = els
 		}
 	}
+	st.Sp = p.spanOf(t)
 	return st, nil
 }
 
@@ -430,14 +473,14 @@ func (p *Parser) parseFnDecl() (Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	decl, err := p.parseFuncRest(t.Line, recv, name)
+	decl, err := p.parseFuncRest(t, recv, name)
 	if err != nil {
 		return nil, err
 	}
 	return decl, nil
 }
 
-func (p *Parser) parseFuncRest(line int, recv *Param, name string) (*FnDecl, error) {
+func (p *Parser) parseFuncRest(startTok Token, recv *Param, name string) (*FnDecl, error) {
 	tps, err := p.parseTypeParams()
 	if err != nil {
 		return nil, err
@@ -457,7 +500,7 @@ func (p *Parser) parseFuncRest(line int, recv *Param, name string) (*FnDecl, err
 	if err != nil {
 		return nil, err
 	}
-	return &FnDecl{Name: name, Recv: recv, TypeParams: tps, Params: params, Ret: ret, Body: body, Line: line}, nil
+	return &FnDecl{Name: name, Recv: recv, TypeParams: tps, Params: params, Ret: ret, Body: body, Line: startTok.Line, Sp: p.spanOf(startTok)}, nil
 }
 
 func (p *Parser) parseTypeParams() ([]string, error) {
@@ -547,7 +590,7 @@ func (p *Parser) parseStruct() (Stmt, error) {
 		p.skipNl()
 		p.accept(Comma)
 	}
-	return &StructDecl{Name: name, TypeParams: tps, Fields: fields, Line: t.Line}, nil
+	return &StructDecl{Name: name, TypeParams: tps, Fields: fields, Line: t.Line, Sp: p.spanOf(t)}, nil
 }
 
 func (p *Parser) parseEnum() (Stmt, error) {
@@ -596,7 +639,7 @@ func (p *Parser) parseEnum() (Stmt, error) {
 		p.skipNl()
 		p.accept(Comma)
 	}
-	return &EnumDecl{Name: name, TypeParams: tps, Cases: cases, Line: t.Line}, nil
+	return &EnumDecl{Name: name, TypeParams: tps, Cases: cases, Line: t.Line, Sp: p.spanOf(t)}, nil
 }
 
 // —— 类型注解 ——
@@ -741,9 +784,9 @@ func (p *Parser) parseExpr(minPrec int) (Expr, error) {
 			return nil, err
 		}
 		if t.Kind == Dot2 {
-			left = &RangeEx{Lo: left, Hi: right, Line: t.Line}
+			left = &RangeEx{Lo: left, Hi: right, Line: t.Line, Sp: p.spanOf(t)}
 		} else {
-			left = &Binary{Op: t.Kind, L: left, R: right, Line: t.Line}
+			left = &Binary{Op: t.Kind, L: left, R: right, Line: t.Line, Sp: p.spanOf(t)}
 		}
 	}
 }
@@ -757,7 +800,7 @@ func (p *Parser) parseUnary() (Expr, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &Unary{Op: t.Kind, X: x, Line: t.Line}, nil
+		return &Unary{Op: t.Kind, X: x, Line: t.Line, Sp: p.spanOf(t)}, nil
 	}
 	return p.parsePostfix()
 }
@@ -792,7 +835,7 @@ func (p *Parser) parsePostfix() (Expr, error) {
 			if _, err := p.expect(RParen); err != nil {
 				return nil, err
 			}
-			x = &CallEx{Callee: x, Args: args, Line: t.Line}
+			x = &CallEx{Callee: x, Args: args, Line: t.Line, Sp: p.spanOf(t)}
 		case LBracket: // 索引或切片
 			p.next()
 			p.skipNl()
@@ -812,13 +855,13 @@ func (p *Parser) parsePostfix() (Expr, error) {
 				if _, err := p.expect(RBracket); err != nil {
 					return nil, err
 				}
-				x = &SliceEx{Obj: x, Lo: lo, Hi: hi, Line: t.Line}
+				x = &SliceEx{Obj: x, Lo: lo, Hi: hi, Line: t.Line, Sp: p.spanOf(t)}
 			} else {
 				p.skipNl()
 				if _, err := p.expect(RBracket); err != nil {
 					return nil, err
 				}
-				x = &IndexEx{Obj: x, Idx: lo, Line: t.Line}
+				x = &IndexEx{Obj: x, Idx: lo, Line: t.Line, Sp: p.spanOf(t)}
 			}
 		case Dot:
 			p.next()
@@ -826,10 +869,10 @@ func (p *Parser) parsePostfix() (Expr, error) {
 			if err != nil {
 				return nil, err
 			}
-			x = &FieldEx{Obj: x, Name: name.Lit, Line: t.Line}
+			x = &FieldEx{Obj: x, Name: name.Lit, Line: t.Line, Sp: p.spanOf(t)}
 		case Question:
 			p.next()
-			x = &TryEx{X: x, Line: t.Line}
+			x = &TryEx{X: x, Line: t.Line, Sp: p.spanOf(t)}
 		default:
 			return x, nil
 		}
@@ -845,26 +888,26 @@ func (p *Parser) parsePrimary() (Expr, error) {
 		if err != nil {
 			return nil, p.errAt(t, "整数溢出: %s", t.Lit)
 		}
-		return &IntLit{Val: v, Line: t.Line}, nil
+		return &IntLit{Val: v, Line: t.Line, Sp: p.spanOf(t)}, nil
 	case TokFloat:
 		p.next()
 		v, err := strconv.ParseFloat(t.Lit, 64)
 		if err != nil {
 			return nil, p.errAt(t, "非法浮点数: %s", t.Lit)
 		}
-		return &FloatLit{Val: v, Line: t.Line}, nil
+		return &FloatLit{Val: v, Line: t.Line, Sp: p.spanOf(t)}, nil
 	case TokStr:
 		p.next()
-		return &StrLit{Val: t.Lit, Line: t.Line}, nil
+		return &StrLit{Val: t.Lit, Line: t.Line, Sp: p.spanOf(t)}, nil
 	case KwTrue, KwFalse:
 		p.next()
-		return &BoolLit{Val: t.Kind == KwTrue, Line: t.Line}, nil
+		return &BoolLit{Val: t.Kind == KwTrue, Line: t.Line, Sp: p.spanOf(t)}, nil
 	case TokIdent:
 		p.next()
 		if p.at(LBrace) && p.noStruct == 0 {
-			return p.parseStructLit(t.Lit, t.Line)
+			return p.parseStructLit(t)
 		}
-		return &Ident{Name: t.Lit, Line: t.Line}, nil
+		return &Ident{Name: t.Lit, Line: t.Line, Sp: p.spanOf(t)}, nil
 	case LParen:
 		p.next()
 		saved := p.noStruct // 括号内恢复 struct 字面量
@@ -901,7 +944,7 @@ func (p *Parser) parsePrimary() (Expr, error) {
 		if _, err := p.expect(RBracket); err != nil {
 			return nil, err
 		}
-		return &ArrLit{Items: items, Line: t.Line}, nil
+		return &ArrLit{Items: items, Line: t.Line, Sp: p.spanOf(t)}, nil
 	case LBrace: // 映射字面量
 		p.next()
 		var items []MapItem
@@ -928,14 +971,14 @@ func (p *Parser) parsePrimary() (Expr, error) {
 			p.skipNl()
 			p.accept(Comma)
 		}
-		return &MapLit{Items: items, Line: t.Line}, nil
+		return &MapLit{Items: items, Line: t.Line, Sp: p.spanOf(t)}, nil
 	case KwFn: // 匿名函数
 		p.next()
-		fn, err := p.parseFuncRest(t.Line, nil, "")
+		fn, err := p.parseFuncRest(t, nil, "")
 		if err != nil {
 			return nil, err
 		}
-		return &FnLit{TypeParams: fn.TypeParams, Params: fn.Params, Ret: fn.Ret, Body: fn.Body, Line: t.Line}, nil
+		return &FnLit{TypeParams: fn.TypeParams, Params: fn.Params, Ret: fn.Ret, Body: fn.Body, Line: t.Line, Sp: p.spanOf(t)}, nil
 	case KwMatch:
 		return p.parseMatch()
 	case EOF:
@@ -945,7 +988,8 @@ func (p *Parser) parsePrimary() (Expr, error) {
 	}
 }
 
-func (p *Parser) parseStructLit(name string, line int) (Expr, error) {
+func (p *Parser) parseStructLit(startTok Token) (Expr, error) {
+	name, line := startTok.Lit, startTok.Line
 	p.next() // {
 	var fields []FieldLit
 	for {
@@ -971,7 +1015,7 @@ func (p *Parser) parseStructLit(name string, line int) (Expr, error) {
 		p.skipNl()
 		p.accept(Comma)
 	}
-	return &StructLit{TypeName: name, Fields: fields, Line: line}, nil
+	return &StructLit{TypeName: name, Fields: fields, Line: line, Sp: p.spanOf(startTok)}, nil
 }
 
 func (p *Parser) parseMatch() (Expr, error) {
@@ -1012,7 +1056,7 @@ func (p *Parser) parseMatch() (Expr, error) {
 		}
 		return nil, p.errAt(p.cur(), "match 分支之间需要换行")
 	}
-	return &MatchEx{Scrut: scrut, Arms: arms, Line: t.Line}, nil
+	return &MatchEx{Scrut: scrut, Arms: arms, Line: t.Line, Sp: p.spanOf(t)}, nil
 }
 
 func (p *Parser) parsePattern() (Pat, error) {
@@ -1020,13 +1064,13 @@ func (p *Parser) parsePattern() (Pat, error) {
 	switch t.Kind {
 	case TokUnderscore:
 		p.next()
-		return &WildPat{Line: t.Line}, nil
+		return &WildPat{Line: t.Line, Sp: p.spanOf(t)}, nil
 	case TokInt, TokFloat, TokStr, KwTrue, KwFalse:
 		e, err := p.parsePrimary()
 		if err != nil {
 			return nil, err
 		}
-		return &LitPat{Val: e, Line: t.Line}, nil
+		return &LitPat{Val: e, Line: t.Line, Sp: p.spanOf(t)}, nil
 	case TokIdent:
 		p.next()
 		if p.accept(LParen) {
@@ -1044,13 +1088,13 @@ func (p *Parser) parsePattern() (Pat, error) {
 			if _, err := p.expect(RParen); err != nil {
 				return nil, err
 			}
-			return &CasePat{Name: t.Lit, Subs: subs, Line: t.Line}, nil
+			return &CasePat{Name: t.Lit, Subs: subs, Line: t.Line, Sp: p.spanOf(t)}, nil
 		}
 		// 大写开头按 case 引用，小写为绑定（spec §3.5）
 		if unicode.IsUpper(rune(t.Lit[0])) {
-			return &CasePat{Name: t.Lit, Line: t.Line}, nil
+			return &CasePat{Name: t.Lit, Line: t.Line, Sp: p.spanOf(t)}, nil
 		}
-		return &BindPat{Name: t.Lit, Line: t.Line}, nil
+		return &BindPat{Name: t.Lit, Line: t.Line, Sp: p.spanOf(t)}, nil
 	default:
 		return nil, p.errAt(t, "非法模式，得到 %s", t.Kind)
 	}
