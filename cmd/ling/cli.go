@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"ling/internal/bind"
 	"ling/internal/format"
 	"ling/internal/gen"
 	"ling/internal/genjs"
@@ -39,6 +40,9 @@ func cliMain() int {
 		return runFmt()
 	case "check":
 		return runCheck()
+	case "bind":
+		// 包目录固定为当前目录的 bind.d/（安全边界：任何路径输入都不进数据流）
+		return runBind()
 	case "build":
 		target := "go"
 		if len(args) >= 2 {
@@ -69,6 +73,18 @@ func usage() {
 
 文档: docs/spec.md（语言规范）  docs/decisions.md（设计决策）
 `)
+}
+
+// runBind 生成 extern "go" 声明草案到 stdout（decisions #61）：
+// 包目录固定为当前目录的 bind.d/（常量路径），草案需人工审核
+func runBind() int {
+	out, err := bind.Dir("bind.d")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "bind 失败:", err)
+		return 1
+	}
+	fmt.Print(out)
+	return 0
 }
 
 // runBuild 静态检查 + 产物写入 out/（Q21）：ling build → out/main.go，

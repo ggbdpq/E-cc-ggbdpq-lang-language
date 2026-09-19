@@ -25,6 +25,8 @@ go build -o ling.exe ./cmd/ling
 (cd examples/selftest && ../../ling.exe test) # ling 自测
 (cd examples/compound && ../../ling.exe build) # 产物写入 out/（build js 为 →JS）
 ./ling.exe                                    # REPL（:quit 退出）
+mkdir bind.d && put go pkg .go files in bind.d/   # bind 准备
+./ling.exe bind                               # 生成 extern 声明草案（stdout）
 go test -p 1 ./...                            # 本机编译器并发易崩，固定 -p 1
 ```
 
