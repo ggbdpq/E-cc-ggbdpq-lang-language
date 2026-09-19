@@ -12,7 +12,7 @@
 | 4 | **并发：goroutine 语义，函数永不染色**（无 async 关键字） | 染色是传染性债务；JS 侧映射到事件循环（v1 单线程协作式，见 #15） |
 | 5 | **实现：Go 写编译器；transpile-first**（→Go、→JS 双后端）+ 树遍历解释器当 REPL/调试器 | 转译白拿两边生态，自验证最快；LLVM 是时间无底洞。先例：Haxe、Nim（C 后端）、Scala.js |
 | 6 | **类型：静态强推断 + 结构化类型 + Result 无异常**；C 家族花括号、无分号、贴近 TS | 结构化类型从 TS 生态白拿兼容性；Result 与 `?` 是成对决定 |
-| 7 | **验收线 M4**：用 ling 重写 linkpull 的 bilibili 提取器核心并测试全绿；落点 `vibe/labs/ling/` | 有参照实现 + 现成测试，"行为等价"可机械判定，不靠感觉 |
+| 7 | **验收线 M4**：用 ling 重写 linkpull 的 bilibili 提取器核心并测试全绿；落点 `vibe/languages/lang-go/` | 有参照实现 + 现成测试，"行为等价"可机械判定，不靠感觉 |
 | 8 | **工具链裁剪：只留编译器 + REPL + 格式化器**；v1 无 LSP/调试器/包管理器 | 烂尾点全在工具链打磨；活过第一年比什么都重要 |
 | 9 | **名字：ling** | 用户拍板 |
 
@@ -74,7 +74,7 @@
 | 39 | **M4 收口范围**：video/list 的纯函数层（codecName/fpsOf/pickCodec/pageOf/parseArchives/listKindOf）移植 + fixture 化测试；probeVideo/probeList 网络编排不移植 | 网络编排属 linkpull 结构体层；纯函数层已覆盖全部判定逻辑 |
 | 40 | **转译器补丁三则**：装箱值取字段走 `lingField` 接口分派；any 迭代走 `lingIter` 快照；FnLit 推断完整签名 + 函数值绑定注册参数类型 | 动态值（JSON/http 结果）在 any 边界的三个统一出口，替代逐点特判 |
 | 41 | **明确不做**（本轮确认）：uint32、多返回值、三元 for、解构、defer、指针接收者方法、enum 字段名载荷、字符串插值、expect 断言库、self-host、性能目标 | 最小核纪律；每个消费方出现再议 |
-| 42 | **git 提交策略**：按里程碑分批提交 ling 目录（M1+M2 / M3 / M4），ling.exe 与 out/ 进 .gitignore | 用户授权（grilling Q47）；回滚粒度对齐里程碑 |
+| 42 | **git 提交策略**：按里程碑分批提交 lang-go 目录（M1+M2 / M3 / M4），ling.exe 与 out/ 进 .gitignore | 用户授权（grilling Q47）；回滚粒度对齐里程碑 |
 
 ## M5 第一批（2026-09-18 追加）
 
