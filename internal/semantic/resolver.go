@@ -40,6 +40,7 @@ func Resolve(prog []syntax.Stmt) *Result {
 			Refs:     map[syntax.Expr]*Symbol{},
 			PatRefs:  map[syntax.Pat]*Symbol{},
 			DeclSyms: map[syntax.Stmt]*Symbol{},
+			FnParams: map[SymbolID][]*Symbol{},
 			Builtin:  map[string]*Symbol{},
 		},
 		ctorScope: map[string]*Symbol{},
@@ -63,7 +64,6 @@ func (res *Result) Errs() error { return ErrorList(res.Diags) }
 
 // Builtin 按名取内建符号（println/Some/error/http 等）
 
-
 func (r *resolver) prelude() {
 	for _, n := range builtinNames {
 		r.res.Builtin[n] = r.newSym(&Symbol{Kind: KFn, Name: n, BuiltinMark: true})
@@ -77,10 +77,10 @@ func (r *resolver) prelude() {
 	opt := "Option"
 	res_ := "Result"
 	for _, c := range []struct {
-		name   string
-		enum   string
-		idx    int
-		arity  int
+		name     string
+		enum     string
+		idx      int
+		arity    int
 		payloads []syntax.TypeEx
 	}{
 		{"Some", opt, 0, 1, []syntax.TypeEx{nil}},
@@ -182,7 +182,6 @@ func (r *resolver) lookupType(name string) *Symbol {
 	}
 	return nil
 }
-
 
 // ———— 第一遍：收集 struct/enum ————
 
@@ -493,16 +492,26 @@ func (r *resolver) block(stmts []syntax.Stmt) {
 	r.popScope()
 }
 
-// fnScope 函数体作用域：接收者 + 参数，fnDepth 保护 return
+// fnScope 函数体作用域：接收者 + 参数，fnDepth 保护 return。
+// 参数符号按序记入 FnParams[fn 符号]（接收者在前），供 checker/HIR 对位取类型。
 func (r *resolver) fnScope(d *syntax.FnDecl, sym *Symbol) {
 	r.pushScope()
+	var psyms []*Symbol
 	if d.Recv != nil {
-		r.define(r.newSym(&Symbol{Kind: KParam, Name: d.Recv.Name, Line: d.Line, TypeEx: d.Recv.Typ}))
+		ps := r.newSym(&Symbol{Kind: KParam, Name: d.Recv.Name, Line: d.Line, TypeEx: d.Recv.Typ})
+		r.define(ps)
+		psyms = append(psyms, ps)
 	}
 	for _, p := range d.Params {
-		if p.Name != "_" {
-			r.define(r.newSym(&Symbol{Kind: KParam, Name: p.Name, Line: d.Line, TypeEx: p.Typ}))
+		if p.Name == "_" {
+			continue
 		}
+		ps := r.newSym(&Symbol{Kind: KParam, Name: p.Name, Line: d.Line, TypeEx: p.Typ})
+		r.define(ps)
+		psyms = append(psyms, ps)
+	}
+	if sym != nil {
+		r.res.FnParams[sym.ID] = psyms
 	}
 	r.fnDepth++
 	for _, s := range d.Body {

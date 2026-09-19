@@ -5,6 +5,7 @@ package ir
 
 import (
 	"lang-go/internal/hir"
+	"lang-go/internal/semantic"
 	"lang-go/internal/types"
 )
 
@@ -54,10 +55,10 @@ func (s *scope) lookup(name string) *Local {
 }
 
 type lowerer struct {
-	out      *Prog
-	scopes   *scope
-	locals   []*Local // 当前 fn 的体局部（声明序）
-	inFn     bool     // 函数体下降期间才收集 locals
+	out    *Prog
+	scopes *scope
+	locals []*Local // 当前 fn 的体局部（声明序）
+	inFn   bool     // 函数体下降期间才收集 locals
 }
 
 func (l *lowerer) define(v *Local) {
@@ -74,7 +75,11 @@ func (l *lowerer) local(hn *hir.Node, name string, mutable bool, t *types.Type) 
 	if t == nil {
 		t = types.Unknown
 	}
-	return &Local{Name: name, Mutable: mutable, Typ: t, Sym: hn.Sym}
+	var sym *semantic.Symbol
+	if hn != nil {
+		sym = hn.Sym
+	}
+	return &Local{Name: name, Mutable: mutable, Typ: t, Sym: sym}
 }
 
 func (l *lowerer) lowerFn(hf *hir.Fn) *Fn {
@@ -90,13 +95,15 @@ func (l *lowerer) lowerFn(hf *hir.Fn) *Fn {
 		Extern:     hf.Extern,
 		ExternHost: hf.ExternHost,
 	}
+	// 参数/接收者局部不带 fn 节点的符号（Sym=nil）：
+	// 后端按名引用，错误关联 fn 符号会把参数误当 fn 值绑定
 	if hf.Recv != nil {
-		recv := l.local(&hf.Node, hf.Recv.Name, false, hf.Recv.Typ)
+		recv := l.local(nil, hf.Recv.Name, false, hf.Recv.Typ)
 		l.scopes.vars[recv.Name] = recv
 		fn.Recv = recv
 	}
 	for _, p := range hf.Params {
-		pl := l.local(&hf.Node, p.Name, false, p.Typ)
+		pl := l.local(nil, p.Name, false, p.Typ)
 		l.scopes.vars[p.Name] = pl
 		fn.Params = append(fn.Params, pl)
 	}
@@ -109,8 +116,9 @@ func (l *lowerer) lowerFn(hf *hir.Fn) *Fn {
 func (l *lowerer) lowerLet(hl *hir.Let) *Let {
 	init := l.lowerExpr(hl.Init)
 	name := hl.Name
-	t := types.Unknown
-	if name != "_" {
+	// 绑定类型 = Let 节点类型（checker 已把注解并入；无注解时为 init 类型）
+	t := hl.Typ
+	if t == nil || t.Kind == types.KUnknown {
 		t = hir.Typ(hl.Init)
 	}
 	v := l.local(&hl.Node, name, hl.Mutable, t)
@@ -364,8 +372,9 @@ func (l *lowerer) lowerExpr(e hir.Expr) Expr {
 	case *hir.Match:
 		n := &Match{Scrut: l.lowerExpr(x.Scrut), Kind: MatchKind(x.Kind), typ: *t}
 		for _, arm := range x.Arms {
-			irArm := Arm{Body: l.lowerExpr(arm.Body)}
-			irArm.Pat = l.lowerPat(arm.Pat)
+			l.push()
+			irArm := Arm{Pat: l.lowerPat(arm.Pat), Body: l.lowerExpr(arm.Body)}
+			l.pop()
 			n.Arms = append(n.Arms, irArm)
 		}
 		return n
@@ -394,7 +403,11 @@ func (l *lowerer) lowerPat(p hir.Pat) Pat {
 	case *hir.WildPat:
 		return &WildPat{}
 	case *hir.BindPat:
-		return &BindPat{Name: x.Name, Typ: x.Typ}
+		v := l.local(nil, x.Name, false, x.Typ)
+		if x.Name != "_" {
+			l.scopes.vars[x.Name] = v
+		}
+		return &BindPat{Name: x.Name, Typ: x.Typ, Local: v}
 	case *hir.LitPat:
 		return &LitPat{Val: l.lowerExpr(x.Val)}
 	case *hir.CtorPat:

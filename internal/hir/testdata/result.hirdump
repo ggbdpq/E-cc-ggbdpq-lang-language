@@ -28,10 +28,10 @@ prog
         (match result @int)
           (call run sym#29 @Result[int, error])
             (lit "21" @string)
-          arm @unknown
+          arm @int
             (ctorpat Ok sym#26)
               (bind v @int)
-            (local v sym#34 @unknown)
+            (local v sym#34 @int)
           arm @int
             (ctorpat Err sym#27)
               (bind e @error)

@@ -21,10 +21,10 @@ const (
 	KFloat
 	KBool
 	KString
-	KError  // error struct
-	KUnit   // ()
-	KRange  // lo..hi
-	KAny    // 动态值（jsonParse/extern 边界）
+	KError   // error struct
+	KUnit    // ()
+	KRange   // lo..hi
+	KAny     // 动态值（jsonParse/extern 边界）
 	KUnknown // 无注解推断不出
 	KNever
 	KSlice   // [T]
@@ -43,7 +43,7 @@ const (
 //
 //	Slice/Ref/Chan/Option → Elem；Map → Key+Elem；
 //	Fn → Params+Ret；Result → Params[0]=T、Ret=E；
-//	Struct/Enum/TypeArg → Sym。
+//	Struct/Enum → Sym；TypeArg → Name。
 type Type struct {
 	Kind   Kind
 	Elem   *Type
@@ -51,34 +51,35 @@ type Type struct {
 	Params []*Type
 	Ret    *Type
 	Sym    *semantic.Symbol
+	Name   string // KTypeArg：泛型参数名
 }
 
 // 预载原始类型单例
 var (
-	Int      = &Type{Kind: KInt}
-	Float    = &Type{Kind: KFloat}
-	Bool     = &Type{Kind: KBool}
-	String   = &Type{Kind: KString}
-	ErrorT   = &Type{Kind: KError}
-	Unit     = &Type{Kind: KUnit}
-	Range    = &Type{Kind: KRange}
-	Any      = &Type{Kind: KAny}
-	Unknown  = &Type{Kind: KUnknown}
-	Never    = &Type{Kind: KNever}
-	Invalid  = &Type{Kind: KInvalid}
+	Int     = &Type{Kind: KInt}
+	Float   = &Type{Kind: KFloat}
+	Bool    = &Type{Kind: KBool}
+	String  = &Type{Kind: KString}
+	ErrorT  = &Type{Kind: KError}
+	Unit    = &Type{Kind: KUnit}
+	Range   = &Type{Kind: KRange}
+	Any     = &Type{Kind: KAny}
+	Unknown = &Type{Kind: KUnknown}
+	Never   = &Type{Kind: KNever}
+	Invalid = &Type{Kind: KInvalid}
 )
 
-func SliceOf(elem *Type) *Type    { return &Type{Kind: KSlice, Elem: elem} }
-func MapOf(key, val *Type) *Type  { return &Type{Kind: KMap, Key: key, Elem: val} }
-func RefOf(elem *Type) *Type      { return &Type{Kind: KRef, Elem: elem} }
-func ChanOf(elem *Type) *Type     { return &Type{Kind: KChan, Elem: elem} }
-func OptionOf(elem *Type) *Type   { return &Type{Kind: KOption, Elem: elem} }
+func SliceOf(elem *Type) *Type     { return &Type{Kind: KSlice, Elem: elem} }
+func MapOf(key, val *Type) *Type   { return &Type{Kind: KMap, Key: key, Elem: val} }
+func RefOf(elem *Type) *Type       { return &Type{Kind: KRef, Elem: elem} }
+func ChanOf(elem *Type) *Type      { return &Type{Kind: KChan, Elem: elem} }
+func OptionOf(elem *Type) *Type    { return &Type{Kind: KOption, Elem: elem} }
 func ResultOf(ok, err *Type) *Type { return &Type{Kind: KResult, Params: []*Type{ok}, Ret: err} }
 func FnOf(params []*Type, ret *Type) *Type {
 	return &Type{Kind: KFn, Params: params, Ret: ret}
 }
-func StructOf(sym *semantic.Symbol) *Type { return &Type{Kind: KStruct, Sym: sym} }
-func EnumOf(sym *semantic.Symbol) *Type   { return &Type{Kind: KEnum, Sym: sym} }
+func StructOf(sym *semantic.Symbol) *Type  { return &Type{Kind: KStruct, Sym: sym} }
+func EnumOf(sym *semantic.Symbol) *Type    { return &Type{Kind: KEnum, Sym: sym} }
 func TypeArgOf(sym *semantic.Symbol) *Type { return &Type{Kind: KTypeArg, Sym: sym} }
 
 // ResultOk / ResultErr Result 的 T / E 侧
@@ -233,6 +234,9 @@ func (t *Type) String() string {
 	case KResult:
 		return "Result[" + ResultOk(t).String() + ", " + ResultErr(t).String() + "]"
 	case KTypeArg:
+		if t.Name != "" {
+			return t.Name
+		}
 		return symName(t.Sym)
 	}
 	return "?"

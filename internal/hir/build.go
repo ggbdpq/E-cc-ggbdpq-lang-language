@@ -10,11 +10,11 @@ import (
 )
 
 type builder struct {
-	res    *semantic.Result
-	ty     *types.Result
-	next   NodeID
-	ctors  map[string][]*semantic.Symbol // enum 名 → case 符号
-	out    *Prog
+	res   *semantic.Result
+	ty    *types.Result
+	next  NodeID
+	ctors map[string][]*semantic.Symbol // enum 名 → case 符号
+	out   *Prog
 }
 
 // Build 构建 HIR

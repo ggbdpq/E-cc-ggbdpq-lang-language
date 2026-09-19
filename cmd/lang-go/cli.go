@@ -18,10 +18,11 @@ import (
 	"lang-go/internal/genjs"
 	"lang-go/internal/interp"
 	"lang-go/internal/load"
+	"lang-go/internal/pipeline"
 	"lang-go/internal/syntax"
 )
 
-const version = "0.1.0"
+const version = "0.3.0"
 
 // entryFile 固定入口文件名：与 Go「每目录一个 main」的习惯一致
 const entryFile = "main.lang-go"
@@ -63,15 +64,19 @@ func cliMain() int {
 }
 
 func usage() {
-	fmt.Print(`lang-go ` + version + ` — 个人三域语言（v0 解释器）
+	fmt.Print(`lang-go ` + version + ` — 三路执行个人语言（解释器 / →Go / →JS）
 
 用法:
-  lang-go          启动 REPL（:quit 退出，:help 帮助）
-  lang-go run      运行当前目录的 main.lang-go
-  lang-go test     运行当前目录 *_test.lang-go 里的 test* 函数
-  lang-go version  版本
+  lang-go            启动 REPL（:quit 退出，:help 帮助）
+  lang-go run        运行当前目录的 main.lang-go
+  lang-go test       运行当前目录 *_test.lang-go 里的 test* 函数
+  lang-go check      语义检查（resolver + 类型检查，稳定诊断码）
+  lang-go fmt        就地格式化当前目录 .lang-go
+  lang-go build      语义检查后写 out/main.go（build js 写 out/main.mjs）
+  lang-go bind       生成 extern "go" 声明草案（bind.d/）
+  lang-go version    版本
 
-文档: docs/spec.md（语言规范）  docs/decisions.md（设计决策）
+文档: go/docs/spec.md（语言规范）  go/docs/decisions.md（设计决策）
 `)
 }
 
@@ -99,9 +104,15 @@ func runBuild(target string) int {
 		fmt.Fprintln(os.Stderr, "建 out/ 失败:", err)
 		return 1
 	}
+	p, perr := pipeline.CompileStmts(prog)
+	if perr != nil {
+		fmt.Fprintln(os.Stderr, "检查未通过:")
+		fmt.Fprintln(os.Stderr, pipeline.FormatDiags(pipeline.Diagnostics(perr)))
+		return 1
+	}
 	switch target {
 	case "go":
-		src, err := gen.Transpile(prog)
+		src, err := gen.Transpile(p)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "→Go 转译失败:", err)
 			return 1
@@ -113,7 +124,7 @@ func runBuild(target string) int {
 		fmt.Println("out/main.go（go build ./out 或 go run ./out/main.go 执行）")
 		return 0
 	case "js":
-		src, err := genjs.TranspileJS(prog)
+		src, err := genjs.TranspileJS(p)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "→JS 转译失败:", err)
 			return 1
@@ -165,16 +176,18 @@ func runFmt() int {
 	return 0
 }
 
-// runCheck 静态检查（decisions #49）：复用 →JS 转译器的前置检查
-// （match 穷尽、? 约束、参数注解、未定义名），产物丢弃
+// runCheck 语义检查（v0.3 起走独立前端：resolver + 类型检查器，
+// 诊断带稳定码 E1xxx/E2xxx/E3xxx/E4xxx；不再依赖 →JS 转译器，decisions #49 被 #66 取代）
 func runCheck() int {
 	prog, _, err := load.Program(".", false)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "装载失败:", err)
 		return 1
 	}
-	if _, err := genjs.TranspileJS(prog); err != nil {
-		fmt.Fprintln(os.Stderr, "检查未通过:", err)
+	diags, _ := pipeline.CheckStmts(prog)
+	if len(diags) > 0 {
+		fmt.Fprintln(os.Stderr, "检查未通过:")
+		fmt.Fprintln(os.Stderr, pipeline.FormatDiags(diags))
 		return 1
 	}
 	fmt.Println("检查通过")

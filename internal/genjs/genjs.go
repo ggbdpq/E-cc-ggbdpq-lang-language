@@ -1,60 +1,52 @@
 package genjs
 
-// TranspileJS 把 langGo 程序转译为自包含、可执行的 ES Module（prelude 内联）。
-// 约束与 →Go 后端一致（spec §6.2）：参数注解必填、? 只在语句顶层、
-// Result 函数 return 须为 Ok(...)/Err(...)、enum match 只支持构造/通配模式。
-// 类型映射见 prelude.go 头注（decisions #47：int=BigInt 保 64 位语义）。
-// 所有函数生成 async（http.get 为异步委托；同步调用 await 无害）。
+// TranspileJS 把 Core IR 转译为自包含、可执行的 ES Module（prelude 内联）。
+//
+// v0.3 起本后端消费 ir.Prog：名字解析、类型推断、语义校验已在 semantic/types
+// 完成。此处只做目标平台映射：int=BigInt（64 位语义精确，decisions #47）、
+// 全函数 async（await-everything 吸收染色，decisions #48）、
+// struct 值语义经 langGoCopy 三时机（绑定/传参/返回，decisions #50）。
 
 import (
 	"fmt"
 	"strconv"
 	"strings"
 
-	"lang-go/internal/syntax"
+	"lang-go/internal/ir"
+	"lang-go/internal/semantic"
+	"lang-go/internal/types"
 )
 
-func TranspileJS(prog []syntax.Stmt) (string, error) {
+// TranspileJS IR → JS 源码
+func TranspileJS(p *ir.Prog) (string, error) {
 	g := &jsgen{
-		enums:    map[string]*syntax.EnumDecl{},
-		caseEnum: map[string]string{},
-		structs:  map[string]*syntax.StructDecl{},
-		fns:      map[string]*jsFn{},
-		methods:  map[string]string{},
+		prog:    p,
+		structs: map[string]*ir.StructDecl{},
+		fns:     map[*semantic.Symbol]*ir.Fn{},
 	}
-	if err := g.collect(prog); err != nil {
-		return "", err
+	for _, s := range p.Structs {
+		g.structs[s.Name] = s
 	}
-	g.buf.WriteString(jsPrelude)
-	if err := g.emitProgram(prog); err != nil {
+	for _, f := range p.Fns {
+		if f.Sym != nil {
+			g.fns[f.Sym] = f
+		}
+		g.collectNested(f.Body)
+	}
+	if err := g.emitProgram(p); err != nil {
 		return "", err
 	}
 	return g.buf.String(), nil
 }
 
-type jsParam struct {
-	name string
-}
-
-type jsFn struct {
-	goName  string
-	params  []jsParam
-	hasRet  bool // 有无返回注解（→JS 无类型，仅用于 Result 约束）
-	retLangGo syntax.TypeEx
-}
-
 type jsgen struct {
-	buf        strings.Builder
-	indent     int
-	enums      map[string]*syntax.EnumDecl
-	caseEnum   map[string]string
-	structs    map[string]*syntax.StructDecl
-	fns        map[string]*jsFn
-	methods    map[string]string // 方法名 → 产物函数名（跨 struct 重名在 collect 报错）
-	scopes     []map[string]bool // 已声明名字（不参与代码生成，仅占位）
-	tmpN       int
-	curRetLangGo syntax.TypeEx
-	curFn      string
+	buf     strings.Builder
+	indent  int
+	prog    *ir.Prog
+	structs map[string]*ir.StructDecl
+	fns     map[*semantic.Symbol]*ir.Fn
+	tmpN    int
+	curFn   *ir.Fn
 }
 
 func (g *jsgen) errf(line int, format string, args ...any) error {
@@ -70,188 +62,89 @@ func (g *jsgen) w(line string) {
 	g.buf.WriteString(strings.Repeat("  ", g.indent) + line + "\n")
 }
 
-func (g *jsgen) pushScope() { g.scopes = append(g.scopes, map[string]bool{}) }
-
-func (g *jsgen) inScope(name string) bool {
-	for i := len(g.scopes) - 1; i >= 0; i-- {
-		if g.scopes[i][name] {
-			return true
+func (g *jsgen) collectNested(list []ir.Stmt) {
+	for _, s := range list {
+		if fd, ok := s.(*ir.FnDef); ok {
+			if fd.Fn.Sym != nil {
+				g.fns[fd.Fn.Sym] = fd.Fn
+			}
+			g.collectNested(fd.Fn.Body)
 		}
 	}
-	return false
-}
-func (g *jsgen) popScope() { g.scopes = g.scopes[:len(g.scopes)-1] }
-
-// ———— 收集 ————
-
-func (g *jsgen) collect(prog []syntax.Stmt) error {
-	for _, s := range prog {
-		switch d := s.(type) {
-		case *syntax.EnumDecl:
-			if _, dup := g.enums[d.Name]; dup {
-				return g.errf(d.Line, "enum %s 重复定义", d.Name)
-			}
-			g.enums[d.Name] = d
-			for _, c := range d.Cases {
-				if _, clash := g.caseEnum[c.Name]; clash {
-					return g.errf(d.Line, "构造器 %s 重名", c.Name)
-				}
-				g.caseEnum[c.Name] = d.Name
-			}
-		case *syntax.StructDecl:
-			if _, dup := g.structs[d.Name]; dup {
-				return g.errf(d.Line, "struct %s 重复定义", d.Name)
-			}
-			g.structs[d.Name] = d
-		case *syntax.FnDecl:
-			if d.Recv != nil {
-				// 方法名全局唯一（跨 struct 重名即报错；m4 与既有语料满足）
-				if _, dup := g.methods[d.Name]; dup {
-					return g.errf(d.Line, "方法名 %s 重复（→JS 方法名须全局唯一）", d.Name)
-				}
-				rt := "unknown"
-				if nt, ok := d.Recv.Typ.(*syntax.NamedType); ok {
-					rt = nt.Name
-				}
-				g.methods[d.Name] = "lf_" + rt + "_" + d.Name
-				continue
-			}
-			if _, dup := g.fns[d.Name]; dup {
-				return g.errf(d.Line, "fn %s 重复定义", d.Name)
-			}
-			info, err := g.fnInfoOf(d)
-			if err != nil {
-				return err
-			}
-			g.fns[d.Name] = info
-		case *syntax.ExternDecl:
-			for _, fn := range d.Fns {
-				if _, dup := g.fns[fn.Name]; dup {
-					return g.errf(d.Line, "fn %s 重复定义", fn.Name)
-				}
-				info, err := g.fnInfoOf(fn)
-				if err != nil {
-					return err
-				}
-				g.fns[fn.Name] = info
-			}
-		}
-	}
-	return nil
 }
 
-func (g *jsgen) fnInfoOf(d *syntax.FnDecl) (*jsFn, error) {
-	info := &jsFn{goName: "lf_" + d.Name, hasRet: d.Ret != nil, retLangGo: d.Ret}
-	for _, p := range d.Params {
-		if p.Typ == nil {
-			return nil, g.errf(d.Line, "→JS 要求参数 %s 有类型注解", p.Name)
-		}
-		info.params = append(info.params, jsParam{name: p.Name})
-	}
-	return info, nil
-}
+// —— 输出 ——
 
-// ———— 输出 ————
-
-func (g *jsgen) emitProgram(prog []syntax.Stmt) error {
-	for _, s := range prog {
-		switch d := s.(type) {
-		case *syntax.EnumDecl:
-			for _, c := range d.Cases {
-				params := make([]string, len(c.Payloads))
-				for i := range c.Payloads {
-					params[i] = fmt.Sprintf("p%d", i)
-				}
-				vals := "[]"
-				if len(params) > 0 {
-					vals = "[" + strings.Join(params, ", ") + "]"
-				}
-				fmt.Fprintf(&g.buf, "function le_%s_%s(%s) { return langGoEnumVal(%q, %s); }\n\n",
-					d.Name, c.Name, strings.Join(params, ", "), c.Name, vals)
+func (g *jsgen) emitProgram(p *ir.Prog) error {
+	g.buf.WriteString(jsPrelude)
+	// 用户 enum 构造器
+	for _, en := range p.Enums {
+		for _, c := range en.Cases {
+			params := make([]string, len(c.Payloads))
+			for i := range c.Payloads {
+				params[i] = fmt.Sprintf("p%d", i)
 			}
+			vals := "[]"
+			if len(params) > 0 {
+				vals = "[" + strings.Join(params, ", ") + "]"
+			}
+			fmt.Fprintf(&g.buf, "function le_%s_%s(%s) { return langGoEnumVal(%q, %s); }\n\n",
+				en.Name, c.Name, strings.Join(params, ", "), c.Name, vals)
 		}
 	}
-	for _, s := range prog {
-		switch d := s.(type) {
-		case *syntax.LetStmt:
-			expr, err := g.expr(d.Init)
-			if err != nil {
-				return err
-			}
-			fmt.Fprintf(&g.buf, "let %s = langGoCopy(%s);\n\n", d.Name, expr)
+	// 全局绑定
+	for _, gl := range p.Globals {
+		expr, err := g.expr(gl.Init)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(&g.buf, "let %s = langGoCopy(%s);\n\n", gl.Local.Name, expr)
+	}
+	// 方法与函数
+	for _, f := range p.Fns {
+		if err := g.emitFunc(f); err != nil {
+			return err
 		}
 	}
-	for _, s := range prog {
-		switch d := s.(type) {
-		case *syntax.FnDecl:
-			var err error
-			if d.Recv != nil {
-				err = g.emitMethod(d)
-			} else {
-				err = g.emitFunc(d)
-			}
-			if err != nil {
-				return err
-			}
-		case *syntax.ExternDecl:
-			for _, fn := range d.Fns {
-				fi := g.fns[fn.Name]
-				ps := make([]string, len(fi.params))
-				for i, p := range fi.params {
-					ps[i] = p.name
-				}
-				fmt.Fprintf(&g.buf, "async function %s(%s) { throw new Error(\"extern 未链接: %s（宿主 %s）\"); }\n\n",
-					fi.goName, strings.Join(ps, ", "), fn.Name, d.Host)
-			}
-		case *syntax.ImportStmt:
-			// 装载器已展开
-		}
-	}
-	if _, has := g.fns["main"]; has {
+	if p.Main != nil {
 		g.buf.WriteString("await lf_main();\n")
 	}
 	return nil
 }
 
-func langGoEnumVal(tag string, vals string) string {
-	return fmt.Sprintf("{ __langGoEnum: true, tag: %q, vals: %s }", tag, vals)
-}
-
-func (g *jsgen) emitFunc(d *syntax.FnDecl) error {
-	fi := g.fns[d.Name]
-	return g.emitFuncBody(d, fi.goName, fi)
-}
-
-func (g *jsgen) emitMethod(d *syntax.FnDecl) error {
-	goName := g.methods[d.Name]
-	fi := &jsFn{goName: goName, hasRet: d.Ret != nil, retLangGo: d.Ret,
-		params: append([]jsParam{{name: d.Recv.Name}}, methodParams(d)...)}
-	return g.emitFuncBody(d, goName, fi)
-}
-
-func methodParams(d *syntax.FnDecl) []jsParam {
-	out := make([]jsParam, len(d.Params))
-	for i, p := range d.Params {
-		out[i] = jsParam{name: p.Name}
+func (g *jsgen) fnName(f *ir.Fn) string {
+	if f.Recv != nil {
+		recvName := "unknown"
+		if st := f.Recv.Typ; st != nil && st.Kind == types.KStruct && st.Sym != nil {
+			recvName = st.Sym.Name
+		}
+		return "lf_" + recvName + "_" + f.Name
 	}
-	return out
+	return "lf_" + f.Name
 }
 
-func (g *jsgen) emitFuncBody(d *syntax.FnDecl, goName string, fi *jsFn) error {
+func (g *jsgen) emitFunc(f *ir.Fn) error {
+	saved := g.curFn
+	g.curFn = f
 	var ps []string
-	for _, p := range fi.params {
-		ps = append(ps, p.name)
+	if f.Recv != nil {
+		ps = append(ps, f.Recv.Name)
 	}
-	fmt.Fprintf(&g.buf, "async function %s(%s) {\n", goName, strings.Join(ps, ", "))
-	saved := g.pushCtx(d, fi)
-	g.pushScope()
-	// 值语义：参数进入函数体即拷贝；名字进 scopes（函数值参数直通调用）
-	for _, p := range fi.params {
-		g.scopes[len(g.scopes)-1][p.name] = true
-		fmt.Fprintf(&g.buf, "  %s = langGoCopy(%s);\n", p.name, p.name)
+	for _, p := range f.Params {
+		ps = append(ps, p.Name)
 	}
-	err := g.emitBody(d.Body)
-	g.popCtx(saved)
+	fmt.Fprintf(&g.buf, "async function %s(%s) {\n", g.fnName(f), strings.Join(ps, ", "))
+	// 值语义：参数进入函数体即拷贝
+	g.indent = 1
+	if f.Recv != nil {
+		fmt.Fprintf(&g.buf, "  %s = langGoCopy(%s);\n", f.Recv.Name, f.Recv.Name)
+	}
+	for _, p := range f.Params {
+		fmt.Fprintf(&g.buf, "  %s = langGoCopy(%s);\n", p.Name, p.Name)
+	}
+	err := g.emitBody(f.Body)
+	g.indent = 0
+	g.curFn = saved
 	if err != nil {
 		return err
 	}
@@ -259,28 +152,7 @@ func (g *jsgen) emitFuncBody(d *syntax.FnDecl, goName string, fi *jsFn) error {
 	return nil
 }
 
-type jsCtx struct {
-	indent     int
-	curRetLangGo syntax.TypeEx
-	curFn      string
-}
-
-func (g *jsgen) pushCtx(d *syntax.FnDecl, fi *jsFn) jsCtx {
-	s := jsCtx{g.indent, g.curRetLangGo, g.curFn}
-	g.indent = 1
-	g.curRetLangGo = d.Ret
-	g.curFn = d.Name
-	g.scopes = []map[string]bool{{}}
-	return s
-}
-
-func (g *jsgen) popCtx(s jsCtx) {
-	g.indent = s.indent
-	g.curRetLangGo = s.curRetLangGo
-	g.curFn = s.curFn
-}
-
-func (g *jsgen) emitBody(stmts []syntax.Stmt) error {
+func (g *jsgen) emitBody(stmts []ir.Stmt) error {
 	for _, st := range stmts {
 		if err := g.emitStmt(st); err != nil {
 			return err
@@ -289,16 +161,18 @@ func (g *jsgen) emitBody(stmts []syntax.Stmt) error {
 	return nil
 }
 
-// ———— 语句 ————
+// —— 语句 ——
 
-func (g *jsgen) emitStmt(s syntax.Stmt) error {
+func (g *jsgen) emitStmt(s ir.Stmt) error {
 	switch st := s.(type) {
-	case *syntax.LetStmt:
-		return g.emitLet(st.Name, st.Typ, st.Init, st.Line)
-	case *syntax.AssignStmt:
+	case *ir.Let:
+		return g.emitLet(st)
+
+	case *ir.Assign:
 		return g.emitAssign(st)
-	case *syntax.ExprStmt:
-		if _, isMatch := st.X.(*syntax.MatchEx); !isMatch {
+
+	case *ir.Eval:
+		if _, isMatch := st.X.(*ir.Match); !isMatch {
 			expr, err := g.expr(st.X)
 			if err != nil {
 				return err
@@ -312,22 +186,25 @@ func (g *jsgen) emitStmt(s syntax.Stmt) error {
 		}
 		g.w("await " + expr + ";")
 		return nil
-	case *syntax.ReturnStmt:
+
+	case *ir.Return:
 		return g.emitReturn(st)
-	case *syntax.IfStmt:
+
+	case *ir.If:
 		cond, err := g.expr(st.Cond)
 		if err != nil {
 			return err
 		}
 		g.w("if (" + cond + ") {")
 		g.emitBlock(st.Then)
-		if st.Else != nil {
+		if len(st.Else) > 0 {
 			g.w("} else {")
 			g.emitBlock(st.Else)
 		}
 		g.w("}")
 		return nil
-	case *syntax.WhileStmt:
+
+	case *ir.While:
 		cond, err := g.expr(st.Cond)
 		if err != nil {
 			return err
@@ -336,94 +213,78 @@ func (g *jsgen) emitStmt(s syntax.Stmt) error {
 		g.emitBlock(st.Body)
 		g.w("}")
 		return nil
-	case *syntax.ForInStmt:
+
+	case *ir.ForIn:
 		return g.emitForIn(st)
-	case *syntax.BreakStmt:
+
+	case *ir.Break:
 		g.w("break")
 		return nil
-	case *syntax.ContinueStmt:
+	case *ir.Continue:
 		g.w("continue")
 		return nil
 
-	case *syntax.GoStmt:
+	case *ir.Spawn:
 		// →JS 单线程：go 同步立即执行（顺序确定；decisions #57）
-		call := st.Call
-		id, ok := call.Callee.(*syntax.Ident)
-		if !ok {
-			return g.errf(st.Line, "go 的目标须是具名函数调用")
-		}
-		fi, hasFn := g.fns[id.Name]
-		if !hasFn {
-			return g.errf(st.Line, "未定义 %s（当前函数 %s）", id.Name, g.curFn)
+		fi := g.fns[st.Fn]
+		if fi == nil {
+			return g.errf(0, "内部错误：go 目标未注册 %s", st.Fn.Name)
 		}
 		var args []string
-		for _, a := range call.Args {
+		for _, a := range st.Args {
 			arg, err := g.expr(a)
 			if err != nil {
 				return err
 			}
 			args = append(args, "langGoCopy("+arg+")")
 		}
-		g.w("await " + fi.goName + "(" + strings.Join(args, ", ") + ");")
+		g.w("await " + g.fnName(fi) + "(" + strings.Join(args, ", ") + ");")
 		return nil
-	case *syntax.FnDecl:
-		info := &jsFn{goName: "lf_" + st.Name, hasRet: st.Ret != nil, retLangGo: st.Ret}
-		for _, p := range st.Params {
-			if p.Typ == nil {
-				return g.errf(st.Line, "→JS 要求参数 %s 有类型注解", p.Name)
-			}
-			info.params = append(info.params, jsParam{name: p.Name})
+
+	case *ir.FnDef:
+		// 嵌套 fn：JS 提升，递归可用
+		saved := g.curFn
+		g.curFn = st.Fn
+		var ps []string
+		if st.Fn.Recv != nil {
+			ps = append(ps, st.Fn.Recv.Name)
 		}
-		g.fns[st.Name] = info
-		return g.emitFuncBodyInto(st, info.goName, info)
-	case *syntax.ImportStmt, *syntax.ExternDecl, *syntax.StructDecl, *syntax.EnumDecl:
-		return nil // 装载器展开 / 已在程序头处理
+		for _, p := range st.Fn.Params {
+			ps = append(ps, p.Name)
+		}
+		savedBuf := g.buf
+		savedIndent := g.indent
+		g.buf = strings.Builder{}
+		g.indent = 0
+		fmt.Fprintf(&g.buf, "async function %s(%s) {\n", g.fnName(st.Fn), strings.Join(ps, ", "))
+		g.indent = 1
+		if st.Fn.Recv != nil {
+			fmt.Fprintf(&g.buf, "  %s = langGoCopy(%s);\n", st.Fn.Recv.Name, st.Fn.Recv.Name)
+		}
+		for _, p := range st.Fn.Params {
+			fmt.Fprintf(&g.buf, "  %s = langGoCopy(%s);\n", p.Name, p.Name)
+		}
+		err := g.emitBody(st.Fn.Body)
+		if err == nil {
+			g.buf.WriteString("}\n")
+		}
+		g.curFn = saved
+		g.indent = savedIndent
+		out := g.buf.String()
+		g.buf = savedBuf
+		if err != nil {
+			return err
+		}
+		g.w(strings.TrimRight(out, "\n"))
+		return nil
 	}
-	return g.errf(s.Pos(), "→JS 暂不支持该语句")
+	return g.errf(0, "→JS 暂不支持该语句")
 }
 
-func (g *jsgen) emitBlock(stmts []syntax.Stmt) error {
-	g.indent++
-	g.pushScope()
-	err := g.emitBody(stmts)
-	g.popScope()
-	g.indent--
-	return err
-}
-
-// emitFuncBodyInto 嵌套 fn：函数内声明（JS 提升，递归可用）
-func (g *jsgen) emitFuncBodyInto(d *syntax.FnDecl, goName string, fi *jsFn) error {
-	savedBuf := g.buf
-	g.buf = strings.Builder{}
-	savedIndent := g.indent
-	g.indent = 0
-	savedCtx := g.pushCtx(d, fi)
-	var ps []string
-	for _, p := range fi.params {
-		ps = append(ps, p.name)
-	}
-	fmt.Fprintf(&g.buf, "async function %s(%s) {\n", goName, strings.Join(ps, ", "))
-	g.indent = 1
-	for _, p := range fi.params {
-		fmt.Fprintf(&g.buf, "  %s = langGoCopy(%s);\n", p.name, p.name)
-	}
-	err := g.emitBody(d.Body)
-	if err == nil {
-		g.buf.WriteString("}\n")
-	}
-	g.popCtx(savedCtx)
-	g.indent = savedIndent
-	out := g.buf.String()
-	g.buf = savedBuf
-	if err != nil {
-		return err
-	}
-	g.w(strings.TrimRight(out, "\n"))
-	return nil
-}
-
-func (g *jsgen) emitLet(name string, typ syntax.TypeEx, init syntax.Expr, line int) error {
-	if t, ok := init.(*syntax.TryEx); ok {
+// emitLet let/var：? 在初始化顶层时先展开传播
+func (g *jsgen) emitLet(st *ir.Let) error {
+	name := st.Local.Name
+	if t, ok := st.Init.(*ir.Try); ok {
 		tmp, err := g.genTry(t)
 		if err != nil {
 			return err
@@ -433,7 +294,7 @@ func (g *jsgen) emitLet(name string, typ syntax.TypeEx, init syntax.Expr, line i
 		}
 		return nil
 	}
-	expr, err := g.expr(init)
+	expr, err := g.expr(st.Init)
 	if err != nil {
 		return err
 	}
@@ -441,40 +302,32 @@ func (g *jsgen) emitLet(name string, typ syntax.TypeEx, init syntax.Expr, line i
 		g.w(expr + ";")
 		return nil
 	}
-	if isRef(init) {
+	if isRef(st.Init) {
 		g.w("let " + name + " = " + expr + ";") // & 引用赋值：不拷贝
 	} else {
 		g.w("let " + name + " = langGoCopy(await " + expr + ");")
 	}
-	g.registerFnValue(name, init)
 	return nil
 }
 
 // isRef & 取引用表达式（赋值即共享，不拷贝）
-func isRef(e syntax.Expr) bool {
-	u, ok := e.(*syntax.Unary)
-	return ok && u.Op == syntax.Amp
+func isRef(e ir.Expr) bool {
+	u, ok := e.(*ir.Unary)
+	return ok && u.Op == ir.OpRef
 }
 
-// registerFnValue 函数值绑定注册调用名（调用点生成 await name(...) 而非 lf_ 前缀）
-func (g *jsgen) registerFnValue(name string, init syntax.Expr) {
-	if fl, ok := init.(*syntax.FnLit); ok {
-		g.fns[name] = &jsFn{goName: name, hasRet: fl.Ret != nil, retLangGo: fl.Ret}
-	}
-}
-
-func (g *jsgen) emitAssign(st *syntax.AssignStmt) error {
-	if st.Op != syntax.Assign {
+func (g *jsgen) emitAssign(st *ir.Assign) error {
+	if st.Op != ir.OpAssign {
 		return g.emitCompoundAssign(st)
 	}
 	switch tgt := st.Target.(type) {
-	case *syntax.Ident:
-		if t, ok := st.Val.(*syntax.TryEx); ok {
+	case *ir.LocalGet:
+		if t, ok := st.Val.(*ir.Try); ok {
 			tmp, err := g.genTry(t)
 			if err != nil {
 				return err
 			}
-			g.w(tgt.Name + " = langGoCopy(" + tmp + ".v);")
+			g.w(tgt.Local.Name + " = langGoCopy(" + tmp + ".v);")
 			return nil
 		}
 		expr, err := g.expr(st.Val)
@@ -482,12 +335,12 @@ func (g *jsgen) emitAssign(st *syntax.AssignStmt) error {
 			return err
 		}
 		if isRef(st.Val) {
-			g.w(tgt.Name + " = " + expr + ";")
+			g.w(tgt.Local.Name + " = " + expr + ";")
 		} else {
-			g.w(tgt.Name + " = langGoCopy(await " + expr + ");")
+			g.w(tgt.Local.Name + " = langGoCopy(await " + expr + ");")
 		}
 		return nil
-	case *syntax.FieldEx:
+	case *ir.Field:
 		obj, err := g.expr(tgt.Obj)
 		if err != nil {
 			return err
@@ -498,7 +351,7 @@ func (g *jsgen) emitAssign(st *syntax.AssignStmt) error {
 		}
 		g.w(obj + "." + tgt.Name + " = langGoCopy(await " + expr + ");")
 		return nil
-	case *syntax.IndexEx:
+	case *ir.Index:
 		obj, err := g.expr(tgt.Obj)
 		if err != nil {
 			return err
@@ -514,37 +367,27 @@ func (g *jsgen) emitAssign(st *syntax.AssignStmt) error {
 		g.w("langGoSetIndex(" + obj + ", " + idx + ", langGoCopy(await " + expr + "));")
 		return nil
 	}
-	return g.errf(st.Line, "赋值目标不合法")
+	return g.errf(0, "赋值目标不合法")
 }
 
-// emitCompoundAssign 复合赋值（decisions #52）：ident/field 原生 +=；
-// 数组 += 展开元素 push；index 复合走 langGoAddIndex（Map 读改写）
-func (g *jsgen) emitCompoundAssign(st *syntax.AssignStmt) error {
-	op := ""
-	switch st.Op {
-	case syntax.PlusAssign:
-		op = "+="
-	case syntax.MinusAssign:
-		op = "-="
-	case syntax.StarAssign:
-		op = "*="
-	case syntax.SlashAssign:
-		op = "/="
-	}
+// emitCompoundAssign 复合赋值：ident/field 原生 +=；数组 += 元素拼接；
+// index 复合走 langGoAddIndex（Map 读改写）
+func (g *jsgen) emitCompoundAssign(st *ir.Assign) error {
+	op := string(st.Op)
 	switch tgt := st.Target.(type) {
-	case *syntax.Ident:
+	case *ir.LocalGet:
 		expr, err := g.expr(st.Val)
 		if err != nil {
 			return err
 		}
-		if st.Op == syntax.PlusAssign {
+		if st.Op == ir.OpPlusA {
 			// 数组 += 是元素拼接；数值/字符串原生 += 对 BigInt/number/string 均正确
-			g.w("if (Array.isArray(" + tgt.Name + ")) { " + tgt.Name + ".push(...langGoIter(" + expr + ")) } else { " + tgt.Name + " " + op + " " + expr + " }")
+			g.w("if (Array.isArray(" + tgt.Local.Name + ")) { " + tgt.Local.Name + ".push(...langGoIter(" + expr + ")) } else { " + tgt.Local.Name + " " + op + " " + expr + " }")
 			return nil
 		}
-		g.w(tgt.Name + " " + op + " " + expr + ";")
+		g.w(tgt.Local.Name + " " + op + " " + expr + ";")
 		return nil
-	case *syntax.FieldEx:
+	case *ir.Field:
 		obj, err := g.expr(tgt.Obj)
 		if err != nil {
 			return err
@@ -555,7 +398,7 @@ func (g *jsgen) emitCompoundAssign(st *syntax.AssignStmt) error {
 		}
 		g.w(obj + "." + tgt.Name + " " + op + " " + expr + ";")
 		return nil
-	case *syntax.IndexEx:
+	case *ir.Index:
 		obj, err := g.expr(tgt.Obj)
 		if err != nil {
 			return err
@@ -571,20 +414,15 @@ func (g *jsgen) emitCompoundAssign(st *syntax.AssignStmt) error {
 		g.w("langGoAddIndex(" + obj + ", " + idx + ", " + expr + ", " + strconv.Quote(op) + ")")
 		return nil
 	}
-	return g.errf(st.Line, "赋值目标不合法")
+	return g.errf(0, "赋值目标不合法")
 }
 
-func (g *jsgen) isResultFn() bool {
-	rt, ok := g.curRetLangGo.(*syntax.NamedType)
-	return ok && rt.Name == "Result"
-}
-
-func (g *jsgen) emitReturn(st *syntax.ReturnStmt) error {
+func (g *jsgen) emitReturn(st *ir.Return) error {
 	if st.Val == nil {
 		g.w("return;")
 		return nil
 	}
-	if t, ok := st.Val.(*syntax.TryEx); ok {
+	if t, ok := st.Val.(*ir.Try); ok {
 		tmp, err := g.genTry(t)
 		if err != nil {
 			return err
@@ -592,20 +430,17 @@ func (g *jsgen) emitReturn(st *syntax.ReturnStmt) error {
 		g.w("return langGoCopy(" + tmp + ".v);")
 		return nil
 	}
-	if g.isResultFn() {
-		call, ok := st.Val.(*syntax.CallEx)
-		if !ok {
-			return g.errf(st.Line, "Result 函数的 return 须为 Ok(...) 或 Err(...)")
+	if g.curFn != nil && g.curFn.Ret != nil && g.curFn.Ret.Kind == types.KResult {
+		// Result 函数的 return 必为 Ok(...)/Err(...)（checker 已约束）
+		ctor, ok := st.Val.(*ir.Ctor)
+		if !ok || (ctor.Sym.Name != "Ok" && ctor.Sym.Name != "Err") || len(ctor.Args) != 1 {
+			return g.errf(0, "内部错误：Result return 形态异常")
 		}
-		id, ok := call.Callee.(*syntax.Ident)
-		if !ok || (id.Name != "Ok" && id.Name != "Err") || len(call.Args) != 1 {
-			return g.errf(st.Line, "Result 函数的 return 须为 Ok(...) 或 Err(...)")
-		}
-		expr, err := g.expr(call.Args[0])
+		expr, err := g.expr(ctor.Args[0])
 		if err != nil {
 			return err
 		}
-		if id.Name == "Ok" {
+		if ctor.Sym.Name == "Ok" {
 			g.w("return { __langGoRes: true, ok: true, v: langGoCopy(await " + expr + "), e: undefined };")
 		} else {
 			g.w("return { __langGoRes: true, ok: false, v: undefined, e: langGoCopy(" + expr + ") };")
@@ -621,9 +456,9 @@ func (g *jsgen) emitReturn(st *syntax.ReturnStmt) error {
 }
 
 // genTry 展开 ? 传播
-func (g *jsgen) genTry(t *syntax.TryEx) (string, error) {
-	if !g.isResultFn() {
-		return "", g.errf(t.Line, "带 ? 的函数须注解为 Result[T, error]")
+func (g *jsgen) genTry(t *ir.Try) (string, error) {
+	if g.curFn == nil || g.curFn.Ret == nil || g.curFn.Ret.Kind != types.KResult {
+		return "", g.errf(0, "带 ? 的函数须注解为 Result[T, error]")
 	}
 	tmp := g.newTmp()
 	expr, err := g.expr(t.X)
@@ -639,9 +474,10 @@ func (g *jsgen) genTry(t *syntax.TryEx) (string, error) {
 	return tmp, nil
 }
 
-func (g *jsgen) emitForIn(st *syntax.ForInStmt) error {
-	name := st.Var
-	if rg, ok := st.Iter.(*syntax.RangeEx); ok {
+func (g *jsgen) emitForIn(st *ir.ForIn) error {
+	name := st.Var.Name
+	if st.Kind == ir.IterRange {
+		rg := st.Iter.(*ir.Range)
 		lo, err := g.expr(rg.Lo)
 		if err != nil {
 			return err
@@ -669,198 +505,99 @@ func (g *jsgen) emitForIn(st *syntax.ForInStmt) error {
 	return nil
 }
 
-func (g *jsgen) emitBlockTyped(stmts []syntax.Stmt, name string) error {
+func (g *jsgen) emitBlockTyped(stmts []ir.Stmt, name string) error {
 	g.indent++
-	g.pushScope()
 	g.w(name + " = langGoCopy(" + name + ");")
 	err := g.emitBody(stmts)
-	g.popScope()
 	g.indent--
 	return err
 }
 
-// ———— match ————
-
-func (g *jsgen) classifyMatch(m *syntax.MatchEx) (string, error) {
-	flags := map[string]bool{}
-	for _, arm := range m.Arms {
-		switch p := arm.Pat.(type) {
-		case *syntax.CasePat:
-			flags[p.Name] = true
-		case *syntax.LitPat:
-			flags["__lit"] = true
-		case *syntax.WildPat, *syntax.BindPat:
-			flags["__wild"] = true
-		}
-	}
-	algebraic := flags["Ok"] || flags["Err"] || flags["Some"] || flags["None"]
-	switch {
-	case algebraic:
-		if flags["__lit"] {
-			return "", g.errf(m.Line, "代数类型的 match 不能混入字面量模式")
-		}
-		if (flags["Ok"] || flags["Err"]) && (flags["Some"] || flags["None"]) {
-			return "", g.errf(m.Line, "Result 与 Option 的模式混用")
-		}
-		if flags["Ok"] || flags["Err"] {
-			return "result", nil
-		}
-		return "option", nil
-	case flags["__lit"]:
-		if hasCasePat(m) {
-			return "", g.errf(m.Line, "enum 的 match 不能混入字面量模式（→JS）")
-		}
-		return "literal", nil
-	case hasCasePat(m):
-		return "enum", nil
-	default:
-		return "literal", nil
-	}
+func (g *jsgen) emitBlock(stmts []ir.Stmt) error {
+	g.indent++
+	err := g.emitBody(stmts)
+	g.indent--
+	return err
 }
 
-func hasCasePat(m *syntax.MatchEx) bool {
-	for _, arm := range m.Arms {
-		if _, ok := arm.Pat.(*syntax.CasePat); ok {
-			return true
-		}
-	}
-	return false
-}
+// —— match ——
 
-func (g *jsgen) checkExhaustive(m *syntax.MatchEx) error {
-	covered := map[string]bool{}
-	hasWild := false
-	var enumName string
-	for _, arm := range m.Arms {
-		switch p := arm.Pat.(type) {
-		case *syntax.CasePat:
-			en, ok := g.caseEnum[p.Name]
-			if !ok {
-				return g.errf(arm.Line, "未知构造器 %s", p.Name)
-			}
-			if enumName == "" {
-				enumName = en
-			}
-			if en != enumName {
-				return g.errf(arm.Line, "match 混入了不同 enum 的构造器")
-			}
-			covered[p.Name] = true
-		case *syntax.WildPat, *syntax.BindPat:
-			hasWild = true
-		}
-	}
-	if hasWild || enumName == "" {
-		return nil
-	}
-	var missing []string
-	for _, c := range g.enums[enumName].Cases {
-		if !covered[c.Name] {
-			missing = append(missing, c.Name)
-		}
-	}
-	if len(missing) > 0 {
-		return g.errf(m.Line, "match 不穷尽，缺少: %s", strings.Join(missing, ", "))
-	}
-	return nil
-}
-
-func (g *jsgen) emitMatchStmt(m *syntax.MatchEx) error {
-	kind, err := g.classifyMatch(m)
-	if err != nil {
-		return err
-	}
-	if kind == "enum" {
-		if err := g.checkExhaustive(m); err != nil {
-			return err
-		}
-	}
+func (g *jsgen) emitMatchStmt(m *ir.Match) error {
 	tmp := g.newTmp()
 	scrut, err := g.expr(m.Scrut)
 	if err != nil {
 		return err
 	}
 	g.w("const " + tmp + " = " + scrut + ";")
-	switch kind {
-	case "result":
+	switch m.Kind {
+	case ir.MatchResult:
 		okArm, errArm := splitAlgebraic(m, "Ok", "Err")
 		g.w("if (" + tmp + ".ok) {")
 		g.indent++
-		g.pushScope()
 		if okArm != nil {
 			g.bindArmValue(okArm, tmp+".v")
 			if err := g.emitArmStmt(okArm); err != nil {
 				return err
 			}
 		}
-		g.popScope()
 		g.indent--
 		g.w("} else {")
 		g.indent++
-		g.pushScope()
 		if errArm != nil {
 			g.bindArmValue(errArm, tmp+".e")
 			if err := g.emitArmStmt(errArm); err != nil {
 				return err
 			}
 		}
-		g.popScope()
 		g.indent--
 		g.w("}")
-	case "option":
+	case ir.MatchOption:
 		someArm, noneArm := splitAlgebraic(m, "Some", "None")
 		g.w("if (" + tmp + ".has) {")
 		g.indent++
-		g.pushScope()
 		if someArm != nil {
 			g.bindArmValue(someArm, tmp+".v")
 			if err := g.emitArmStmt(someArm); err != nil {
 				return err
 			}
 		}
-		g.popScope()
 		g.indent--
 		if noneArm != nil {
 			g.w("} else {")
 			g.indent++
-			g.pushScope()
 			if err := g.emitArmStmt(noneArm); err != nil {
 				return err
 			}
-			g.popScope()
 			g.indent--
 		}
 		g.w("}")
-	case "enum":
+	case ir.MatchEnum:
 		g.w("switch (" + tmp + ".tag) {")
 		g.indent++
 		hasDefault := false
 		for i := range m.Arms {
 			arm := &m.Arms[i]
-			if p, ok := arm.Pat.(*syntax.CasePat); ok {
-				g.w(`case "` + p.Name + `": {`)
+			if p, ok := arm.Pat.(*ir.CtorPat); ok {
+				g.w(`case "` + p.Sym.Name + `": {`)
 				g.indent++
-				g.pushScope()
 				if err := g.bindEnumPayloads(p, tmp); err != nil {
 					return err
 				}
 				if err := g.emitArmStmt(arm); err != nil {
 					return err
 				}
-				g.popScope()
 				g.indent--
 				g.w("}")
 			} else {
 				hasDefault = true
 				g.w("default: {")
 				g.indent++
-				g.pushScope()
-				if bp, ok := arm.Pat.(*syntax.BindPat); ok {
+				if bp, ok := arm.Pat.(*ir.BindPat); ok {
 					g.w("const " + bp.Name + " = " + tmp + ";")
 				}
 				if err := g.emitArmStmt(arm); err != nil {
 					return err
 				}
-				g.popScope()
 				g.indent--
 				g.w("}")
 			}
@@ -878,12 +615,12 @@ func (g *jsgen) emitMatchStmt(m *syntax.MatchEx) error {
 	return nil
 }
 
-func splitAlgebraic(m *syntax.MatchEx, posName, negName string) (pos, neg *syntax.Arm) {
+func splitAlgebraic(m *ir.Match, posName, negName string) (pos, neg *ir.Arm) {
 	for i := range m.Arms {
-		if p, ok := m.Arms[i].Pat.(*syntax.CasePat); ok {
-			if p.Name == posName {
+		if p, ok := m.Arms[i].Pat.(*ir.CtorPat); ok {
+			if p.Sym.Name == posName {
 				pos = &m.Arms[i]
-			} else if p.Name == negName {
+			} else if p.Sym.Name == negName {
 				neg = &m.Arms[i]
 			}
 		}
@@ -891,48 +628,31 @@ func splitAlgebraic(m *syntax.MatchEx, posName, negName string) (pos, neg *synta
 	return pos, neg
 }
 
-func armBindName(arm *syntax.Arm) string {
-	if p, ok := arm.Pat.(*syntax.CasePat); ok && len(p.Subs) == 1 {
-		if bp, ok := p.Subs[0].(*syntax.BindPat); ok {
+func armBindName(arm *ir.Arm) string {
+	if p, ok := arm.Pat.(*ir.CtorPat); ok && len(p.Subs) == 1 {
+		if bp, ok := p.Subs[0].(*ir.BindPat); ok {
 			return bp.Name
 		}
 	}
 	return "_"
 }
 
-func (g *jsgen) bindArmValue(arm *syntax.Arm, valueExpr string) {
+func (g *jsgen) bindArmValue(arm *ir.Arm, valueExpr string) {
 	if name := armBindName(arm); name != "_" {
 		g.w("const " + name + " = langGoCopy(" + valueExpr + ");")
 	}
 }
 
-func (g *jsgen) bindEnumPayloads(p *syntax.CasePat, tmp string) error {
-	en, ok := g.enums[g.caseEnum[p.Name]]
-	if !ok {
-		return nil
-	}
-	for _, cd := range en.Cases {
-		if cd.Name != p.Name {
-			continue
-		}
-		for j, sp := range p.Subs {
-			if bp, ok := sp.(*syntax.BindPat); ok {
-				g.w("const " + bp.Name + " = langGoCopy(" + tmp + ".vals[" + strconv.Itoa(j) + "]);")
-			}
+func (g *jsgen) bindEnumPayloads(p *ir.CtorPat, tmp string) error {
+	for j, sp := range p.Subs {
+		if bp, ok := sp.(*ir.BindPat); ok {
+			g.w("const " + bp.Name + " = langGoCopy(" + tmp + ".vals[" + strconv.Itoa(j) + "]);")
 		}
 	}
 	return nil
 }
 
-func (g *jsgen) emitArmStmt(arm *syntax.Arm) error {
-	if m, ok := arm.Body.(*syntax.MatchEx); ok {
-		expr, err := g.expr(m)
-		if err != nil {
-			return err
-		}
-		g.w("await " + expr + ";")
-		return nil
-	}
+func (g *jsgen) emitArmStmt(arm *ir.Arm) error {
 	expr, err := g.expr(arm.Body)
 	if err != nil {
 		return err
@@ -941,11 +661,11 @@ func (g *jsgen) emitArmStmt(arm *syntax.Arm) error {
 	return nil
 }
 
-func (g *jsgen) emitLiteralMatchStmt(m *syntax.MatchEx, tmp string) error {
+func (g *jsgen) emitLiteralMatchStmt(m *ir.Match, tmp string) error {
 	for i := range m.Arms {
 		arm := &m.Arms[i]
 		switch p := arm.Pat.(type) {
-		case *syntax.LitPat:
+		case *ir.LitPat:
 			kw := "if"
 			if i > 0 {
 				kw = "} else if"
@@ -955,128 +675,82 @@ func (g *jsgen) emitLiteralMatchStmt(m *syntax.MatchEx, tmp string) error {
 				return err
 			}
 			g.w(kw + " (langGoEq(" + tmp + ", " + lit + ")) {")
-			if err := g.emitBlock([]syntax.Stmt{&syntax.ExprStmt{X: arm.Body, Line: arm.Line}}); err != nil {
+			if err := g.emitBlock([]ir.Stmt{&ir.Eval{X: arm.Body}}); err != nil {
 				return err
 			}
-		case *syntax.BindPat:
+		case *ir.BindPat:
 			g.w("} else {")
 			g.indent++
-			g.pushScope()
 			g.w("const " + p.Name + " = " + tmp + ";")
 			if err := g.emitArmStmt(arm); err != nil {
 				return err
 			}
-			g.popScope()
 			g.indent--
-		case *syntax.WildPat:
+		case *ir.WildPat:
 			g.w("} else {")
-			if err := g.emitBlock([]syntax.Stmt{&syntax.ExprStmt{X: arm.Body, Line: arm.Line}}); err != nil {
+			if err := g.emitBlock([]ir.Stmt{&ir.Eval{X: arm.Body}}); err != nil {
 				return err
 			}
-		default:
-			return g.errf(arm.Line, "该模式不支持（→JS）")
 		}
 	}
 	g.w("}")
 	return nil
 }
 
-// ———— 表达式 ————
+// —— 表达式 ——
 
-func (g *jsgen) expr(e syntax.Expr) (string, error) {
+func (g *jsgen) expr(e ir.Expr) (string, error) {
 	switch x := e.(type) {
-	case *syntax.IntLit:
-		return strconv.FormatInt(x.Val, 10) + "n", nil
-	case *syntax.FloatLit:
-		return strconv.FormatFloat(x.Val, 'g', -1, 64), nil
-	case *syntax.StrLit:
-		return strconv.Quote(x.Val), nil
-	case *syntax.BoolLit:
-		return strconv.FormatBool(x.Val), nil
-	case *syntax.Ident:
-		if g.isBuiltinFn(x.Name) {
-			return "", g.errf(x.Line, "内建 %s 须直接调用", x.Name)
+	case *ir.Const:
+		switch x.Kind {
+		case ir.KInt:
+			return strconv.FormatInt(x.I64, 10) + "n", nil
+		case ir.KFloat:
+			return strconv.FormatFloat(x.F64, 'g', -1, 64), nil
+		case ir.KStr:
+			return strconv.Quote(x.S), nil
+		case ir.KBool:
+			return strconv.FormatBool(x.B), nil
 		}
-		if en, isCtor := g.caseEnum[x.Name]; isCtor {
-			return "le_" + en + "_" + x.Name + "()", nil
+
+	case *ir.LocalGet:
+		return x.Local.Name, nil
+
+	case *ir.FnGet:
+		if fi := g.fns[x.Sym]; fi != nil {
+			return g.fnName(fi), nil
 		}
-		if x.Name == "None" {
-			return "{ __langGoOpt: true, has: false, v: undefined }", nil
-		}
-		if x.Name == "http" {
-			return "langGoHTTP", nil
-		}
-		if fi, isFn := g.fns[x.Name]; isFn {
-			return fi.goName, nil
-		}
-		return x.Name, nil
-	case *syntax.Unary:
+		return "lf_" + x.Name, nil
+
+	case *ir.BuiltinGet:
+		return "", g.errf(0, "内建 %s 须直接调用", x.Name)
+
+	case *ir.Ctor:
+		return g.emitCtor(x)
+
+	case *ir.Call:
+		return g.emitCall(x)
+
+	case *ir.Unary:
 		inner, err := g.expr(x.X)
 		if err != nil {
 			return "", err
 		}
 		switch x.Op {
-		case syntax.Minus:
+		case ir.OpNeg:
 			return "-" + inner, nil
-		case syntax.Not:
+		case ir.OpNot:
 			return "!" + inner, nil
-		case syntax.Amp:
-			// JS 对象赋值即共享引用，与 langGo 的 & 语义天然对齐
-			return g.expr(x.X)
+		case ir.OpRef:
+			// JS 对象赋值即共享引用，与 lang-go 的 & 语义天然对齐
+			return inner, nil
 		}
-		return "", g.errf(x.Line, "未知一元运算")
-	case *syntax.Binary:
-		l, err := g.expr(x.L)
-		if err != nil {
-			return "", err
-		}
-		r, err := g.expr(x.R)
-		if err != nil {
-			return "", err
-		}
-		op := ""
-		switch x.Op {
-		case syntax.And:
-			return "(" + l + " && " + r + ")", nil
-		case syntax.Or:
-			return "(" + l + " || " + r + ")", nil
-		case syntax.Eq:
-			return "langGoEq(" + l + ", " + r + ")", nil
-		case syntax.Neq:
-			return "!langGoEq(" + l + ", " + r + ")", nil
-		case syntax.Plus:
-			op = "+"
-		case syntax.Minus:
-			op = "-"
-		case syntax.Star:
-			op = "*"
-		case syntax.Slash:
-			return "langGoDiv(" + l + ", " + r + ")", nil
-		case syntax.Percent:
-			return "(" + l + " % " + r + ")", nil
-		case syntax.Amp:
-			op = "&"
-		case syntax.BitOr:
-			op = "|"
-		case syntax.Xor:
-			op = "^"
-		case syntax.Shl:
-			op = "<<"
-		case syntax.Shr:
-			op = ">>"
-		case syntax.Lt:
-			op = "<"
-		case syntax.Le:
-			op = "<="
-		case syntax.Gt:
-			op = ">"
-		case syntax.Ge:
-			op = ">="
-		default:
-			return "", g.errf(x.Line, "→JS 暂不支持该运算")
-		}
-		return "(" + l + " " + op + " " + r + ")", nil
-	case *syntax.RangeEx:
+		return "", g.errf(0, "未知一元运算")
+
+	case *ir.Binary:
+		return g.emitBinary(x)
+
+	case *ir.Range:
 		lo, err := g.expr(x.Lo)
 		if err != nil {
 			return "", err
@@ -1086,9 +760,8 @@ func (g *jsgen) expr(e syntax.Expr) (string, error) {
 			return "", err
 		}
 		return "{ __langGoRange: true, lo: " + lo + ", hi: " + hi + " }", nil
-	case *syntax.CallEx:
-		return g.emitCall(x)
-	case *syntax.IndexEx:
+
+	case *ir.Index:
 		obj, err := g.expr(x.Obj)
 		if err != nil {
 			return "", err
@@ -1098,7 +771,8 @@ func (g *jsgen) expr(e syntax.Expr) (string, error) {
 			return "", err
 		}
 		return "langGoIndex(" + obj + ", " + idx + ")", nil
-	case *syntax.SliceEx:
+
+	case *ir.Slice:
 		obj, err := g.expr(x.Obj)
 		if err != nil {
 			return "", err
@@ -1112,17 +786,24 @@ func (g *jsgen) expr(e syntax.Expr) (string, error) {
 			return "", err
 		}
 		return "langGoSlice(" + obj + ", " + lo + ", " + hi + ")", nil
-	case *syntax.FieldEx:
+
+	case *ir.Field:
 		obj, err := g.expr(x.Obj)
 		if err != nil {
 			return "", err
 		}
 		return obj + "." + x.Name, nil
-	case *syntax.TryEx:
-		return "", g.errf(x.Line, "? 只能出现在 let/return/赋值的顶层（→JS 约束）")
-	case *syntax.StructLit:
+
+	case *ir.Try:
+		return "", g.errf(0, "? 只能出现在 let/return/赋值的顶层（→JS 约束）")
+
+	case *ir.StructLit:
+		name := ""
+		if x.Struct != nil {
+			name = x.Struct.Name
+		}
 		var fs []string
-		fs = append(fs, "__langGoStruct: "+strconv.Quote(x.TypeName))
+		fs = append(fs, "__langGoStruct: "+strconv.Quote(name))
 		for _, f := range x.Fields {
 			v, err := g.expr(f.Val)
 			if err != nil {
@@ -1131,23 +812,25 @@ func (g *jsgen) expr(e syntax.Expr) (string, error) {
 			fs = append(fs, f.Name+": langGoCopy("+v+")")
 		}
 		return "{ " + strings.Join(fs, ", ") + " }", nil
-	case *syntax.MapLit:
+
+	case *ir.MapLit:
 		var kvs []string
-		for _, item := range x.Items {
-			k, err := g.expr(item.Key)
+		for i := range x.Keys {
+			k, err := g.expr(x.Keys[i])
 			if err != nil {
 				return "", err
 			}
-			v, err := g.expr(item.Val)
+			v, err := g.expr(x.Vals[i])
 			if err != nil {
 				return "", err
 			}
 			kvs = append(kvs, "["+k+", langGoCopy("+v+")]")
 		}
 		return "langGoNewMap(" + strings.Join(kvs, ", ") + ")", nil
-	case *syntax.ArrLit:
+
+	case *ir.SliceLit:
 		var items []string
-		for _, el := range x.Items {
+		for _, el := range x.Elems {
 			v, err := g.expr(el)
 			if err != nil {
 				return "", err
@@ -1155,64 +838,179 @@ func (g *jsgen) expr(e syntax.Expr) (string, error) {
 			items = append(items, "langGoCopy("+v+")")
 		}
 		return "[" + strings.Join(items, ", ") + "]", nil
-	case *syntax.MatchEx:
+
+	case *ir.Match:
 		return g.exprMatch(x)
-	case *syntax.FnLit:
+
+	case *ir.FnLit:
 		return g.emitFnLit(x)
 	}
-	return "", g.errf(e.Pos(), "→JS 暂不支持该表达式")
+	return "", g.errf(0, "→JS 暂不支持该表达式")
 }
 
-func (g *jsgen) emitFnLit(x *syntax.FnLit) (string, error) {
-	var ps []string
-	for _, p := range x.Params {
-		if p.Typ == nil {
-			return "", g.errf(x.Line, "→JS 要求函数字面量参数 %s 有类型注解", p.Name)
+// emitCtor 构造器
+func (g *jsgen) emitCtor(x *ir.Ctor) (string, error) {
+	switch x.Sym.Name {
+	case "None":
+		return "{ __langGoOpt: true, has: false, v: undefined }", nil
+	case "Some":
+		if len(x.Args) != 1 {
+			return "", g.errf(0, "Some 需要 1 个参数")
 		}
-		ps = append(ps, p.Name)
+		arg, err := g.expr(x.Args[0])
+		if err != nil {
+			return "", err
+		}
+		return "{ __langGoOpt: true, has: true, v: langGoCopy(" + arg + ") }", nil
+	case "Ok", "Err":
+		return "", g.errf(0, "Ok/Err 只能出现在 Result 函数的 return（→JS 约束）")
 	}
-	savedBuf := g.buf
-	savedIndent := g.indent
-	g.buf = strings.Builder{}
-	g.indent = 0
-	savedRet, savedFn := g.curRetLangGo, g.curFn
-	g.curRetLangGo = x.Ret
-	g.curFn = "匿名函数"
-	g.w("async function(" + strings.Join(ps, ", ") + ") {")
-	g.indent++
-	for _, p := range x.Params {
-		g.w(p.Name + " = langGoCopy(" + p.Name + ");")
-	}
-	var bodyErr error
-	for _, st := range x.Body {
-		if bodyErr = g.emitStmt(st); bodyErr != nil {
-			break
+	en := ""
+	for _, ed := range g.prog.Enums {
+		for _, c := range ed.Cases {
+			if c.Name == x.Sym.Name {
+				en = ed.Name
+			}
 		}
 	}
-	if bodyErr == nil {
-		g.w("}")
+	var args []string
+	for _, a := range x.Args {
+		arg, err := g.expr(a)
+		if err != nil {
+			return "", err
+		}
+		args = append(args, "langGoCopy("+arg+")")
 	}
-	g.curRetLangGo, g.curFn = savedRet, savedFn
-	g.indent = savedIndent
-	out := g.buf.String()
-	g.buf = savedBuf
-	if bodyErr != nil {
-		return "", bodyErr
-	}
-	return strings.TrimRight(out, "\n"), nil
+	return "le_" + en + "_" + x.Sym.Name + "(" + strings.Join(args, ", ") + ")", nil
 }
 
-// exprMatch 表达式位置 match → 立即调用的 async 函数（调用侧 await）
-func (g *jsgen) exprMatch(m *syntax.MatchEx) (string, error) {
-	kind, err := g.classifyMatch(m)
+func (g *jsgen) emitBinary(x *ir.Binary) (string, error) {
+	l, err := g.expr(x.L)
 	if err != nil {
 		return "", err
 	}
-	if kind == "enum" {
-		if err := g.checkExhaustive(m); err != nil {
+	r, err := g.expr(x.R)
+	if err != nil {
+		return "", err
+	}
+	switch x.Op {
+	case ir.OpAndAnd:
+		return "(" + l + " && " + r + ")", nil
+	case ir.OpOrOr:
+		return "(" + l + " || " + r + ")", nil
+	case ir.OpEq:
+		return "langGoEq(" + l + ", " + r + ")", nil
+	case ir.OpNeq:
+		return "!langGoEq(" + l + ", " + r + ")", nil
+	case ir.OpSlash:
+		return "langGoDiv(" + l + ", " + r + ")", nil
+	}
+	return "(" + l + " " + string(x.Op) + " " + r + ")", nil
+}
+
+// emitCall 用户 fn / 内建 / 方法 / 函数值
+func (g *jsgen) emitCall(x *ir.Call) (string, error) {
+	// 内建
+	if x.Builtin != "" {
+		if x.Builtin == "http.get" {
+			var args []string
+			for _, a := range x.Args {
+				arg, err := g.expr(a)
+				if err != nil {
+					return "", err
+				}
+				args = append(args, arg)
+			}
+			return "langGoHTTP.get(" + strings.Join(args, ", ") + ")", nil
+		}
+		bf, ok := builtins[x.Builtin]
+		if !ok {
+			return "", g.errf(0, "未知内建 %s", x.Builtin)
+		}
+		var args []string
+		for _, a := range x.Args {
+			arg, err := g.expr(a)
+			if err != nil {
+				return "", err
+			}
+			if x.Builtin == "push" {
+				arg = "langGoCopy(" + arg + ")"
+			}
+			args = append(args, arg)
+		}
+		return bf + "(" + strings.Join(args, ", ") + ")", nil
+	}
+	// 方法：obj.m(args) → lf_<Struct>_<name>(obj, ...)（方法名全局唯一）
+	if x.Method != nil {
+		obj, err := g.expr(x.Recv)
+		if err != nil {
+			return "", err
+		}
+		fi := g.fns[x.Method]
+		if fi == nil {
+			return "", g.errf(0, "内部错误：方法未注册 %s", x.Method.Name)
+		}
+		var args []string
+		for _, a := range x.Args {
+			arg, err := g.expr(a)
+			if err != nil {
+				return "", err
+			}
+			args = append(args, "langGoCopy("+arg+")")
+		}
+		return "await " + g.fnName(fi) + "(" + obj + ", " + strings.Join(args, ", ") + ")", nil
+	}
+	// 用户 fn
+	if x.Fn != nil {
+		fi := g.fns[x.Fn]
+		if fi == nil {
+			return "", g.errf(0, "内部错误：fn 未注册 %s", x.Fn.Name)
+		}
+		var args []string
+		for _, a := range x.Args {
+			arg, err := g.expr(a)
+			if err != nil {
+				return "", err
+			}
+			args = append(args, "langGoCopy("+arg+")")
+		}
+		return "await " + g.fnName(fi) + "(" + strings.Join(args, ", ") + ")", nil
+	}
+	// 函数值（fnlit 绑定直通；字段函数值经 obj.f）
+	var callee string
+	var err error
+	if lg, ok := x.Callee.(*ir.LocalGet); ok {
+		callee = lg.Local.Name
+	} else {
+		callee, err = g.expr(x.Callee)
+		if err != nil {
 			return "", err
 		}
 	}
+	var args []string
+	for _, a := range x.Args {
+		arg, err := g.expr(a)
+		if err != nil {
+			return "", err
+		}
+		args = append(args, arg)
+	}
+	return "await " + callee + "(" + strings.Join(args, ", ") + ")", nil
+}
+
+var builtins = map[string]string{
+	"println": "langGoPrintln", "print": "langGoPrint", "len": "langGoLen",
+	"str": "langGoStr", "int": "langGoInt", "float": "langGoFloat",
+	"keys": "langGoKeys", "values": "langGoValues", "has": "langGoHas",
+	"push": "langGoPush", "assert": "langGoAssert", "err": "langGoErr",
+	"bytes": "langGoBytes", "char": "langGoChar",
+	"jsonParse": "langGoJSONParse", "jsonStringify": "langGoJSONStringify",
+	"isNone": "langGoIsNone", "makeChan": "langGoNewChan",
+	"send": "langGoChanSend", "recv": "langGoChanRecv",
+}
+
+// exprMatch 表达式位置 match → 立即调用的 async 函数（调用侧 await）
+func (g *jsgen) exprMatch(m *ir.Match) (string, error) {
 	savedBuf := g.buf
 	savedIndent := g.indent
 	g.buf = strings.Builder{}
@@ -1227,88 +1025,72 @@ func (g *jsgen) exprMatch(m *syntax.MatchEx) (string, error) {
 	}
 	g.w("(async () => {")
 	g.indent++
-	g.pushScope()
 	g.w("const " + tmp + " = " + scrut + ";")
 	var emitErr error
-	switch kind {
-	case "result":
+	switch m.Kind {
+	case ir.MatchResult:
 		okArm, errArm := splitAlgebraic(m, "Ok", "Err")
 		g.w("if (" + tmp + ".ok) {")
 		g.indent++
-		g.pushScope()
 		if okArm != nil {
 			g.bindArmValue(okArm, tmp+".v")
 			emitErr = g.emitArmReturn(okArm)
 		}
-		g.popScope()
 		g.indent--
 		if emitErr == nil {
 			g.w("} else {")
 			g.indent++
-			g.pushScope()
 			if errArm != nil {
 				g.bindArmValue(errArm, tmp+".e")
 				emitErr = g.emitArmReturn(errArm)
 			}
-			g.popScope()
 			g.indent--
 			g.w("}")
 		}
-	case "option":
+	case ir.MatchOption:
 		someArm, noneArm := splitAlgebraic(m, "Some", "None")
 		g.w("if (" + tmp + ".has) {")
 		g.indent++
-		g.pushScope()
 		if someArm != nil {
 			g.bindArmValue(someArm, tmp+".v")
 			emitErr = g.emitArmReturn(someArm)
 		}
-		g.popScope()
 		g.indent--
 		if emitErr == nil && noneArm != nil {
 			g.w("} else {")
 			g.indent++
-			g.pushScope()
-			if err := g.emitArmReturn(noneArm); err != nil {
-				emitErr = err
-			}
-			g.popScope()
+			emitErr = g.emitArmReturn(noneArm)
 			g.indent--
 			g.w("}")
 		} else if emitErr == nil {
 			g.w("}")
 		}
-	case "enum":
+	case ir.MatchEnum:
 		g.w("switch (" + tmp + ".tag) {")
 		g.indent++
 		for i := range m.Arms {
 			arm := &m.Arms[i]
-			if p, ok := arm.Pat.(*syntax.CasePat); ok {
-				g.w(`case "` + p.Name + `": {`)
+			if p, ok := arm.Pat.(*ir.CtorPat); ok {
+				g.w(`case "` + p.Sym.Name + `": {`)
 				g.indent++
-				g.pushScope()
-				if err := g.bindEnumPayloads(p, tmp); err != nil {
-					emitErr = err
-				}
+				emitErr = g.bindEnumPayloads(p, tmp)
 				if emitErr == nil {
 					emitErr = g.emitArmReturn(arm)
 				}
-				g.popScope()
 				g.indent--
 				g.w("}")
 			} else {
 				g.w("default: {")
 				g.indent++
-				g.pushScope()
-				if bp, ok := arm.Pat.(*syntax.BindPat); ok {
+				if bp, ok := arm.Pat.(*ir.BindPat); ok {
 					g.w("const " + bp.Name + " = " + tmp + ";")
 				}
-				if err := g.emitArmReturn(arm); err != nil {
-					emitErr = err
-				}
-				g.popScope()
+				emitErr = g.emitArmReturn(arm)
 				g.indent--
 				g.w("}")
+			}
+			if emitErr != nil {
+				break
 			}
 		}
 		g.indent--
@@ -1316,7 +1098,6 @@ func (g *jsgen) exprMatch(m *syntax.MatchEx) (string, error) {
 	default:
 		emitErr = g.emitLiteralMatchReturn(m, tmp)
 	}
-	g.popScope()
 	g.indent--
 	g.w("})()")
 	out := g.buf.String()
@@ -1328,11 +1109,11 @@ func (g *jsgen) exprMatch(m *syntax.MatchEx) (string, error) {
 	return out, nil
 }
 
-func (g *jsgen) emitLiteralMatchReturn(m *syntax.MatchEx, tmp string) error {
+func (g *jsgen) emitLiteralMatchReturn(m *ir.Match, tmp string) error {
 	for i := range m.Arms {
 		arm := &m.Arms[i]
 		switch p := arm.Pat.(type) {
-		case *syntax.LitPat:
+		case *ir.LitPat:
 			kw := "if"
 			if i > 0 {
 				kw = "} else if"
@@ -1343,48 +1124,35 @@ func (g *jsgen) emitLiteralMatchReturn(m *syntax.MatchEx, tmp string) error {
 			}
 			g.w(kw + " (langGoEq(" + tmp + ", " + lit + ")) {")
 			g.indent++
-			g.pushScope()
-			if err := g.emitArmReturn(arm); err != nil {
+			err = g.emitArmReturn(arm)
+			g.indent--
+			if err != nil {
 				return err
 			}
-			g.popScope()
-			g.indent--
-		case *syntax.BindPat:
+		case *ir.BindPat:
 			g.w("} else {")
 			g.indent++
-			g.pushScope()
 			g.w("const " + p.Name + " = " + tmp + ";")
-			if err := g.emitArmReturn(arm); err != nil {
+			err := g.emitArmReturn(arm)
+			g.indent--
+			if err != nil {
 				return err
 			}
-			g.popScope()
-			g.indent--
-		case *syntax.WildPat:
+		case *ir.WildPat:
 			g.w("} else {")
 			g.indent++
-			g.pushScope()
-			if err := g.emitArmReturn(arm); err != nil {
+			err := g.emitArmReturn(arm)
+			g.indent--
+			if err != nil {
 				return err
 			}
-			g.popScope()
-			g.indent--
-		default:
-			return g.errf(arm.Line, "该模式不支持（→JS）")
 		}
 	}
 	g.w("}")
 	return nil
 }
 
-func (g *jsgen) emitArmReturn(arm *syntax.Arm) error {
-	if m, ok := arm.Body.(*syntax.MatchEx); ok {
-		expr, err := g.expr(m)
-		if err != nil {
-			return err
-		}
-		g.w("return await " + expr + ";")
-		return nil
-	}
+func (g *jsgen) emitArmReturn(arm *ir.Arm) error {
 	expr, err := g.expr(arm.Body)
 	if err != nil {
 		return err
@@ -1393,169 +1161,38 @@ func (g *jsgen) emitArmReturn(arm *syntax.Arm) error {
 	return nil
 }
 
-func (g *jsgen) isBuiltinFn(name string) bool {
-	switch name {
-	case "println", "print", "len", "str", "int", "float", "keys", "values", "has", "push", "assert", "err", "bytes", "char", "jsonParse", "jsonStringify", "isNone", "makeChan", "send", "recv":
-		return true
+// emitFnLit 函数字面量
+func (g *jsgen) emitFnLit(x *ir.FnLit) (string, error) {
+	var ps []string
+	for _, p := range x.Params {
+		ps = append(ps, p.Name)
 	}
-	return false
-}
-
-func (g *jsgen) emitCall(x *syntax.CallEx) (string, error) {
-	id, isIdent := x.Callee.(*syntax.Ident)
-	if !isIdent {
-		return g.emitNonIdentCall(x)
+	savedBuf := g.buf
+	savedIndent := g.indent
+	savedFn := g.curFn
+	g.curFn = &ir.Fn{Name: "匿名函数", Ret: x.Ret}
+	g.buf = strings.Builder{}
+	g.indent = 0
+	g.w("async function(" + strings.Join(ps, ", ") + ") {")
+	g.indent++
+	for _, p := range x.Params {
+		g.w(p.Name + " = langGoCopy(" + p.Name + ");")
 	}
-
-	if _, isUser := g.caseEnum[id.Name]; isUser {
-		var args []string
-		for _, a := range x.Args {
-			arg, err := g.expr(a)
-			if err != nil {
-				return "", err
-			}
-			args = append(args, "langGoCopy("+arg+")")
+	var bodyErr error
+	for _, st := range x.Body {
+		if bodyErr = g.emitStmt(st); bodyErr != nil {
+			break
 		}
-		return "le_" + g.caseEnum[id.Name] + "_" + id.Name + "(" + strings.Join(args, ", ") + ")", nil
 	}
-
-	switch id.Name {
-	case "Some":
-		if len(x.Args) != 1 {
-			return "", g.errf(x.Line, "Some 需要 1 个参数")
-		}
-		arg, err := g.expr(x.Args[0])
-		if err != nil {
-			return "", err
-		}
-		return "{ __langGoOpt: true, has: true, v: langGoCopy(" + arg + ") }", nil
-	case "None":
-		return "{ __langGoOpt: true, has: false, v: undefined }", nil
-	case "Ok", "Err":
-		return "", g.errf(x.Line, "Ok/Err 只能出现在 Result 函数的 return（→JS 约束）")
+	if bodyErr == nil {
+		g.w("}")
 	}
-
-	builtins := map[string]string{
-		"println": "langGoPrintln", "print": "langGoPrint", "len": "langGoLen",
-		"str": "langGoStr", "int": "langGoInt", "float": "langGoFloat",
-		"keys": "langGoKeys", "has": "langGoHas", "push": "langGoPush",
-		"assert": "langGoAssert", "err": "langGoErr", "bytes": "langGoBytes",
-		"char": "langGoChar", "jsonParse": "langGoJSONParse", "jsonStringify": "langGoJSONStringify",
-		"isNone": "langGoIsNone", "makeChan": "langGoNewChan",
-		"send": "langGoChanSend", "recv": "langGoChanRecv",
+	g.curFn = savedFn
+	out := g.buf.String()
+	g.buf = savedBuf
+	g.indent = savedIndent
+	if bodyErr != nil {
+		return "", bodyErr
 	}
-	if bf, ok := builtins[id.Name]; ok {
-		if id.Name == "values" {
-			return g.emitValues(x)
-		}
-		var args []string
-		for _, a := range x.Args {
-			arg, err := g.expr(a)
-			if err != nil {
-				return "", err
-			}
-			if id.Name == "push" {
-				arg = "langGoCopy(" + arg + ")"
-			}
-			args = append(args, arg)
-		}
-		return bf + "(" + strings.Join(args, ", ") + ")", nil
-	}
-
-	if fi, ok := g.fns[id.Name]; ok {
-		var args []string
-		for _, a := range x.Args {
-			arg, err := g.expr(a)
-			if err != nil {
-				return "", err
-			}
-			args = append(args, "langGoCopy("+arg+")")
-		}
-		_ = fi
-		return "await " + fi.goName + "(" + strings.Join(args, ", ") + ")", nil
-	}
-
-	// 参数/局部持有的函数值（如泛型 fn 的 f: fn(T): U）
-	if g.inScope(id.Name) {
-		var args []string
-		for _, a := range x.Args {
-			arg, err := g.expr(a)
-			if err != nil {
-				return "", err
-			}
-			args = append(args, arg)
-		}
-		return "await " + id.Name + "(" + strings.Join(args, ", ") + ")", nil
-	}
-
-	// 运行时函数值绑定（如 makeCounter() 的返回）：静态不可预知，直通由 JS 兜底
-	var args []string
-	for _, a := range x.Args {
-		arg, err := g.expr(a)
-		if err != nil {
-			return "", err
-		}
-		args = append(args, arg)
-	}
-	return "await " + id.Name + "(" + strings.Join(args, ", ") + ")", nil
-}
-
-// emitValues 映射值列表（保插入序）
-func (g *jsgen) emitValues(x *syntax.CallEx) (string, error) {
-	if len(x.Args) != 1 {
-		return "", g.errf(x.Line, "values 需要 1 个参数")
-	}
-	arg, err := g.expr(x.Args[0])
-	if err != nil {
-		return "", err
-	}
-	return "langGoValues(" + arg + ")", nil
-}
-
-func (g *jsgen) emitNonIdentCall(x *syntax.CallEx) (string, error) {
-	// 方法调用：obj.name(args) → lf_<Struct>_<name>(obj, ...)（方法名全局唯一）
-	if fe, ok := x.Callee.(*syntax.FieldEx); ok {
-		if goName, isMethod := g.methods[fe.Name]; isMethod {
-			obj, err := g.expr(fe.Obj)
-			if err != nil {
-				return "", err
-			}
-			var args []string
-			for _, a := range x.Args {
-				arg, err := g.expr(a)
-				if err != nil {
-					return "", err
-				}
-				args = append(args, "langGoCopy("+arg+")")
-			}
-			return "await " + goName + "(" + obj + ", " + strings.Join(args, ", ") + ")", nil
-		}
-		// 字段持有的函数值调用（如 http.get）
-		obj, err := g.expr(fe.Obj)
-		if err != nil {
-			return "", err
-		}
-		var args []string
-		for _, a := range x.Args {
-			arg, err := g.expr(a)
-			if err != nil {
-				return "", err
-			}
-			args = append(args, arg)
-		}
-		return "await " + obj + "." + fe.Name + "(" + strings.Join(args, ", ") + ")", nil
-	}
-	callee, err := g.expr(x.Callee)
-	if err != nil {
-		return "", err
-	}
-	var args []string
-	for _, a := range x.Args {
-		arg, err := g.expr(a)
-		if err != nil {
-			return "", err
-		}
-		args = append(args, arg)
-	}
-	return "await " + callee + "(" + strings.Join(args, ", ") + ")", nil
+	return strings.TrimRight(out, "\n"), nil
 }

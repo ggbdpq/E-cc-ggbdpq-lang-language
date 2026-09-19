@@ -45,6 +45,7 @@ type checker struct {
 	out    *Result
 	scopes []map[string]*Type // 绑定类型作用域栈（名字 → 类型）
 	fnRet  *Type              // 当前函数返回注解（nil = 无注解）
+	tps    map[string]bool    // 当前函数的泛型参数名集（注解解析用）
 	inFn   bool
 }
 
@@ -86,7 +87,7 @@ func (c *checker) walk(prog []syntax.Stmt) {
 	}
 	for _, s := range prog {
 		if d, ok := s.(*syntax.FnDecl); ok && d.Recv != nil {
-			c.fnBody(d, nil, c.methodStructType(d))
+			c.fnBody(d, c.methodSym(d), c.methodStructType(d))
 		}
 	}
 	// 3. 顶层游离语句（脚本模式；interp 可执行，转译不支持——只做类型走查）
@@ -99,6 +100,17 @@ func (c *checker) walk(prog []syntax.Stmt) {
 		c.stmt(s)
 	}
 	c.popScope()
+}
+
+func (c *checker) methodSym(d *syntax.FnDecl) *semantic.Symbol {
+	nt, ok := d.Recv.Typ.(*syntax.NamedType)
+	if !ok {
+		return nil
+	}
+	if st := c.lookupTypeSym(nt.Name); st != nil {
+		return st.Methods[d.Name]
+	}
+	return nil
 }
 
 func (c *checker) methodStructType(d *syntax.FnDecl) *Type {
@@ -114,8 +126,9 @@ func (c *checker) methodStructType(d *syntax.FnDecl) *Type {
 
 // fnBody 函数体检查：参数注解必填（E3007，迁自转译约束），建立返回上下文。
 func (c *checker) fnBody(d *syntax.FnDecl, sym *semantic.Symbol, recvTy *Type) {
-	savedRet, savedInFn, savedScopes := c.fnRet, c.inFn, c.scopes
+	savedRet, savedInFn, savedScopes, savedTps := c.fnRet, c.inFn, c.scopes, c.tps
 	c.scopes = []map[string]*Type{{}}
+	c.tps = c.tparamsOf(d.TypeParams)
 	sig := c.fnSignature(d)
 	c.fnRet = nil
 	if d.Ret != nil {
@@ -126,25 +139,43 @@ func (c *checker) fnBody(d *syntax.FnDecl, sym *semantic.Symbol, recvTy *Type) {
 	if d.Recv != nil {
 		c.scopes[0][d.Recv.Name] = recvTy
 	}
-	c.declareParams(d.Params, d.Line)
+	c.declareParams(d, sym, recvTy)
 	if sym != nil {
 		c.out.FnTy[sym.ID] = sig
 	}
 	for _, s := range d.Body {
 		c.stmt(s)
 	}
-	c.fnRet, c.inFn, c.scopes = savedRet, savedInFn, savedScopes
+	c.fnRet, c.inFn, c.scopes, c.tps = savedRet, savedInFn, savedScopes, savedTps
 }
 
-// declareParams 解析参数注解（缺注解 → E3007 + Unknown）并入作用域
-func (c *checker) declareParams(params []syntax.Param, line int) {
-	for _, p := range params {
-		if p.Typ == nil {
-			c.errf(line, E3007, "参数 %s 缺少类型注解", p.Name)
-			c.scopes[0][p.Name] = Unknown
-			continue
+// declareParams 解析参数注解（缺注解 → E3007 + Unknown）入作用域，
+// 并把类型按序落到参数符号的 SymTy（接收者在 FnParams[0]）
+func (c *checker) declareParams(d *syntax.FnDecl, sym *semantic.Symbol, recvTy *Type) {
+	var psyms []*semantic.Symbol
+	if sym != nil {
+		psyms = c.res.FnParams[sym.ID]
+	}
+	pi := 0
+	if d.Recv != nil {
+		if pi < len(psyms) {
+			c.out.SymTy[psyms[pi].ID] = recvTy
+			pi++
 		}
-		c.scopes[0][p.Name] = c.typeExOf(p.Typ, nil)
+	}
+	for _, p := range d.Params {
+		var pt *Type
+		if p.Typ == nil {
+			c.errf(d.Line, E3007, "参数 %s 缺少类型注解", p.Name)
+			pt = Unknown
+		} else {
+			pt = c.resolveTypeEx(p.Typ, c.tparamsOf(d.TypeParams))
+		}
+		c.scopes[0][p.Name] = pt
+		if p.Name != "_" && pi < len(psyms) {
+			c.out.SymTy[psyms[pi].ID] = pt
+			pi++
+		}
 	}
 }
 
@@ -240,6 +271,9 @@ func (c *checker) stmt(s syntax.Stmt) {
 			c.errf(st.Line, E3010, "%s 不可迭代", ty.String())
 			elem = Unknown
 		}
+		if sym := c.res.DeclSyms[st]; sym != nil {
+			c.out.SymTy[sym.ID] = elem
+		}
 		c.pushScope()
 		c.scopes[0][st.Var] = elem
 		c.stmts(st.Body)
@@ -277,7 +311,7 @@ func (c *checker) assign(st *syntax.AssignStmt) {
 	valTy := c.infer(st.Val)
 	switch tgt := st.Target.(type) {
 	case *syntax.Ident:
-		tgtTy := c.lookupVar(tgt.Name)
+		tgtTy, _ := c.lookupVar(tgt.Name)
 		if st.Op != syntax.Assign {
 			c.checkCompound(st, tgtTy, valTy)
 			return

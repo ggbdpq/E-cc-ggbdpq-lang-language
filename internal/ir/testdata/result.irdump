@@ -13,8 +13,8 @@ prog
         (builtin int @int)
           (get s @string)
   fn run(s @string) @Result[int, error]#29
-    local v @unknown
-    (let v @unknown)
+    local v @int
+    (let v @int)
       (try @unknown)
         (call parse#28 @Result[int, error])
           (get s @string)
@@ -29,10 +29,10 @@ prog
         (match result @int)
           (call run#29 @Result[int, error])
             (const "21" @string)
-          arm @unknown
+          arm @int
             (ctorpat Ok#26)
               (bind v @int)
-            (get v @unknown)
+            (get v @int)
           arm @int
             (ctorpat Err#27)
               (bind e @error)

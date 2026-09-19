@@ -85,32 +85,32 @@ type Assign struct {
 type Op string
 
 const (
-	OpAssign    Op = "="
-	OpPlus      Op = "+"
-	OpMinus     Op = "-"
-	OpStar      Op = "*"
-	OpSlash     Op = "/"
-	OpPercent   Op = "%"
-	OpPlusA     Op = "+="
-	OpMinusA    Op = "-="
-	OpStarA     Op = "*="
-	OpSlashA    Op = "/="
-	OpEq        Op = "=="
-	OpNeq       Op = "!="
-	OpLt        Op = "<"
-	OpLe        Op = "<="
-	OpGt        Op = ">"
-	OpGe        Op = ">="
-	OpAnd       Op = "&"
-	OpBitOr     Op = "|"
-	OpXor       Op = "^"
-	OpShl       Op = "<<"
-	OpShr       Op = ">>"
-	OpAndAnd    Op = "&&"
-	OpOrOr      Op = "||"
-	OpNeg       Op = "-" // 一元
-	OpNot       Op = "!"
-	OpRef       Op = "&"
+	OpAssign  Op = "="
+	OpPlus    Op = "+"
+	OpMinus   Op = "-"
+	OpStar    Op = "*"
+	OpSlash   Op = "/"
+	OpPercent Op = "%"
+	OpPlusA   Op = "+="
+	OpMinusA  Op = "-="
+	OpStarA   Op = "*="
+	OpSlashA  Op = "/="
+	OpEq      Op = "=="
+	OpNeq     Op = "!="
+	OpLt      Op = "<"
+	OpLe      Op = "<="
+	OpGt      Op = ">"
+	OpGe      Op = ">="
+	OpAnd     Op = "&"
+	OpBitOr   Op = "|"
+	OpXor     Op = "^"
+	OpShl     Op = "<<"
+	OpShr     Op = ">>"
+	OpAndAnd  Op = "&&"
+	OpOrOr    Op = "||"
+	OpNeg     Op = "-" // 一元
+	OpNot     Op = "!"
+	OpRef     Op = "&"
 )
 
 type Eval struct{ X Expr }
@@ -233,8 +233,8 @@ type Call struct {
 }
 
 type Unary struct {
-	Op Op
-	X  Expr
+	Op  Op
+	X   Expr
 	typ types.Type
 }
 
@@ -320,8 +320,9 @@ type Pat interface{ isPat() }
 type WildPat struct{}
 
 type BindPat struct {
-	Name string
-	Typ  *types.Type
+	Name  string
+	Typ   *types.Type
+	Local *Local // 臂绑定的局部槽位（lowering 建立并注册进作用域）
 }
 
 type LitPat struct {
@@ -341,64 +342,64 @@ type FnLit struct {
 	typ    types.Type
 }
 
-func (*Const) isExpr()     {}
-func (*LocalGet) isExpr()  {}
-func (*FnGet) isExpr()     {}
-func (*BuiltinGet) isExpr(){}
-func (*Ctor) isExpr()      {}
-func (*Call) isExpr()      {}
-func (*Unary) isExpr()     {}
-func (*Binary) isExpr()    {}
-func (*Range) isExpr()     {}
-func (*Index) isExpr()     {}
-func (*Slice) isExpr()     {}
-func (*Field) isExpr()     {}
-func (*Try) isExpr()       {}
-func (*StructLit) isExpr() {}
-func (*MapLit) isExpr()    {}
-func (*SliceLit) isExpr()  {}
-func (*Match) isExpr()     {}
-func (*FnLit) isExpr()     {}
+func (*Const) isExpr()      {}
+func (*LocalGet) isExpr()   {}
+func (*FnGet) isExpr()      {}
+func (*BuiltinGet) isExpr() {}
+func (*Ctor) isExpr()       {}
+func (*Call) isExpr()       {}
+func (*Unary) isExpr()      {}
+func (*Binary) isExpr()     {}
+func (*Range) isExpr()      {}
+func (*Index) isExpr()      {}
+func (*Slice) isExpr()      {}
+func (*Field) isExpr()      {}
+func (*Try) isExpr()        {}
+func (*StructLit) isExpr()  {}
+func (*MapLit) isExpr()     {}
+func (*SliceLit) isExpr()   {}
+func (*Match) isExpr()      {}
+func (*FnLit) isExpr()      {}
 
-func (*WildPat) isPat()  {}
-func (*BindPat) isPat()  {}
-func (*LitPat) isPat()   {}
-func (*CtorPat) isPat()  {}
+func (*WildPat) isPat() {}
+func (*BindPat) isPat() {}
+func (*LitPat) isPat()  {}
+func (*CtorPat) isPat() {}
 
-func (n *Const) Typ() *types.Type     { return &n.typ }
-func (n *LocalGet) Typ() *types.Type  { return &n.typ }
-func (n *FnGet) Typ() *types.Type     { return &n.typ }
-func (n *BuiltinGet) Typ() *types.Type{ return &n.typ }
-func (n *Ctor) Typ() *types.Type      { return &n.typ }
-func (n *Call) Typ() *types.Type      { return &n.typ }
-func (n *Unary) Typ() *types.Type     { return &n.typ }
-func (n *Binary) Typ() *types.Type    { return &n.typ }
-func (n *Range) Typ() *types.Type     { return &n.typ }
-func (n *Index) Typ() *types.Type     { return &n.typ }
-func (n *Slice) Typ() *types.Type     { return &n.typ }
-func (n *Field) Typ() *types.Type     { return &n.typ }
-func (n *Try) Typ() *types.Type       { return &n.typ }
-func (n *StructLit) Typ() *types.Type { return &n.typ }
-func (n *MapLit) Typ() *types.Type    { return &n.typ }
-func (n *SliceLit) Typ() *types.Type  { return &n.typ }
-func (n *Match) Typ() *types.Type     { return &n.typ }
-func (n *FnLit) Typ() *types.Type     { return &n.typ }
+func (n *Const) Typ() *types.Type      { return &n.typ }
+func (n *LocalGet) Typ() *types.Type   { return &n.typ }
+func (n *FnGet) Typ() *types.Type      { return &n.typ }
+func (n *BuiltinGet) Typ() *types.Type { return &n.typ }
+func (n *Ctor) Typ() *types.Type       { return &n.typ }
+func (n *Call) Typ() *types.Type       { return &n.typ }
+func (n *Unary) Typ() *types.Type      { return &n.typ }
+func (n *Binary) Typ() *types.Type     { return &n.typ }
+func (n *Range) Typ() *types.Type      { return &n.typ }
+func (n *Index) Typ() *types.Type      { return &n.typ }
+func (n *Slice) Typ() *types.Type      { return &n.typ }
+func (n *Field) Typ() *types.Type      { return &n.typ }
+func (n *Try) Typ() *types.Type        { return &n.typ }
+func (n *StructLit) Typ() *types.Type  { return &n.typ }
+func (n *MapLit) Typ() *types.Type     { return &n.typ }
+func (n *SliceLit) Typ() *types.Type   { return &n.typ }
+func (n *Match) Typ() *types.Type      { return &n.typ }
+func (n *FnLit) Typ() *types.Type      { return &n.typ }
 
-func (n *Const) typPtr() *types.Type     { return &n.typ }
-func (n *LocalGet) typPtr() *types.Type  { return &n.typ }
-func (n *FnGet) typPtr() *types.Type     { return &n.typ }
-func (n *BuiltinGet) typPtr() *types.Type{ return &n.typ }
-func (n *Ctor) typPtr() *types.Type      { return &n.typ }
-func (n *Call) typPtr() *types.Type      { return &n.typ }
-func (n *Unary) typPtr() *types.Type     { return &n.typ }
-func (n *Binary) typPtr() *types.Type    { return &n.typ }
-func (n *Range) typPtr() *types.Type     { return &n.typ }
-func (n *Index) typPtr() *types.Type     { return &n.typ }
-func (n *Slice) typPtr() *types.Type     { return &n.typ }
-func (n *Field) typPtr() *types.Type     { return &n.typ }
-func (n *Try) typPtr() *types.Type       { return &n.typ }
-func (n *StructLit) typPtr() *types.Type { return &n.typ }
-func (n *MapLit) typPtr() *types.Type    { return &n.typ }
-func (n *SliceLit) typPtr() *types.Type  { return &n.typ }
-func (n *Match) typPtr() *types.Type     { return &n.typ }
-func (n *FnLit) typPtr() *types.Type     { return &n.typ }
+func (n *Const) typPtr() *types.Type      { return &n.typ }
+func (n *LocalGet) typPtr() *types.Type   { return &n.typ }
+func (n *FnGet) typPtr() *types.Type      { return &n.typ }
+func (n *BuiltinGet) typPtr() *types.Type { return &n.typ }
+func (n *Ctor) typPtr() *types.Type       { return &n.typ }
+func (n *Call) typPtr() *types.Type       { return &n.typ }
+func (n *Unary) typPtr() *types.Type      { return &n.typ }
+func (n *Binary) typPtr() *types.Type     { return &n.typ }
+func (n *Range) typPtr() *types.Type      { return &n.typ }
+func (n *Index) typPtr() *types.Type      { return &n.typ }
+func (n *Slice) typPtr() *types.Type      { return &n.typ }
+func (n *Field) typPtr() *types.Type      { return &n.typ }
+func (n *Try) typPtr() *types.Type        { return &n.typ }
+func (n *StructLit) typPtr() *types.Type  { return &n.typ }
+func (n *MapLit) typPtr() *types.Type     { return &n.typ }
+func (n *SliceLit) typPtr() *types.Type   { return &n.typ }
+func (n *Match) typPtr() *types.Type      { return &n.typ }
+func (n *FnLit) typPtr() *types.Type      { return &n.typ }

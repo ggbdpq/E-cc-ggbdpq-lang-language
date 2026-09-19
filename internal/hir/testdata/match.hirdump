@@ -6,12 +6,12 @@ prog
     (return @float)
       (match enum @float)
         (local s sym#33 @Shape)
-        arm @any
+        arm @float
           (ctorpat Circle sym#29)
             (bind r @float)
-          (binary * @any)
+          (binary * @float)
             (lit 3 @float)
-            (local r sym#34 @unknown)
+            (local r sym#34 @float)
         arm @float
           (ctorpat Unit sym#30)
           (lit 0 @float)

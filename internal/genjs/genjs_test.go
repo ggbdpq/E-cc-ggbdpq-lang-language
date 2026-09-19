@@ -14,12 +14,17 @@ import (
 
 	"lang-go/internal/interp"
 	"lang-go/internal/load"
+	"lang-go/internal/pipeline"
 	"lang-go/internal/syntax"
 )
 
 func transpileJS(t *testing.T, prog []syntax.Stmt) string {
 	t.Helper()
-	out, err := TranspileJS(prog)
+	p, err := pipeline.CompileStmts(prog)
+	if err != nil {
+		t.Fatalf("前端管线失败: %v", err)
+	}
+	out, err := TranspileJS(p)
 	if err != nil {
 		t.Fatalf("转译失败: %v", err)
 	}

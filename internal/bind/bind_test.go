@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"lang-go/internal/gen"
+	"lang-go/internal/pipeline"
 	"lang-go/internal/syntax"
 )
 
@@ -91,7 +92,11 @@ func Echo(s string) string { return "" }
 	if err != nil {
 		t.Fatalf("草案不可解析: %v\n%s", err, out)
 	}
-	if _, err := gen.Transpile(prog); err != nil {
+	irProg, err := pipeline.CompileStmts(prog)
+	if err != nil {
+		t.Fatalf("草案未通过前端管线: %v\n%s", err, out)
+	}
+	if _, err := gen.Transpile(irProg); err != nil {
 		t.Fatalf("草案不可转译: %v\n%s", err, out)
 	}
 }

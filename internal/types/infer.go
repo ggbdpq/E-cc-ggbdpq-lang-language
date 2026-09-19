@@ -18,13 +18,13 @@ func deref(t *Type) *Type {
 func (c *checker) pushScope() { c.scopes = append(c.scopes, map[string]*Type{}) }
 func (c *checker) popScope()  { c.scopes = c.scopes[:len(c.scopes)-1] }
 
-func (c *checker) lookupVar(name string) *Type {
+func (c *checker) lookupVar(name string) (*Type, bool) {
 	for i := len(c.scopes) - 1; i >= 0; i-- {
 		if t, ok := c.scopes[i][name]; ok {
-			return t
+			return t, true
 		}
 	}
-	return Unknown
+	return Unknown, false
 }
 
 var typeNames = map[string]*Type{
@@ -76,7 +76,7 @@ func (c *checker) resolveTypeEx(t syntax.TypeEx, tps map[string]bool) *Type {
 			return ResultOf(c.resolveTypeEx(tt.Args[0], tps), ErrorT)
 		}
 		if tps[tt.Name] {
-			return &Type{Kind: KTypeArg} // 名义同一性用占位（v0 泛型擦除，仅文档性）
+			return &Type{Kind: KTypeArg, Name: tt.Name} // 泛型擦除：保留参数名供 →Go 生成
 		}
 		if sym := c.lookupTypeSym(tt.Name); sym != nil {
 			if sym.Kind == semantic.KEnum {
@@ -105,12 +105,15 @@ func (c *checker) resolveTypeEx(t syntax.TypeEx, tps map[string]bool) *Type {
 	return Unknown
 }
 
-// typeExOf 注解解析入口（nil 注解 → nil）
+// typeExOf 注解解析入口（nil 注解 → nil）——未显式给 tparams 时用当前函数的
 func (c *checker) typeExOf(t syntax.TypeEx, tps []string) *Type {
 	if t == nil {
 		return nil
 	}
-	return c.resolveTypeEx(t, c.tparamsOf(tps))
+	if tps != nil {
+		return c.resolveTypeEx(t, c.tparamsOf(tps))
+	}
+	return c.resolveTypeEx(t, c.tps)
 }
 
 // ———— 推断主入口 ————
@@ -207,8 +210,11 @@ func (c *checker) compute(e syntax.Expr) *Type {
 	return Unknown
 }
 
-// identType Ident 类型：局部/全局绑定 → 符号类型；fn → 签名；构造器 → 代数类型
+// identType Ident 类型：作用域栈（参数/绑定/臂捕获）优先，再走符号路径
 func (c *checker) identType(x *syntax.Ident) *Type {
+	if t, ok := c.lookupVar(x.Name); ok && t != nil && t.Kind != KInvalid {
+		return t
+	}
 	if sym := c.res.Refs[x]; sym != nil {
 		switch sym.Kind {
 		case semantic.KFn:
@@ -375,25 +381,30 @@ func (c *checker) requireBool(e syntax.Expr, what string) {
 
 // builtinSig 内建函数签名（参数为 nil 表示不检查该位）
 var builtinSigs = map[string]func(c *checker, args []*Type) *Type{
-	"println":      func(c *checker, a []*Type) *Type { return Unit },
-	"print":        func(c *checker, a []*Type) *Type { return Unit },
-	"len":          func(c *checker, a []*Type) *Type { return Int },
-	"str":          func(c *checker, a []*Type) *Type { return String },
-	"int":          func(c *checker, a []*Type) *Type { return Int },
-	"float":        func(c *checker, a []*Type) *Type { return Float },
-	"keys":         func(c *checker, a []*Type) *Type { return SliceOf(Unknown) },
-	"values":       func(c *checker, a []*Type) *Type { return SliceOf(Unknown) },
-	"has":          func(c *checker, a []*Type) *Type { return Bool },
-	"push":         func(c *checker, a []*Type) *Type { if len(a) > 0 { return a[0] }; return Unknown },
-	"assert":       func(c *checker, a []*Type) *Type { return Unit },
-	"err":          func(c *checker, a []*Type) *Type { return ErrorT },
-	"bytes":        func(c *checker, a []*Type) *Type { return SliceOf(Int) },
-	"char":         func(c *checker, a []*Type) *Type { return String },
-	"jsonParse":    func(c *checker, a []*Type) *Type { return Any },
+	"println": func(c *checker, a []*Type) *Type { return Unit },
+	"print":   func(c *checker, a []*Type) *Type { return Unit },
+	"len":     func(c *checker, a []*Type) *Type { return Int },
+	"str":     func(c *checker, a []*Type) *Type { return String },
+	"int":     func(c *checker, a []*Type) *Type { return Int },
+	"float":   func(c *checker, a []*Type) *Type { return Float },
+	"keys":    func(c *checker, a []*Type) *Type { return SliceOf(Unknown) },
+	"values":  func(c *checker, a []*Type) *Type { return SliceOf(Unknown) },
+	"has":     func(c *checker, a []*Type) *Type { return Bool },
+	"push": func(c *checker, a []*Type) *Type {
+		if len(a) > 0 {
+			return a[0]
+		}
+		return Unknown
+	},
+	"assert":        func(c *checker, a []*Type) *Type { return Unit },
+	"err":           func(c *checker, a []*Type) *Type { return ErrorT },
+	"bytes":         func(c *checker, a []*Type) *Type { return SliceOf(Int) },
+	"char":          func(c *checker, a []*Type) *Type { return String },
+	"jsonParse":     func(c *checker, a []*Type) *Type { return Any },
 	"jsonStringify": func(c *checker, a []*Type) *Type { return String },
-	"isNone":       func(c *checker, a []*Type) *Type { return Bool },
-	"makeChan":     func(c *checker, a []*Type) *Type { return ChanOf(Unknown) },
-	"send":         func(c *checker, a []*Type) *Type { return Unit },
+	"isNone":        func(c *checker, a []*Type) *Type { return Bool },
+	"makeChan":      func(c *checker, a []*Type) *Type { return ChanOf(Unknown) },
+	"send":          func(c *checker, a []*Type) *Type { return Unit },
 	"recv": func(c *checker, a []*Type) *Type {
 		if len(a) == 1 && a[0].Kind == KChan {
 			return ResultOf(a[0].Elem, ErrorT)
@@ -681,10 +692,20 @@ func (c *checker) inferMatch(x *syntax.MatchEx) *Type {
 		c.popScope()
 		if body == nil {
 			body = bt
-		} else if !Equal(body, bt) && IsConcrete(body) && IsConcrete(bt) {
-			c.errf(arm.Line, E3001, "match 臂类型不一致：%s 与 %s", body.String(), bt.String())
-		} else if !IsConcrete(body) {
-			body = bt
+		} else {
+			switch {
+			case Equal(body, bt):
+			case Assignable(bt, body):
+				// 臂体可归入已定类型 → 保持（如 [] 归入 [Ref]）
+			case Assignable(body, bt):
+				body = bt
+			default:
+				if IsConcrete(body) && IsConcrete(bt) {
+					c.errf(arm.Line, E3001, "match 臂类型不一致：%s 与 %s", body.String(), bt.String())
+				} else if !IsConcrete(body) {
+					body = bt
+				}
+			}
 		}
 	}
 	if body == nil {

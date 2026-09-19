@@ -19,21 +19,30 @@ import (
 
 	"lang-go/internal/interp"
 	"lang-go/internal/load"
+	"lang-go/internal/pipeline"
 	"lang-go/internal/syntax"
 )
 
 func transpile(t *testing.T, src string) string {
 	t.Helper()
-	prog, err := syntax.Parse(src)
+	p, err := pipeline.Compile(src)
 	if err != nil {
-		t.Fatalf("解析失败: %v", err)
+		t.Fatalf("前端管线失败: %v", err)
 	}
-	return transpileSrc(t, prog)
+	out, err := Transpile(p)
+	if err != nil {
+		t.Fatalf("转译失败: %v", err)
+	}
+	return out
 }
 
-func transpileSrc(t *testing.T, prog []syntax.Stmt) string {
+func transpileStmts(t *testing.T, prog []syntax.Stmt) string {
 	t.Helper()
-	out, err := Transpile(prog)
+	p, err := pipeline.CompileStmts(prog)
+	if err != nil {
+		t.Fatalf("前端管线失败: %v", err)
+	}
+	out, err := Transpile(p)
 	if err != nil {
 		t.Fatalf("转译失败: %v", err)
 	}
@@ -81,30 +90,34 @@ func goRun(t *testing.T, goSrc string) string {
 	return stdout.String()
 }
 
-func Test转译约束_参数必须注解(t *testing.T) {
-	prog, _ := syntax.Parse("fn f(a) { }")
-	_, err := Transpile(prog)
-	if err == nil || !strings.Contains(err.Error(), "注解") {
-		t.Fatalf("无注解参数应报错，得到: %v", err)
+// 转译约束自 v0.3 起前移至前端管线（semantic E2xxx + types E3xxx/E4xxx，
+// 逐码正反用例见 internal/types/checker_test.go）；此处验证「backend 前拒绝」
+// 这一 gate 本身：管线必须在这些程序进入转译之前失败。
+
+func Test前端约束_参数必须注解(t *testing.T) {
+	_, err := pipeline.Compile("fn f(a) { }")
+	diags := pipeline.Diagnostics(err)
+	if len(diags) == 0 || diags[0].Code != "E3007" {
+		t.Fatalf("无注解参数应报 E3007，得到: %v", err)
 	}
 }
 
-func Test转译约束_问号只能在语句顶层(t *testing.T) {
-	prog, _ := syntax.Parse(`fn f(): Result[int, error] {
+func Test前端约束_问号只能在语句顶层(t *testing.T) {
+	_, err := pipeline.Compile(`fn f(): Result[int, error] {
     return Ok(1)
 }
 fn g(): Result[int, error] {
     return Ok(f()? + 1)
 }
 fn main() { }`)
-	_, err := Transpile(prog)
-	if err == nil || !strings.Contains(err.Error(), "顶层") {
-		t.Fatalf("? 嵌在表达式里应报错，得到: %v", err)
+	diags := pipeline.Diagnostics(err)
+	if len(diags) == 0 || diags[0].Code != "E3005" {
+		t.Fatalf("? 嵌在表达式里应报 E3005，得到: %v", err)
 	}
 }
 
-func Test转译约束_带问号的函数须Result注解(t *testing.T) {
-	prog, _ := syntax.Parse(`fn f(): Result[int, error] {
+func Test前端约束_带问号的函数须Result注解(t *testing.T) {
+	_, err := pipeline.Compile(`fn f(): Result[int, error] {
     return Ok(1)
 }
 fn g() {
@@ -112,14 +125,14 @@ fn g() {
     println(n)
 }
 fn main() { }`)
-	_, err := Transpile(prog)
-	if err == nil || !strings.Contains(err.Error(), "Result") {
-		t.Fatalf("void 函数用 ? 应报错，得到: %v", err)
+	diags := pipeline.Diagnostics(err)
+	if len(diags) == 0 || diags[0].Code != "E3005" {
+		t.Fatalf("void 函数用 ? 应报 E3005，得到: %v", err)
 	}
 }
 
-func Test编译期穷尽检查(t *testing.T) {
-	prog, _ := syntax.Parse(`enum E {
+func Test前端约束_编译期穷尽检查(t *testing.T) {
+	_, err := pipeline.Compile(`enum E {
     A(int)
     B
 }
@@ -129,9 +142,9 @@ fn f(e: E): int {
     }
 }
 fn main() { }`)
-	_, err := Transpile(prog)
-	if err == nil || !strings.Contains(err.Error(), "穷尽") {
-		t.Fatalf("缺 case 应在编译期报错，得到: %v", err)
+	diags := pipeline.Diagnostics(err)
+	if len(diags) == 0 || diags[0].Code != "E4001" {
+		t.Fatalf("缺 case 应报 E4001，得到: %v", err)
 	}
 	// 补上通配臂则通过
 	_ = transpile(t, `enum E {
@@ -163,7 +176,7 @@ func Test等价_M4移植(t *testing.T) {
 		t.Fatalf("解释器运行失败: %v", err)
 	}
 	want := out.String()
-	got := goRun(t, transpileSrc(t, prog))
+	got := goRun(t, transpileStmts(t, prog))
 	if want != got {
 		t.Fatalf("解释器与 →Go 输出不一致\n=== 解释器 ===\n%q\n=== Go 编译执行 ===\n%q", want, got)
 	}
