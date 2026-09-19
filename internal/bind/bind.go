@@ -55,7 +55,7 @@ func Dir(dir string) (string, error) {
 			if !ok || fd.Recv != nil || !fd.Name.IsExported() {
 				continue
 			}
-			sig, skip := goFuncToLing(fd)
+			sig, skip := goFuncToLangGo(fd)
 			if skip != "" {
 				skipped = append(skipped, fmt.Sprintf("%s(%s): %s", fd.Name.Name, paramNames(fd), skip))
 				continue
@@ -68,7 +68,7 @@ func Dir(dir string) (string, error) {
 	}
 
 	var b strings.Builder
-	b.WriteString("// extern \"go\" 声明草案 —— 由 ling bind 生成，签名需人工审核后使用\n")
+	b.WriteString("// extern \"go\" 声明草案 —— 由 langGo bind 生成，签名需人工审核后使用\n")
 	b.WriteString("// 绑定面仅是声明；实现需在 prelude/宿主侧另行提供\n")
 	if len(skipped) > 0 {
 		b.WriteString("// 跳过:\n")
@@ -97,12 +97,12 @@ func paramNames(fd *ast.FuncDecl) string {
 	return strings.Join(names, ", ")
 }
 
-// goFuncToLing 单个导出函数 → ling 声明；skip 非空表示不可绑定及原因
-func goFuncToLing(fd *ast.FuncDecl) (sig, skip string) {
+// goFuncToLangGo 单个导出函数 → langGo 声明；skip 非空表示不可绑定及原因
+func goFuncToLangGo(fd *ast.FuncDecl) (sig, skip string) {
 	var params []string
 	list := fd.Type.Params.List
 	for i, field := range list {
-		typeName, ok := lingType(field.Type)
+		typeName, ok := langGoType(field.Type)
 		if !ok {
 			return "", "参数类型不支持: " + goTypeString(field.Type)
 		}
@@ -126,7 +126,7 @@ func goFuncToLing(fd *ast.FuncDecl) (sig, skip string) {
 	case results == nil || len(results.List) == 0:
 		return fnSig(fd.Name.Name, params, ""), ""
 	case len(results.List) == 1:
-		typeName, ok := lingType(results.List[0].Type)
+		typeName, ok := langGoType(results.List[0].Type)
 		if !ok {
 			return "", "返回类型不支持: " + goTypeString(results.List[0].Type)
 		}
@@ -134,7 +134,7 @@ func goFuncToLing(fd *ast.FuncDecl) (sig, skip string) {
 	case len(results.List) == 2:
 		// (T, error) 惯例 → Result[T, error]
 		if isError(results.List[1].Type) {
-			typeName, ok := lingType(results.List[0].Type)
+			typeName, ok := langGoType(results.List[0].Type)
 			if !ok {
 				return "", "返回类型不支持: " + goTypeString(results.List[0].Type)
 			}
@@ -159,8 +159,8 @@ func isError(t ast.Expr) bool {
 	return ok && id.Name == "error"
 }
 
-// lingType Go 类型表达式 → ling 类型名；ok=false 表示不支持
-func lingType(t ast.Expr) (string, bool) {
+// langGoType Go 类型表达式 → langGo 类型名；ok=false 表示不支持
+func langGoType(t ast.Expr) (string, bool) {
 	switch x := t.(type) {
 	case *ast.Ident:
 		switch x.Name {
@@ -184,7 +184,7 @@ func lingType(t ast.Expr) (string, bool) {
 		}
 		return "", false
 	case *ast.ArrayType:
-		elem, ok := lingType(x.Elt)
+		elem, ok := langGoType(x.Elt)
 		if !ok {
 			return "", false
 		}

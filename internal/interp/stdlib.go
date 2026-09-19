@@ -95,7 +95,7 @@ func jsonParseBuiltin(it *Interp, args []Value) (Value, error) {
 	return jsonToValue(raw, it), nil
 }
 
-// jsonToValue Go 的 JSON 表示 → ling 值；null → None（ling 无 null，decisions #12）
+// jsonToValue Go 的 JSON 表示 → langGo 值；null → None（langGo 无 null，decisions #12）
 func jsonToValue(raw any, it *Interp) Value {
 	switch x := raw.(type) {
 	case nil:
@@ -131,7 +131,7 @@ func jsonToValue(raw any, it *Interp) Value {
 	return UnitVal{}
 }
 
-// valueToJSON ling 值 → 可 json.Marshal 的 Go 值；None → null
+// valueToJSON langGo 值 → 可 json.Marshal 的 Go 值；None → null
 func valueToJSON(v Value) (any, error) {
 	switch x := v.(type) {
 	case UnitVal:

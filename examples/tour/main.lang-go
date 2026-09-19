@@ -1,5 +1,5 @@
-// tour —— ling 语言十分钟入门（可执行教程）
-// 运行：ling run（每节打印标题与演示输出）
+// tour —— lang-go 语言十分钟入门（可执行教程）
+// 运行：lang-go run（每节打印标题与演示输出）
 // 规范见 docs/spec.md；本文只演示 v0.2 已实现的语言面。
 
 // ———— 结构与枚举在模块顶层声明（→Go 转译约束） ————
@@ -46,7 +46,7 @@ fn main() {
     var age = 19
     age += 1
     let pi = 3.14159
-    let name = "ling"
+    let name = "lang-go"
     println("== 1 绑定 ==", born, age, pi, name)
     println("   显式转换:", float(3) / 2.0, int("42") + 1)
 
@@ -124,6 +124,6 @@ fn main() {
     // go 启动后台任务（→Go 真 goroutine + 进程退出前 join；解释器/→JS 在语句处同步执行）；
     // recv 阻塞直到有值：go 生产者 + 主流程 recv 是三路一致的确定性模式（decisions #63）
     var ch = makeChan()
-    go emit(ch, "ling")
+    go emit(ch, "lang-go")
     println("== 10 并发 ==", recv(ch), recv(ch))
 }

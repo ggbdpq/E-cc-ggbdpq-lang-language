@@ -1,6 +1,6 @@
 // hello —— 最小程序：绑定、算术、字符串、内建
 fn main() {
-    let name = "ling"
+    let name = "lang-go"
     println("hello, " + name)
     println("1 + 2 * 3 =", 1 + 2 * 3)
     println("len(你好ab) =", len("你好ab"), " float:", 2.5 * 2.0)

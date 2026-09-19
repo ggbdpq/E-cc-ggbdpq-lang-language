@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	"ling/internal/syntax"
+	"lang-go/internal/syntax"
 )
 
 // sigKind 控制流信号：用 error 通道承载，调用/循环边界捕获
@@ -113,7 +113,7 @@ func (it *Interp) EvalChunk(stmts []syntax.Stmt) (Value, bool, error) {
 	return last, has, nil
 }
 
-// CallByName 调用全局零参函数（ling test 运行器用）
+// CallByName 调用全局零参函数（langGo test 运行器用）
 func (it *Interp) CallByName(name string) error {
 	c, ok := it.Globals.lookup(name)
 	if !ok {

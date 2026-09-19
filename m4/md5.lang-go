@@ -1,6 +1,6 @@
-// md5.ling —— RFC 1321 纯 ling 实现（移植自 linkpull bilibili/md5.go）
+// md5.lang-go —— RFC 1321 纯 lang-go 实现（移植自 linkpull bilibili/md5.go）
 //
-// ling 的 int 是 64 位有符号数，没有 uint32：32 位回绕用「运算后掩码
+// lang-go 的 int 是 64 位有符号数，没有 uint32：32 位回绕用「运算后掩码
 // 4294967295」表达；所有中间值在掩码纪律下保持非负，移位因此等价于
 // 逻辑移位。K 常量表按 RFC 公式（Go 原版 init 现算）由 m4/gofixture
 // 生成后固化于此，十进制书写（v0 暂无十六进制字面量）。

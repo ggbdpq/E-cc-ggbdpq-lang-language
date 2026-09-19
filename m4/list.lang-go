@@ -1,4 +1,4 @@
-// list.ling —— list.go 纯函数层移植（linkpull bilibili）
+// list.lang-go —— list.go 纯函数层移植（linkpull bilibili）
 // probeList 的网络分页循环不在移植范围；此处是清单解析与列表链接决策。
 struct Ref {
     url: string
@@ -23,7 +23,7 @@ fn jsonStr(m: any, key: string): string {
 }
 
 // parseArchives 从列表 API 的 data JSON 提取清单（bvid 为空的跳过）。
-// 与 Go 版的差异：非法 JSON 在 ling 是运行时错误（panic），Go 是返回 Err——
+// 与 Go 版的差异：非法 JSON 在 lang-go 是运行时错误（panic），Go 是返回 Err——
 // 实际输入来自自家 apiGet，畸形响应不可达，记录于 spec §6.3。
 fn parseArchives(s: string): Result[[Ref], error] {
     let v = jsonParse(s)

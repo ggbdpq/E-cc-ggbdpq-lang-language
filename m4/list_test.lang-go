@@ -1,4 +1,4 @@
-// list_test.ling —— fixture 取自 m4/gofixture（list.go 纯函数实测输出）
+// list_test.lang-go —— fixture 取自 m4/gofixture（list.go 纯函数实测输出）
 // 注：match 臂体是表达式，多断言用 && 串联
 fn testParseArchives() {
     let refs = match parseArchives("{\"archives\":[{\"bvid\":\"BV1a\",\"title\":\"第一集\"},{\"bvid\":\"\",\"title\":\"跳过\"},{\"bvid\":\"BV1b\",\"title\":null}]}") {

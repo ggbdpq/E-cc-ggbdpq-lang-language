@@ -1,4 +1,4 @@
-// lang_test.ling —— ling 自测（ling test 运行当前目录 *_test.ling 的 test* 函数）
+// lang_test.lang-go —— lang-go 自测（lang-go test 运行当前目录 *_test.lang-go 的 test* 函数）
 fn test算术与字符串() {
     assert(1 + 2 * 3 == 7, "优先级")
     assert(10 / 3 == 3, "整除")

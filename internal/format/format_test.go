@@ -1,7 +1,7 @@
 package format
 
 // 测试缝：Format 的三个行为契约——
-// 1) 幂等：format(format(x)) == format(x)（全仓 .ling 语料）；
+// 1) 幂等：format(format(x)) == format(x)（全仓 .lang-go 语料）；
 // 2) 语义等价：格式化前后解释器输出逐字节一致（m4 与 examples 实程序）；
 // 3) 注释保留：整行注释在输出中存活。
 
@@ -12,9 +12,9 @@ import (
 	"strings"
 	"testing"
 
-	"ling/internal/interp"
-	"ling/internal/load"
-	"ling/internal/syntax"
+	"lang-go/internal/interp"
+	"lang-go/internal/load"
+	"lang-go/internal/syntax"
 )
 
 func corpusDirs(t *testing.T) []string {
@@ -25,14 +25,14 @@ func corpusDirs(t *testing.T) []string {
 	}
 }
 
-func lingFiles(t *testing.T, root string) []string {
+func langGoFiles(t *testing.T, root string) []string {
 	t.Helper()
 	var out []string
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if !d.IsDir() && strings.HasSuffix(path, ".ling") {
+		if !d.IsDir() && strings.HasSuffix(path, ".lang-go") {
 			out = append(out, path)
 		}
 		return nil
@@ -46,7 +46,7 @@ func lingFiles(t *testing.T, root string) []string {
 func Test格式化幂等(t *testing.T) {
 	n := 0
 	for _, dir := range corpusDirs(t) {
-		for _, f := range lingFiles(t, dir) {
+		for _, f := range langGoFiles(t, dir) {
 			src, err := os.ReadFile(f)
 			if err != nil {
 				t.Fatal(err)
@@ -70,10 +70,10 @@ func Test格式化幂等(t *testing.T) {
 	}
 }
 
-// copyLingDir 把 root 下全部 .ling 按相对路径拷到 dst（保留子目录结构）
-func copyLingDir(t *testing.T, root, dst string) {
+// copyLangGoDir 把 root 下全部 .lang-go 按相对路径拷到 dst（保留子目录结构）
+func copyLangGoDir(t *testing.T, root, dst string) {
 	t.Helper()
-	for _, f := range lingFiles(t, root) {
+	for _, f := range langGoFiles(t, root) {
 		rel, err := filepath.Rel(root, f)
 		if err != nil {
 			t.Fatal(err)
@@ -113,8 +113,8 @@ func Test语义等价_格式化前后(t *testing.T) {
 	for _, dir := range dirs {
 		before := runProgram(t, dir)
 		tmp := t.TempDir()
-		copyLingDir(t, dir, tmp)
-		for _, f := range lingFiles(t, tmp) {
+		copyLangGoDir(t, dir, tmp)
+		for _, f := range langGoFiles(t, tmp) {
 			src, err := os.ReadFile(f)
 			if err != nil {
 				t.Fatal(err)

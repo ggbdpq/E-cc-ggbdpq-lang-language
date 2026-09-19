@@ -1,6 +1,6 @@
 package format
 
-// ling 格式化器：AST 规范重排（4 空格缩进），整行注释按行号挂回最近的后续构造。
+// langGo 格式化器：AST 规范重排（4 空格缩进），整行注释按行号挂回最近的后续构造。
 // 限制（spec §9）：行尾注释与 match 臂内注释会丢失；块尾（最后一条语句之后）
 // 的注释会移出到块的后面——均为注释位置移动，不影响语义。
 
@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"ling/internal/syntax"
+	"lang-go/internal/syntax"
 )
 
 // Format 把源码格式化为规范形态
@@ -441,7 +441,7 @@ func pat(p syntax.Pat) string {
 	return "?"
 }
 
-// quoteStr 按 ling 转义规则输出字符串字面量（仅 \n \t \r \" \\ 五种）
+// quoteStr 按 langGo 转义规则输出字符串字面量（仅 \n \t \r \" \\ 五种）
 func quoteStr(s string) string {
 	var b strings.Builder
 	b.WriteByte('"')

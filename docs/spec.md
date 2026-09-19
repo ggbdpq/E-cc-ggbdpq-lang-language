@@ -1,8 +1,8 @@
-# ling 语言规范 v0（草案）
+# lang-go 语言规范 v0（草案）
 
 状态：**v0 草案，随 M2 解释器实现同步修订**。语法糖按"最小核 + 按需加"策略起草（见 decisions.md 末节），审查时逐条增删。
 
-ling 是一门覆盖前端、后端与日常工具开发的个人语言：源码可转译为 Go（后端/系统侧）与 JS（前端侧），GC 与标准库能力委托给目标平台。本文定义 v0 的词法、语法与语义。
+lang-go 是一门覆盖前端、后端与日常工具开发的个人语言：源码可转译为 Go（后端/系统侧）与 JS（前端侧），GC 与标准库能力委托给目标平台。本文定义 v0 的词法、语法与语义。
 
 ---
 
@@ -16,11 +16,11 @@ ling 是一门覆盖前端、后端与日常工具开发的个人语言：源码
 | 内存 | GC 由宿主承担（→Go 用 Go GC，→JS 用引擎 GC）；struct 值语义，slice/map 引用语义 |
 | 并发 | `go` 语句 + `chan[T]`（v0.2 已交付，decisions #57/#59/#63）；解释器/→JS 为顺序确定的同步子集，→Go 真 goroutine（平台差异见 §6.4） |
 | 元编程 | 无宏、无反射 |
-| 模块 | 目录=包，`ling.toml` 标模块根；v0 解释器单文件运行 |
+| 模块 | 目录=包，`lang-go.toml` 标模块根；v0 解释器单文件运行 |
 
 ## 2. 词法
 
-- 源文件为 UTF-8 文本，扩展名 `.ling`。
+- 源文件为 UTF-8 文本，扩展名 `.lang-go`。
 - 注释：`//` 行注释，无块注释（v0）。
 - 标识符：Unicode 字母或 `_` 开头，后接字母/数字/`_`；单独的 `_` 是通配符记号。
 - 关键字（15 个）：`let var fn return if else while for in match struct enum true false break continue`。
@@ -31,11 +31,11 @@ ling 是一门覆盖前端、后端与日常工具开发的个人语言：源码
 
 ## 3. 语法
 
-程序 = 顶层声明的序列：`fn`、`struct`、`enum`、`let`/`var`（全局值）。入口为无参 `fn main()`；`ling run` 固定运行**当前目录**的 `main.ling`（v0.1 CLI 不收路径参数，见 §5），执行完顶层声明后调用 main，无 main 则按脚本顺序执行。参数与返回值的类型注解均可省略。
+程序 = 顶层声明的序列：`fn`、`struct`、`enum`、`let`/`var`（全局值）。入口为无参 `fn main()`；`lang-go run` 固定运行**当前目录**的 `main.lang-go`（v0.1 CLI 不收路径参数，见 §5），执行完顶层声明后调用 main，无 main 则按脚本顺序执行。参数与返回值的类型注解均可省略。
 
 ### 3.1 声明
 
-```ling
+```lang-go
 fn add(a: int, b: int): int {
     return a + b
 }
@@ -95,7 +95,7 @@ fn (r Rect).area(): float {
 | 8 | 一元 `-` `!` `&` | `&` 仅可作用于变量（取引用）；前缀位置取引用、中缀位置位与，二者不冲突 |
 | 9 | 后缀 `(` `)` `[` `]` `.` `?` | 调用、索引/切片 `a[i:j]`、字段、传播 |
 
-位运算语义与 Go 的 int64 位运算一致（二进制补码）；优先级亦对齐 Go（`<< >> &` 与 `*` 同级，`\| ^` 与 `+` 同级）。无 uint32 类型，32 位回绕算法用「运算后 `& 4294967295` 掩码」表达（见 m4/md5.ling）。
+位运算语义与 Go 的 int64 位运算一致（二进制补码）；优先级亦对齐 Go（`<< >> &` 与 `*` 同级，`\| ^` 与 `+` 同级）。无 uint32 类型，32 位回绕算法用「运算后 `& 4294967295` 掩码」表达（见 m4/md5.lang-go）。
 
 **类型规则（v0 运行时强制）**：`int` 与 `float` **不隐式转换**，混用算术/比较即运行时错误，须显式 `int()`/`float()`。
 
@@ -116,7 +116,7 @@ fn (r Rect).area(): float {
 
 **穷尽性**：被匹配值为 enum 且存在未被任何臂覆盖的 case（且无通配/绑定臂兜底）时，报运行时错误并列出缺失 case。M3 该检查前移至编译期。
 
-```ling
+```lang-go
 let area = match s {
     Circle(r) => 3.14 * r * r
     Rect(w, h) => w * h
@@ -126,7 +126,7 @@ let area = match s {
 
 ### 3.6 代数类型（内建预载）
 
-```ling
+```lang-go
 // 由解释器预载，用户无需声明
 enum Option[T]  { Some(T)  None }
 enum Result[T, E] { Ok(T)  Err(E) }
@@ -160,7 +160,7 @@ struct error { msg: string }
 | `char` | `(int) → string` | 码点转单字符字符串 |
 | `jsonParse` | `(string) → any` | 动态 JSON 值；数字按整/浮分型，null → `None`，对象 → 映射（键排序），数组 → 数组 |
 | `jsonStringify` | `(any) → string` | 标量/数组/映射/None→null；映射键按字母序输出（两端确定） |
-| `isNone` | `(any) → bool` | 判 `None`（JSON null 的 ling 表示） |
+| `isNone` | `(any) → bool` | 判 `None`（JSON null 的 lang-go 表示） |
 | `http.get` | `(url: string, headers: map[string]string) → Result[HttpResp, error]` | 网络错误=Err；任何响应（含 4xx/5xx）=Ok。`HttpResp{status: int, body: string}` 预载 |
 | `makeChan` / `send` / `recv` | `()` / `(ch, v)` / `(ch) → Result[T, error]` | chan 最小面（decisions #59/#63）。`chan[T]` 类型注解（→Go 装箱 `chan any`，T 仅文档）；send 不阻塞（缓冲 1024，满则运行时错）；**recv 阻塞直到有值**——解释器/→JS 的 go 同步执行语义下 recv 时要么有值、要么永远无人 send（死锁程序错误 → Err"channel 空"），→Go 原生阻塞、确无 send 方时 Go runtime panic 兜底 |
 | `assert` | `(cond, msg?)` | 失败即运行时错误，测试用 |
@@ -172,26 +172,26 @@ M2b 起：内建映射到后端宿主（`http`、`json`、`time` 等，见 decis
 
 ## 5. 模块与测试约定
 
-- **模块根** = 放 `ling.toml` 的目录；该文件 v0 仅作标记，无构建配置。
-- **导入**：`import "./x"`（仅同模块相对路径；目标是 `x.ling` 文件或 `x/` 目录）。装载器在合并前递归展开：目录即包 + import 图合并为一个程序；循环导入报错，菱形导入去重，越出模块根目录报错。`ling.toml` 仍免（v0 以 cwd 为模块根）。
-- **CLI（v0.1）**：`ling run` 与 `ling test` 均按**目录即包**装载——当前目录全部非测试 `.ling` 按文件名序合并为一个程序，`ling test` 再把 `*_test.ling` 追加在后并依序执行所有 `test` 前缀无参函数，任一断言失败则退出码 1。CLI 不接收路径参数（安全边界：文件输入无 `..` 穿越面）。普通 `ling run` 不执行 `*_test.ling`。
-- **静态检查**：`ling check` 复用 →JS 转译器的前置检查（match 穷尽、`?` 约束、参数注解、未定义名），产物丢弃（decisions #49）。
+- **模块根** = 放 `lang-go.toml` 的目录；该文件 v0 仅作标记，无构建配置。
+- **导入**：`import "./x"`（仅同模块相对路径；目标是 `x.lang-go` 文件或 `x/` 目录）。装载器在合并前递归展开：目录即包 + import 图合并为一个程序；循环导入报错，菱形导入去重，越出模块根目录报错。`lang-go.toml` 仍免（v0 以 cwd 为模块根）。
+- **CLI（v0.1）**：`lang-go run` 与 `lang-go test` 均按**目录即包**装载——当前目录全部非测试 `.lang-go` 按文件名序合并为一个程序，`lang-go test` 再把 `*_test.lang-go` 追加在后并依序执行所有 `test` 前缀无参函数，任一断言失败则退出码 1。CLI 不接收路径参数（安全边界：文件输入无 `..` 穿越面）。普通 `lang-go run` 不执行 `*_test.lang-go`。
+- **静态检查**：`lang-go check` 复用 →JS 转译器的前置检查（match 穷尽、`?` 约束、参数注解、未定义名），产物丢弃（decisions #49）。
 
 ## 6. 平台差异与 →Go 映射（M3 起生效）
 
 ### 6.1 →Go 后端映射表
 
-| ling 概念 | Go 产物 |
+| lang-go 概念 | Go 产物 |
 |-----------|---------|
-| `int` / `float` | `int64` / `float64`（不隐式转换，与 ling 一致） |
-| struct | 原生 Go struct（值语义白拿）+ `lingString` 方法供 println 格式化 |
+| `int` / `float` | `int64` / `float64`（不隐式转换，与 lang-go 一致） |
+| struct | 原生 Go struct（值语义白拿）+ `langGoString` 方法供 println 格式化 |
 | 方法 | 原生 Go 方法（值接收者） |
-| 用户 enum | `LingEnum{Tag string, Vals []any}`（载荷装箱），构造器 `le_<enum>_<case>` |
-| `Option[T]` / `Result[T, error]` | 泛型 `LingOpt[T]` / `LingRes[T]`（第二参数仅支持 error） |
-| 数组 `[T]` | `*LingArr[T]`（引用语义、push 原位可见，Go append 语义不满足故包一层） |
-| 映射 `map[K]V` | `*LingMap`（插入序保持，镜像解释器语义） |
+| 用户 enum | `LangGoEnum{Tag string, Vals []any}`（载荷装箱），构造器 `le_<enum>_<case>` |
+| `Option[T]` / `Result[T, error]` | 泛型 `LangGoOpt[T]` / `LangGoRes[T]`（第二参数仅支持 error） |
+| 数组 `[T]` | `*LangGoArr[T]`（引用语义、push 原位可见，Go append 语义不满足故包一层） |
+| 映射 `map[K]V` | `*LangGoMap`（插入序保持，镜像解释器语义） |
 | 闭包 / 函数值 | 原生 Go 闭包 / `func` 值 |
-| `?` 传播 | `if !r.ok { return LingResErr[T](r.e) }`（编译期展开） |
+| `?` 传播 | `if !r.ok { return LangGoResErr[T](r.e) }`（编译期展开） |
 | match（表达式位置） | 立即调用的函数字面量 |
 | 用户名 | 函数加 `lf_` 前缀、enum 构造器加 `le_` 前缀，防撞 Go 关键字与运行时名 |
 
@@ -205,17 +205,17 @@ M2b 起：内建映射到后端宿主（`http`、`json`、`time` 等，见 decis
 
 ### 6.3 →JS 后端映射（v0.2 起生效）
 
-| ling 概念 | JS 产物 |
+| lang-go 概念 | JS 产物 |
 |-----------|---------|
 | `int` | **BigInt**（64 位语义精确，位运算/掩码惯用法与解释器一致——JS 原生位运算是 32 位，不能用 number） |
 | `float` | number |
 | 数组 / 映射 | Array / Map（保插入序，语义契合） |
-| struct | plain object（带 `__lingStruct` 名）；赋值/传参/返回处 `lingCopy` 值拷贝（数组/映射共享） |
-| enum / Option / Result / error | 带标记属性的对象（`__lingEnum` 等） |
+| struct | plain object（带 `__langGoStruct` 名）；赋值/传参/返回处 `langGoCopy` 值拷贝（数组/映射共享） |
+| enum / Option / Result / error | 带标记属性的对象（`__langGoEnum` 等） |
 | `&x` 取引用 | 直接生成 `x`（JS 对象赋值即共享，语义天然对齐） |
 | 方法调用 | `lf_<Struct>_<name>(obj, ...)`（方法名须全局唯一） |
 | async | 全部函数生成 async（http 委托是异步；同步调用 await 无害） |
-| `==` / 排序 | `lingEq` / 原生比较（`==` 不能用 JS 原生——BigInt 与 number 不等价） |
+| `==` / 排序 | `langGoEq` / 原生比较（`==` 不能用 JS 原生——BigInt 与 number 不等价） |
 
 验收方式同 →Go：解释器输出 vs Node 执行产物输出逐字节一致（examples 五程序 + m4 全家桶对齐 gofixture）。
 
@@ -232,21 +232,21 @@ M2b 起：内建映射到后端宿主（`http`、`json`、`time` 等，见 decis
 
 ### 6.5 验收方式
 
-两个后端的判据同为**输出等价**：同一 ling 程序，解释器执行与转译产物执行（Go 编译 / Node）的 stdout 逐字节一致（`internal/gen` 与 `internal/genjs` 的 E2E 测试机械化此判定，覆盖 examples 全部程序与 m4 移植全家桶）。
+两个后端的判据同为**输出等价**：同一 lang-go 程序，解释器执行与转译产物执行（Go 编译 / Node）的 stdout 逐字节一致（`internal/gen` 与 `internal/genjs` 的 E2E 测试机械化此判定，覆盖 examples 全部程序与 m4 移植全家桶）。
 
 ## 7. 明确不做（v1）
 
 null、异常、宏、继承、隐式数值转换、包管理器、LSP、调试器、LLVM、指针算术、.d.ts 自动摄入。
 
-## 8. 工具：ling fmt（v0.2）
+## 8. 工具：lang-go fmt（v0.2）
 
-`ling fmt` 就地格式化当前目录全部 `.ling`（不递归），打印改动的文件名。规则：4 空格缩进、运算符两侧空格、match 臂缩进一级、`else if` 链扁平化、整行注释保留并按缩进对齐、浮点字面量保持小数点（`1.0` 不塌缩为 `1`）。两个硬契约由测试锁定：**幂等**（连跑两次结果一致，语料为仓内全部 .ling）与**语义等价**（格式化前后解释器输出逐字节一致）。限制：行尾注释与 match 臂内注释不保留（注释位置移动，不影响语义）。
+`lang-go fmt` 就地格式化当前目录全部 `.lang-go`（不递归），打印改动的文件名。规则：4 空格缩进、运算符两侧空格、match 臂缩进一级、`else if` 链扁平化、整行注释保留并按缩进对齐、浮点字面量保持小数点（`1.0` 不塌缩为 `1`）。两个硬契约由测试锁定：**幂等**（连跑两次结果一致，语料为仓内全部 .lang-go）与**语义等价**（格式化前后解释器输出逐字节一致）。限制：行尾注释与 match 臂内注释不保留（注释位置移动，不影响语义）。
 
 错误信息约定：解析/词法错误附出错行摘录（`  | 源码行`）；EOF 处报错的行号为输入末尾之后，摘录回退到最后非空行。
 
 ## 9. 里程碑
 
 - **M1** 本规范 + 决策台账（已完成）
-- **M2** Go 实现：词法器、解析器、树遍历解释器、REPL、`ling run`/`ling test`（本轮交付）
+- **M2** Go 实现：词法器、解析器、树遍历解释器、REPL、`lang-go run`/`lang-go test`（本轮交付）
 - **M3** →Go、→JS 双转译后端 + 静态类型检查器 + import
 - **M4** 移植 linkpull bilibili 提取器核心（`video/wbi/md5/list`），测试全绿即验收

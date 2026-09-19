@@ -1,4 +1,4 @@
-// m4/main.ling —— M4 移植自检输出：与 m4/gofixture 的输出逐行对照
+// m4/main.lang-go —— M4 移植自检输出：与 m4/gofixture 的输出逐行对照
 // （gofixture 多打印一段 K 常量表，从第一个 MD5| 行起应逐字节一致）
 fn main() {
     let vectors = ["", "a", "abc", "message digest", "abcdefghijklmnopqrstuvwxyz", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", "12345678901234567890123456789012345678901234567890123456789012345678901234567890"]

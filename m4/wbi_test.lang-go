@@ -1,4 +1,4 @@
-// wbi_test.ling —— fixture 取自 m4/gofixture（linkpull 原版实现的实测输出）
+// wbi_test.lang-go —— fixture 取自 m4/gofixture（linkpull 原版实现的实测输出）
 fn testKeyOf() {
     // 原版 quirk 保真：TrimSuffix 只去末尾一个点，.png 结尾会带扩展名返回
     assert(keyOf("https://i0.hdslb.com/bfs/wbi/721eadf611e6e185ab5be6a99a29af84.png") == "721eadf611e6e185ab5be6a99a29af84.png", "保留扩展名（bug-for-bug）")

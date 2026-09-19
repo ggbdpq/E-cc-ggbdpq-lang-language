@@ -1,6 +1,6 @@
 package genjs
 
-// 测试缝（与 →Go 后端同一判据）：同一 ling 程序，解释器输出与
+// 测试缝（与 →Go 后端同一判据）：同一 langGo 程序，解释器输出与
 // Node 执行 →JS 产物的 stdout 逐字节一致。
 // 命令参数全部为字面量，被测代码隔离在 t.TempDir() 中。
 
@@ -12,9 +12,9 @@ import (
 	"strings"
 	"testing"
 
-	"ling/internal/interp"
-	"ling/internal/load"
-	"ling/internal/syntax"
+	"lang-go/internal/interp"
+	"lang-go/internal/load"
+	"lang-go/internal/syntax"
 )
 
 func transpileJS(t *testing.T, prog []syntax.Stmt) string {
@@ -168,7 +168,7 @@ func Test等价JS_M4移植(t *testing.T) {
 	fixture := strings.TrimRight(joinLines(fixtureLines), "\n")
 	got = strings.TrimRight(got, "\n")
 	if got != fixture {
-		t.Fatalf("与 Go 原版 fixture 不一致\n=== gofixture ===\n%q\n=== ling（→JS）===\n%q", fixture, got)
+		t.Fatalf("与 Go 原版 fixture 不一致\n=== gofixture ===\n%q\n=== langGo（→JS）===\n%q", fixture, got)
 	}
 }
 

@@ -1,7 +1,7 @@
 package bind
 
 // 测试缝：Dir 的两层契约——
-// 1) 签名映射：Go 导出函数 → ling extern 声明（类型映射 + 跳过规则）；
+// 1) 签名映射：Go 导出函数 → langGo extern 声明（类型映射 + 跳过规则）；
 // 2) 产物合法性：草案可被 syntax.Parse 解析、可被 →Go 转译器接受。
 
 import (
@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"ling/internal/gen"
-	"ling/internal/syntax"
+	"lang-go/internal/gen"
+	"lang-go/internal/syntax"
 )
 
 func writePkg(t *testing.T, dir string, files map[string]string) {

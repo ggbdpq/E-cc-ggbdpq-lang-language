@@ -1,7 +1,7 @@
 package gen
 
-// prelude 内联进每个转译产物：ling 语义的 Go 运行时镜像。
-// 格式化（lingFmt 族）必须与解释器 value.go 的 fmtVal 逐字节一致——等价测试依赖它。
+// prelude 内联进每个转译产物：langGo 语义的 Go 运行时镜像。
+// 格式化（langGoFmt 族）必须与解释器 value.go 的 fmtVal 逐字节一致——等价测试依赖它。
 const prelude = `package main
 
 import (
@@ -19,85 +19,85 @@ import (
 
 // ———— 值表示 ————
 
-type lingUnit struct{}
+type langGoUnit struct{}
 
-// LingStringer：所有复合值实现它，lingFmt 据此统一格式化
-type lingStringer interface {
-	lingString(top bool) string
+// LangGoStringer：所有复合值实现它，langGoFmt 据此统一格式化
+type langGoStringer interface {
+	langGoString(top bool) string
 }
 
-// LingErr 对应 ling 的 struct error { msg: string }
-type LingErr struct{ Msg string }
+// LangGoErr 对应 langGo 的 struct error { msg: string }
+type LangGoErr struct{ Msg string }
 
-func (e *LingErr) Error() string            { return e.Msg }
-func (e *LingErr) lingString(top bool) string {
+func (e *LangGoErr) Error() string            { return e.Msg }
+func (e *LangGoErr) langGoString(top bool) string {
 	return "error{msg: " + strconv.Quote(e.Msg) + "}"
 }
 
-// LingEnum 对应一切用户 enum：case 名 + 装箱载荷
-type LingEnum struct {
+// LangGoEnum 对应一切用户 enum：case 名 + 装箱载荷
+type LangGoEnum struct {
 	Tag  string
 	Vals []any
 }
 
-func (e LingEnum) lingString(top bool) string {
+func (e LangGoEnum) langGoString(top bool) string {
 	if len(e.Vals) == 0 {
 		return e.Tag
 	}
 	parts := make([]string, len(e.Vals))
 	for i, v := range e.Vals {
-		parts[i] = lingFmt(v, false)
+		parts[i] = langGoFmt(v, false)
 	}
 	return e.Tag + "(" + strings.Join(parts, ", ") + ")"
 }
 
-// LingOpt 对应 Option[T]
-type LingOpt[T any] struct {
+// LangGoOpt 对应 Option[T]
+type LangGoOpt[T any] struct {
 	has bool
 	v   T
 }
 
-func (o LingOpt[T]) lingString(top bool) string {
+func (o LangGoOpt[T]) langGoString(top bool) string {
 	if o.has {
-		return "Some(" + lingFmt(o.v, false) + ")"
+		return "Some(" + langGoFmt(o.v, false) + ")"
 	}
 	return "None"
 }
 
-func LingSome[T any](v T) LingOpt[T] { return LingOpt[T]{has: true, v: v} }
-func LingNone[T any]() LingOpt[T]    { return LingOpt[T]{} }
+func LangGoSome[T any](v T) LangGoOpt[T] { return LangGoOpt[T]{has: true, v: v} }
+func LangGoNone[T any]() LangGoOpt[T]    { return LangGoOpt[T]{} }
 
-// lingNone 供 JSON 序列化识别 None（接口分派，规避泛型进 type switch）
-func (o LingOpt[T]) lingNone() bool { return !o.has }
+// langGoNone 供 JSON 序列化识别 None（接口分派，规避泛型进 type switch）
+func (o LangGoOpt[T]) langGoNone() bool { return !o.has }
 
-// LingRes 对应 Result[T, error]
-type LingRes[T any] struct {
+// LangGoRes 对应 Result[T, error]
+type LangGoRes[T any] struct {
 	ok bool
 	v  T
 	e  error
 }
 
-func (r LingRes[T]) lingString(top bool) string {
+func (r LangGoRes[T]) langGoString(top bool) string {
 	if r.ok {
-		return "Ok(" + lingFmt(r.v, false) + ")"
+		return "Ok(" + langGoFmt(r.v, false) + ")"
 	}
-	return "Err(" + lingFmt(r.e, false) + ")"
+	return "Err(" + langGoFmt(r.e, false) + ")"
 }
 
-func LingOk[T any](v T) LingRes[T]        { return LingRes[T]{ok: true, v: v} }
-func LingResErr[T any](e error) LingRes[T] { return LingRes[T]{e: e} }
+func LangGoOk[T any](v T) LangGoRes[T]        { return LangGoRes[T]{ok: true, v: v} }
+func LangGoResErr[T any](e error) LangGoRes[T] { return LangGoRes[T]{e: e} }
 
-// LingArr 对应 ling 数组：引用语义，push 原位可见
-type LingArr[T any] struct{ Items []T }
+// LangGoArr 对应 langGo 数组：引用语义，push 原位可见
+type LangGoArr[T any] struct{ Items []T }
 
-func (a *LingArr[T]) Push(vs ...T) { a.Items = append(a.Items, vs...) }
+func (a *LangGoArr[T]) Push(vs ...T) { a.Items = append(a.Items, vs...) }
 
-// LingLen/LingGet 让 lingLen/lingIndex 能经接口分派到任意元素类型的实例
-func (a *LingArr[T]) LingLen() int64 { return int64(len(a.Items)) }
+// LangGoLen/LangGoGet 让 langGoLen/langGoIndex 能经接口分派到任意元素类型的实例
+func (a *LangGoArr[T]) LangGoLen() int64 { return int64(len(a.Items)) }
 
-func (a *LingArr[T]) LingGet(i int64) any { return a.Items[i] }
+func (a *LangGoArr[T]) LangGoGet(i int64) any { return a.Items[i] }
 
-func (a *LingArr[T]) lingItems() []any {
+func (a *LangGoArr[T]) langGoItems() []any {
 	out := make([]any, len(a.Items))
 	for i, v := range a.Items {
 		out[i] = v
@@ -105,37 +105,37 @@ func (a *LingArr[T]) lingItems() []any {
 	return out
 }
 
-func (a *LingArr[T]) lingAppendItems(items []any) {
+func (a *LangGoArr[T]) langGoAppendItems(items []any) {
 	for _, it := range items {
 		a.Items = append(a.Items, it.(T))
 	}
 }
 
-func (a *LingArr[T]) lingString(top bool) string {
+func (a *LangGoArr[T]) langGoString(top bool) string {
 	parts := make([]string, len(a.Items))
 	for i, v := range a.Items {
-		parts[i] = lingFmt(v, false)
+		parts[i] = langGoFmt(v, false)
 	}
 	return "[" + strings.Join(parts, ", ") + "]"
 }
 
-// LingMap 对应 ling 映射：插入序保持
-type lingKV struct{ K, V any }
+// LangGoMap 对应 langGo 映射：插入序保持
+type langGoKV struct{ K, V any }
 
-type LingMap struct {
+type LangGoMap struct {
 	keys []any
 	m    map[string]any
 }
 
-func lingNewMap(kvs ...lingKV) *LingMap {
-	m := &LingMap{m: map[string]any{}}
+func langGoNewMap(kvs ...langGoKV) *LangGoMap {
+	m := &LangGoMap{m: map[string]any{}}
 	for _, kv := range kvs {
 		m.Set(kv.K, kv.V)
 	}
 	return m
 }
 
-func lingKeyString(k any) (string, bool) {
+func langGoKeyString(k any) (string, bool) {
 	switch x := k.(type) {
 	case int64:
 		return fmt.Sprintf("i:%d", x), true
@@ -147,8 +147,8 @@ func lingKeyString(k any) (string, bool) {
 	return "", false
 }
 
-func (m *LingMap) Set(k, v any) {
-	ks, ok := lingKeyString(k)
+func (m *LangGoMap) Set(k, v any) {
+	ks, ok := langGoKeyString(k)
 	if !ok {
 		panic("映射键须为 int/string/bool")
 	}
@@ -158,32 +158,32 @@ func (m *LingMap) Set(k, v any) {
 	m.m[ks] = v
 }
 
-func (m *LingMap) Keys() []any { return append([]any(nil), m.keys...) }
-func (m *LingMap) Len() int    { return len(m.keys) }
+func (m *LangGoMap) Keys() []any { return append([]any(nil), m.keys...) }
+func (m *LangGoMap) Len() int    { return len(m.keys) }
 
-func (m *LingMap) lingString(top bool) string {
+func (m *LangGoMap) langGoString(top bool) string {
 	parts := make([]string, 0, len(m.keys))
 	for _, k := range m.keys {
-		ks, _ := lingKeyString(k)
-		parts = append(parts, lingFmt(k, false)+": "+lingFmt(m.m[ks], false))
+		ks, _ := langGoKeyString(k)
+		parts = append(parts, langGoFmt(k, false)+": "+langGoFmt(m.m[ks], false))
 	}
 	return "{" + strings.Join(parts, ", ") + "}"
 }
 
-// lingRange 对应区间 lo..hi（半开）
-type lingRange struct{ Lo, Hi int64 }
+// langGoRange 对应区间 lo..hi（半开）
+type langGoRange struct{ Lo, Hi int64 }
 
-func (r lingRange) lingString(top bool) string {
+func (r langGoRange) langGoString(top bool) string {
 	return strconv.FormatInt(r.Lo, 10) + ".." + strconv.FormatInt(r.Hi, 10)
 }
 
 // ———— 格式化（镜像解释器 fmtVal）———
 
-func lingFmt(v any, top bool) string {
+func langGoFmt(v any, top bool) string {
 	switch x := v.(type) {
 	case nil:
 		return "()"
-	case lingUnit:
+	case langGoUnit:
 		return "()"
 	case int64:
 		return strconv.FormatInt(x, 10)
@@ -197,48 +197,48 @@ func lingFmt(v any, top bool) string {
 		}
 		return strconv.Quote(x)
 	}
-	if s, ok := v.(lingStringer); ok {
-		return s.lingString(top)
+	if s, ok := v.(langGoStringer); ok {
+		return s.langGoString(top)
 	}
 	return "?"
 }
 
-func lingFmtArgs(args []any) string {
+func langGoFmtArgs(args []any) string {
 	parts := make([]string, len(args))
 	for i, a := range args {
-		parts[i] = lingFmt(a, true)
+		parts[i] = langGoFmt(a, true)
 	}
 	return strings.Join(parts, " ")
 }
 
-func lingPrintln(args ...any) { fmt.Println(lingFmtArgs(args)) }
-func lingPrint(args ...any)   { fmt.Print(lingFmtArgs(args)) }
+func langGoPrintln(args ...any) { fmt.Println(langGoFmtArgs(args)) }
+func langGoPrint(args ...any)   { fmt.Print(langGoFmtArgs(args)) }
 
 // ———— 内建函数 ————
 
-func lingLen(v any) int64 {
+func langGoLen(v any) int64 {
 	switch x := v.(type) {
 	case string:
 		return int64(len([]rune(x)))
-	case *LingMap:
+	case *LangGoMap:
 		return int64(x.Len())
-	case lingRange:
+	case langGoRange:
 		if x.Hi > x.Lo {
 			return x.Hi - x.Lo
 		}
 		return 0
 	}
 	if arr, ok := v.(interface {
-		LingLen() int64
+		LangGoLen() int64
 	}); ok {
-		return arr.LingLen()
+		return arr.LangGoLen()
 	}
 	panic("len 不支持该类型")
 }
 
-func lingStr(v any) string { return lingFmt(v, true) }
+func langGoStr(v any) string { return langGoFmt(v, true) }
 
-func lingInt(v any) int64 {
+func langGoInt(v any) int64 {
 	switch x := v.(type) {
 	case int64:
 		return x
@@ -254,7 +254,7 @@ func lingInt(v any) int64 {
 	panic("int() 不支持该类型")
 }
 
-func lingFloat(v any) float64 {
+func langGoFloat(v any) float64 {
 	switch x := v.(type) {
 	case int64:
 		return float64(x)
@@ -270,28 +270,28 @@ func lingFloat(v any) float64 {
 	panic("float() 不支持该类型")
 }
 
-func lingKeys(v any) *LingArr[any] {
-	if m, ok := v.(*LingMap); ok {
-		return &LingArr[any]{Items: m.Keys()}
+func langGoKeys(v any) *LangGoArr[any] {
+	if m, ok := v.(*LangGoMap); ok {
+		return &LangGoArr[any]{Items: m.Keys()}
 	}
 	panic("keys 需要映射")
 }
 
-func lingValues(v any) *LingArr[any] {
-	if m, ok := v.(*LingMap); ok {
+func langGoValues(v any) *LangGoArr[any] {
+	if m, ok := v.(*LangGoMap); ok {
 		vs := make([]any, 0, len(m.keys))
 		for _, k := range m.keys {
-			ks, _ := lingKeyString(k)
+			ks, _ := langGoKeyString(k)
 			vs = append(vs, m.m[ks])
 		}
-		return &LingArr[any]{Items: vs}
+		return &LangGoArr[any]{Items: vs}
 	}
 	panic("values 需要映射")
 }
 
-func lingHas(v, k any) bool {
-	if m, ok := v.(*LingMap); ok {
-		ks, ok := lingKeyString(k)
+func langGoHas(v, k any) bool {
+	if m, ok := v.(*LangGoMap); ok {
+		ks, ok := langGoKeyString(k)
 		if !ok {
 			return false
 		}
@@ -301,34 +301,34 @@ func lingHas(v, k any) bool {
 	panic("has 需要映射")
 }
 
-func lingPush(v any, vs ...any) {
-	a, ok := v.(*LingArr[any])
+func langGoPush(v any, vs ...any) {
+	a, ok := v.(*LangGoArr[any])
 	if !ok {
 		panic("push 需要数组")
 	}
 	a.Items = append(a.Items, vs...)
 }
 
-func lingAssert(cond bool, msg ...any) {
+func langGoAssert(cond bool, msg ...any) {
 	if !cond {
 		if len(msg) > 0 {
-			panic("assert 失败: " + lingFmt(msg[0], true))
+			panic("assert 失败: " + langGoFmt(msg[0], true))
 		}
 		panic("assert 失败")
 	}
 }
 
-func lingErr(msg string) error { return &LingErr{Msg: msg} }
+func langGoErr(msg string) error { return &LangGoErr{Msg: msg} }
 
-func lingErrMsg(e error) string {
-	if le, ok := e.(*LingErr); ok {
+func langGoErrMsg(e error) string {
+	if le, ok := e.(*LangGoErr); ok {
 		return le.Msg
 	}
 	return e.Error()
 }
 
-// lingBytes 字符串的 UTF-8 字节序列（MD5/URL 编码用）
-func lingBytes(v any) *LingArr[any] {
+// langGoBytes 字符串的 UTF-8 字节序列（MD5/URL 编码用）
+func langGoBytes(v any) *LangGoArr[any] {
 	s, ok := v.(string)
 	if !ok {
 		panic("bytes 需要字符串")
@@ -338,11 +338,11 @@ func lingBytes(v any) *LingArr[any] {
 	for i, b := range bs {
 		items[i] = int64(b)
 	}
-	return &LingArr[any]{Items: items}
+	return &LangGoArr[any]{Items: items}
 }
 
-// lingPushFrom 数组 += ：把 another 的元素原位追加（引用语义，别名可见）
-func lingPushFrom[T, U any](arr *LingArr[T], another *LingArr[U]) *LingArr[T] {
+// langGoPushFrom 数组 += ：把 another 的元素原位追加（引用语义，别名可见）
+func langGoPushFrom[T, U any](arr *LangGoArr[T], another *LangGoArr[U]) *LangGoArr[T] {
 	for _, it := range another.Items {
 		var box any = it
 		a, ok := box.(T)
@@ -354,36 +354,36 @@ func lingPushFrom[T, U any](arr *LingArr[T], another *LingArr[U]) *LingArr[T] {
 	return arr
 }
 
-func lingPushFromAny(arr, another any) any {
-	if src, ok := another.(interface{ lingItems() []any }); ok {
-		if dst, ok := arr.(interface{ lingAppendItems([]any) }); ok {
-			dst.lingAppendItems(src.lingItems())
+func langGoPushFromAny(arr, another any) any {
+	if src, ok := another.(interface{ langGoItems() []any }); ok {
+		if dst, ok := arr.(interface{ langGoAppendItems([]any) }); ok {
+			dst.langGoAppendItems(src.langGoItems())
 			return arr
 		}
 	}
 	panic("数组 += 需要数组")
 }
 
-// lingAddIndex 映射复合赋值：读旧值按运算符改写
-func lingAddIndex(obj, idx, v any, op string) {
-	m, ok := obj.(*LingMap)
+// langGoAddIndex 映射复合赋值：读旧值按运算符改写
+func langGoAddIndex(obj, idx, v any, op string) {
+	m, ok := obj.(*LangGoMap)
 	if !ok {
 		panic("映射复合赋值需要映射")
 	}
-	ks, _ := lingKeyString(idx)
+	ks, _ := langGoKeyString(idx)
 	old := m.m[ks]
 	var nv any
 	switch op {
 	case "+=":
-		nv = lingAdd(old, v)
+		nv = langGoAdd(old, v)
 	default:
 		panic("映射仅支持 +=")
 	}
 	m.Set(idx, nv)
 }
 
-// lingAdd 数值加法（Map 复合赋值用；int64/float64/string）
-func lingAdd(a, b any) any {
+// langGoAdd 数值加法（Map 复合赋值用；int64/float64/string）
+func langGoAdd(a, b any) any {
 	switch x := a.(type) {
 	case int64:
 		if y, ok := b.(int64); ok {
@@ -403,9 +403,9 @@ func lingAdd(a, b any) any {
 
 // —— 并发：chan（阻塞 recv 语义：recv 等待直到有值；send 不阻塞、缓冲上限 1024） ————
 
-func lingNewChan() chan any { return make(chan any, 1024) }
+func langGoNewChan() chan any { return make(chan any, 1024) }
 
-func lingSend(ch chan any, v any) {
+func langGoSend(ch chan any, v any) {
 	select {
 	case ch <- v:
 	default:
@@ -413,28 +413,28 @@ func lingSend(ch chan any, v any) {
 	}
 }
 
-// lingRecv 阻塞直到有值（decisions #63）；无人 send 的死锁程序由 Go runtime panic 兜底
-func lingRecv(ch chan any) LingRes[any] {
+// langGoRecv 阻塞直到有值（decisions #63）；无人 send 的死锁程序由 Go runtime panic 兜底
+func langGoRecv(ch chan any) LangGoRes[any] {
 	v := <-ch
-	return LingOk[any](v)
+	return LangGoOk[any](v)
 }
 
 // —— 并发：go 语句 ——
 
-var lingWG sync.WaitGroup
+var langGoWG sync.WaitGroup
 
-func lingGo(f func()) {
-	lingWG.Add(1)
+func langGoGo(f func()) {
+	langGoWG.Add(1)
 	go func() {
-		defer lingWG.Done()
+		defer langGoWG.Done()
 		f()
 	}()
 }
 
-func lingWaitAll() { lingWG.Wait() }
+func langGoWaitAll() { langGoWG.Wait() }
 
-// lingChar 码点转单字符字符串
-func lingChar(v any) string {
+// langGoChar 码点转单字符字符串
+func langGoChar(v any) string {
 	n, ok := v.(int64)
 	if !ok {
 		panic("char 需要 int")
@@ -442,22 +442,22 @@ func lingChar(v any) string {
 	return string(rune(n))
 }
 
-// lingStrVal + 号任一侧为 any 时收窄为字符串（非字符串即运行时错误，镜像解释器）
-func lingStrVal(v any) string {
+// langGoStrVal + 号任一侧为 any 时收窄为字符串（非字符串即运行时错误，镜像解释器）
+func langGoStrVal(v any) string {
 	s, ok := v.(string)
 	if !ok {
-		panic("+ 需要字符串，得到 " + lingTypeName(v))
+		panic("+ 需要字符串，得到 " + langGoTypeName(v))
 	}
 	return s
 }
 
-// lingCompare 大小比较（任一侧为 any 时仍可运行时分派；镜像解释器 compare）
-func lingCompare(a, b any) int64 {
+// langGoCompare 大小比较（任一侧为 any 时仍可运行时分派；镜像解释器 compare）
+func langGoCompare(a, b any) int64 {
 	switch x := a.(type) {
 	case int64:
 		y, ok := b.(int64)
 		if !ok {
-			panic(lingTypeName(a) + " 与 " + lingTypeName(b) + " 不可比较大小")
+			panic(langGoTypeName(a) + " 与 " + langGoTypeName(b) + " 不可比较大小")
 		}
 		switch {
 		case x < y:
@@ -469,7 +469,7 @@ func lingCompare(a, b any) int64 {
 	case float64:
 		y, ok := b.(float64)
 		if !ok {
-			panic(lingTypeName(a) + " 与 " + lingTypeName(b) + " 不可比较大小")
+			panic(langGoTypeName(a) + " 与 " + langGoTypeName(b) + " 不可比较大小")
 		}
 		switch {
 		case x < y:
@@ -481,17 +481,17 @@ func lingCompare(a, b any) int64 {
 	case string:
 		y, ok := b.(string)
 		if !ok {
-			panic(lingTypeName(a) + " 与 " + lingTypeName(b) + " 不可比较大小")
+			panic(langGoTypeName(a) + " 与 " + langGoTypeName(b) + " 不可比较大小")
 		}
 		return int64(strings.Compare(x, y))
 	}
-	panic(lingTypeName(a) + " 与 " + lingTypeName(b) + " 不可比较大小")
+	panic(langGoTypeName(a) + " 与 " + langGoTypeName(b) + " 不可比较大小")
 }
 
 // ———— 运算与索引 ————
 
-// lingEq 镜像解释器 equals：标量同型、enum 同 case 递归；容器不可比
-func lingEq(a, b any) bool {
+// langGoEq 镜像解释器 equals：标量同型、enum 同 case 递归；容器不可比
+func langGoEq(a, b any) bool {
 	switch x := a.(type) {
 	case int64:
 		y, ok := b.(int64)
@@ -505,25 +505,25 @@ func lingEq(a, b any) bool {
 	case string:
 		y, ok := b.(string)
 		return ok && x == y
-	case LingEnum:
-		y, ok := b.(LingEnum)
+	case LangGoEnum:
+		y, ok := b.(LangGoEnum)
 		if !ok || y.Tag != x.Tag || len(y.Vals) != len(x.Vals) {
 			return false
 		}
 		for i := range x.Vals {
-			if !lingEq(x.Vals[i], y.Vals[i]) {
+			if !langGoEq(x.Vals[i], y.Vals[i]) {
 				return false
 			}
 		}
 		return true
 	}
-	if eq, ok := a.(interface{ lingEqTo(any) bool }); ok {
-		return eq.lingEqTo(b)
+	if eq, ok := a.(interface{ langGoEqTo(any) bool }); ok {
+		return eq.langGoEqTo(b)
 	}
-	panic(lingTypeName(a) + " 不可用 == 比较")
+	panic(langGoTypeName(a) + " 不可用 == 比较")
 }
 
-func lingTypeName(v any) string {
+func langGoTypeName(v any) string {
 	switch v.(type) {
 	case int64:
 		return "int"
@@ -533,44 +533,44 @@ func lingTypeName(v any) string {
 		return "bool"
 	case string:
 		return "string"
-	case *LingArr[any]:
+	case *LangGoArr[any]:
 		return "数组"
-	case *LingMap:
+	case *LangGoMap:
 		return "映射"
-	case lingRange:
+	case langGoRange:
 		return "区间"
-	case LingEnum:
+	case LangGoEnum:
 		return "enum"
-	case *LingErr:
+	case *LangGoErr:
 		return "error"
 	}
 	return "未知值"
 }
 
-// LingOpt/LingRes 的相等：泛型类型无法进 type switch，走方法
-func (o LingOpt[T]) lingEqTo(other any) bool {
-	y, ok := other.(LingOpt[T])
+// LangGoOpt/LangGoRes 的相等：泛型类型无法进 type switch，走方法
+func (o LangGoOpt[T]) langGoEqTo(other any) bool {
+	y, ok := other.(LangGoOpt[T])
 	if !ok || o.has != y.has {
 		return false
 	}
 	if !o.has {
 		return true
 	}
-	return lingEq(o.v, y.v)
+	return langGoEq(o.v, y.v)
 }
 
-func (r LingRes[T]) lingEqTo(other any) bool {
-	y, ok := other.(LingRes[T])
+func (r LangGoRes[T]) langGoEqTo(other any) bool {
+	y, ok := other.(LangGoRes[T])
 	if !ok || r.ok != y.ok {
 		return false
 	}
 	if !r.ok {
-		return lingEq(r.e, y.e)
+		return langGoEq(r.e, y.e)
 	}
-	return lingEq(r.v, y.v)
+	return langGoEq(r.v, y.v)
 }
 
-func lingTruthy(v any) bool {
+func langGoTruthy(v any) bool {
 	b, ok := v.(bool)
 	if !ok {
 		panic("条件须为 bool")
@@ -578,49 +578,49 @@ func lingTruthy(v any) bool {
 	return b
 }
 
-func lingIndex(obj, idx any) any {
+func langGoIndex(obj, idx any) any {
 	switch c := obj.(type) {
-	case *LingMap:
-		ks, ok := lingKeyString(idx)
+	case *LangGoMap:
+		ks, ok := langGoKeyString(idx)
 		if !ok {
 			panic("映射键须为 int/string/bool")
 		}
 		v, found := c.m[ks]
 		if !found {
-			panic("映射无键 " + lingFmt(idx, true) + "（用 has() 探测）")
+			panic("映射无键 " + langGoFmt(idx, true) + "（用 has() 探测）")
 		}
 		return v
 	case string:
 		runes := []rune(c)
-		i := lingInt(idx)
+		i := langGoInt(idx)
 		if i < 0 || i >= int64(len(runes)) {
 			panic(fmt.Sprintf("索引 %d 越界（长度 %d）", i, len(runes)))
 		}
 		return string(runes[i])
 	}
 	if arr, ok := obj.(interface {
-		LingGet(int64) any
-		LingLen() int64
+		LangGoGet(int64) any
+		LangGoLen() int64
 	}); ok {
-		i := lingInt(idx)
-		if i < 0 || i >= arr.LingLen() {
-			panic(fmt.Sprintf("索引 %d 越界（长度 %d）", i, arr.LingLen()))
+		i := langGoInt(idx)
+		if i < 0 || i >= arr.LangGoLen() {
+			panic(fmt.Sprintf("索引 %d 越界（长度 %d）", i, arr.LangGoLen()))
 		}
-		return arr.LingGet(i)
+		return arr.LangGoGet(i)
 	}
 	panic("该类型不可索引")
 }
 
-func lingSetIndex(obj, idx, v any) {
+func langGoSetIndex(obj, idx, v any) {
 	switch c := obj.(type) {
-	case *LingArr[any]:
-		i := lingInt(idx)
+	case *LangGoArr[any]:
+		i := langGoInt(idx)
 		if i < 0 || i >= int64(len(c.Items)) {
 			panic(fmt.Sprintf("索引 %d 越界（长度 %d）", i, len(c.Items)))
 		}
 		c.Items[i] = v
 		return
-	case *LingMap:
+	case *LangGoMap:
 		c.Set(idx, v)
 		return
 	case string:
@@ -629,16 +629,16 @@ func lingSetIndex(obj, idx, v any) {
 	panic("该类型不可索引赋值")
 }
 
-func lingSlice(obj, lo, hi any) any {
-	i, j := lingInt(lo), lingInt(hi)
+func langGoSlice(obj, lo, hi any) any {
+	i, j := langGoInt(lo), langGoInt(hi)
 	switch c := obj.(type) {
-	case *LingArr[any]:
+	case *LangGoArr[any]:
 		if i < 0 || j < i || j > int64(len(c.Items)) {
 			panic(fmt.Sprintf("切片 [%d:%d] 越界（长度 %d）", i, j, len(c.Items)))
 		}
 		items := make([]any, j-i)
 		copy(items, c.Items[i:j])
-		return &LingArr[any]{Items: items}
+		return &LangGoArr[any]{Items: items}
 	case string:
 		runes := []rune(c)
 		if i < 0 || j < i || j > int64(len(runes)) {
@@ -649,31 +649,31 @@ func lingSlice(obj, lo, hi any) any {
 	panic("该类型不可切片")
 }
 
-func lingTo[T any](v any) T { return v.(T) }
+func langGoTo[T any](v any) T { return v.(T) }
 
 // ———— 标准库委托：json / http（镜像解释器 stdlib.go，等价测试锁定） ————
 
-type lingFielder interface{ LingField(name string) any }
+type langGoFielder interface{ LangGoField(name string) any }
 
-func lingField(obj any, name string) any {
-	if f, ok := obj.(lingFielder); ok {
-		return f.LingField(name)
+func langGoField(obj any, name string) any {
+	if f, ok := obj.(langGoFielder); ok {
+		return f.LangGoField(name)
 	}
-	panic(lingTypeName(obj) + " 没有字段 " + name)
+	panic(langGoTypeName(obj) + " 没有字段 " + name)
 }
 
-// LingHttpResp 对应 ling 预载 struct HttpResp{status, body}
-type LingHttpResp struct {
+// LangGoHttpResp 对应 langGo 预载 struct HttpResp{status, body}
+type LangGoHttpResp struct {
 	status int64
 	body   string
 }
 
-func (v LingHttpResp) lingString(top bool) string {
+func (v LangGoHttpResp) langGoString(top bool) string {
 	return "HttpResp{status: " + strconv.FormatInt(v.status, 10) +
 		", body: " + strconv.Quote(v.body) + "}"
 }
 
-func (v LingHttpResp) LingField(name string) any {
+func (v LangGoHttpResp) LangGoField(name string) any {
 	switch name {
 	case "status":
 		return v.status
@@ -683,20 +683,20 @@ func (v LingHttpResp) LingField(name string) any {
 	panic("HttpResp 没有字段 " + name)
 }
 
-type lingHttpSvc struct{}
+type langGoHttpSvc struct{}
 
-func (lingHttpSvc) get(url, headers any) any {
+func (langGoHttpSvc) get(url, headers any) any {
 	s, ok := url.(string)
 	if !ok {
 		panic("http.get 的 url 须为 string")
 	}
 	req, err := http.NewRequest("GET", s, nil)
 	if err != nil {
-		return LingRes[any]{e: lingErr("无效 URL: " + err.Error())}
+		return LangGoRes[any]{e: langGoErr("无效 URL: " + err.Error())}
 	}
-	if m, ok := headers.(*LingMap); ok {
+	if m, ok := headers.(*LangGoMap); ok {
 		for _, k := range m.keys {
-			ks, _ := lingKeyString(k)
+			ks, _ := langGoKeyString(k)
 			if v, ok := m.m[ks].(string); ok {
 				req.Header.Set(k.(string), v)
 			}
@@ -704,19 +704,19 @@ func (lingHttpSvc) get(url, headers any) any {
 	}
 	resp, err := (&http.Client{Timeout: 30 * time.Second}).Do(req)
 	if err != nil {
-		return LingRes[any]{e: lingErr(err.Error())}
+		return LangGoRes[any]{e: langGoErr(err.Error())}
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return LingRes[any]{e: lingErr("读响应失败: " + err.Error())}
+		return LangGoRes[any]{e: langGoErr("读响应失败: " + err.Error())}
 	}
-	return LingRes[any]{ok: true, v: LingHttpResp{status: int64(resp.StatusCode), body: string(body)}}
+	return LangGoRes[any]{ok: true, v: LangGoHttpResp{status: int64(resp.StatusCode), body: string(body)}}
 }
 
-var lingHTTP = lingHttpSvc{}
+var langGoHTTP = langGoHttpSvc{}
 
-func lingJSONParse(v any) any {
+func langGoJSONParse(v any) any {
 	s, ok := v.(string)
 	if !ok {
 		panic("jsonParse 需要字符串")
@@ -727,13 +727,13 @@ func lingJSONParse(v any) any {
 	if err := dec.Decode(&raw); err != nil {
 		panic("JSON 解析失败: " + err.Error())
 	}
-	return lingJSONFrom(raw)
+	return langGoJSONFrom(raw)
 }
 
-func lingJSONFrom(raw any) any {
+func langGoJSONFrom(raw any) any {
 	switch x := raw.(type) {
 	case nil:
-		return LingNone[any]()
+		return LangGoNone[any]()
 	case bool:
 		return x
 	case string:
@@ -747,98 +747,98 @@ func lingJSONFrom(raw any) any {
 	case []any:
 		items := make([]any, 0, len(x))
 		for _, el := range x {
-			items = append(items, lingJSONFrom(el))
+			items = append(items, langGoJSONFrom(el))
 		}
-		return &LingArr[any]{Items: items}
+		return &LangGoArr[any]{Items: items}
 	case map[string]any:
 		keys := make([]string, 0, len(x))
 		for k := range x {
 			keys = append(keys, k)
 		}
 		sort.Strings(keys)
-		m := lingNewMap()
+		m := langGoNewMap()
 		for _, k := range keys {
-			m.Set(k, lingJSONFrom(x[k]))
+			m.Set(k, langGoJSONFrom(x[k]))
 		}
 		return m
 	}
-	return lingUnit{}
+	return langGoUnit{}
 }
 
-func lingJSONTo(v any) any {
+func langGoJSONTo(v any) any {
 	switch x := v.(type) {
 	case nil:
 		return nil
-	case lingUnit:
+	case langGoUnit:
 		return nil
 	case bool, string:
 		return x
 	case int64, float64:
 		return x
-	case *LingArr[any]:
+	case *LangGoArr[any]:
 		out := make([]any, 0, len(x.Items))
 		for _, el := range x.Items {
-			out = append(out, lingJSONTo(el))
+			out = append(out, langGoJSONTo(el))
 		}
 		return out
-	case *LingMap:
+	case *LangGoMap:
 		out := map[string]any{}
 		for _, k := range x.keys {
-			out[k.(string)] = lingJSONTo(x.m["s:"+k.(string)])
+			out[k.(string)] = langGoJSONTo(x.m["s:"+k.(string)])
 		}
 		return out
 	}
-	if o, ok := v.(interface{ lingNone() bool }); ok && o.lingNone() {
+	if o, ok := v.(interface{ langGoNone() bool }); ok && o.langGoNone() {
 		return nil
 	}
-	panic(lingTypeName(v) + " 不可 JSON 序列化")
+	panic(langGoTypeName(v) + " 不可 JSON 序列化")
 }
 
-func lingJSONStringify(v any) string {
-	bs, err := json.Marshal(lingJSONTo(v))
+func langGoJSONStringify(v any) string {
+	bs, err := json.Marshal(langGoJSONTo(v))
 	if err != nil {
 		panic("JSON 序列化失败: " + err.Error())
 	}
 	return string(bs)
 }
 
-// lingIsNone 判 None（JSON null 的 ling 表示）；经接口分派支持任意元素类型
-func lingIsNone(v any) bool {
-	if o, ok := v.(interface{ lingNone() bool }); ok {
-		return o.lingNone()
+// langGoIsNone 判 None（JSON null 的 langGo 表示）；经接口分派支持任意元素类型
+func langGoIsNone(v any) bool {
+	if o, ok := v.(interface{ langGoNone() bool }); ok {
+		return o.langGoNone()
 	}
 	return false
 }
 
-// lingIter 动态值（如 JSON 解析结果）的迭代快照：数组→元素，映射→键，字符串→字符
-func lingIter(v any) *LingArr[any] {
+// langGoIter 动态值（如 JSON 解析结果）的迭代快照：数组→元素，映射→键，字符串→字符
+func langGoIter(v any) *LangGoArr[any] {
 	switch x := v.(type) {
-	case *LingArr[any]:
+	case *LangGoArr[any]:
 		return x
-	case *LingMap:
-		return &LingArr[any]{Items: x.Keys()}
+	case *LangGoMap:
+		return &LangGoArr[any]{Items: x.Keys()}
 	case string:
 		items := make([]any, 0, len(x))
 		for _, r := range []rune(x) {
 			items = append(items, string(r))
 		}
-		return &LingArr[any]{Items: items}
-	case lingRange:
+		return &LangGoArr[any]{Items: items}
+	case langGoRange:
 		items := make([]any, 0, x.Hi-x.Lo)
 		for i := x.Lo; i < x.Hi; i++ {
 			items = append(items, i)
 		}
-		return &LingArr[any]{Items: items}
+		return &LangGoArr[any]{Items: items}
 	}
 	if arr, ok := v.(interface {
-		LingLen() int64
-		LingGet(int64) any
+		LangGoLen() int64
+		LangGoGet(int64) any
 	}); ok {
-		items := make([]any, 0, arr.LingLen())
-		for i := int64(0); i < arr.LingLen(); i++ {
-			items = append(items, arr.LingGet(i))
+		items := make([]any, 0, arr.LangGoLen())
+		for i := int64(0); i < arr.LangGoLen(); i++ {
+			items = append(items, arr.LangGoGet(i))
 		}
-		return &LingArr[any]{Items: items}
+		return &LangGoArr[any]{Items: items}
 	}
 	panic("该类型不可迭代")
 }

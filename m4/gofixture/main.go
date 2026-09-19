@@ -1,5 +1,5 @@
 // gofixture —— linkpull bilibili 包原版实现的逐字拷贝 + fixture 打印器。
-// 用途：M4 移植的对照真值。本目录下 main.ling 经解释器/→Go 编译执行的输出
+// 用途：M4 移植的对照真值。本目录下 main.langGo 经解释器/→Go 编译执行的输出
 // 须与本程序的输出（除 K 行外）逐字节一致。
 // 拷贝来源：vibe/tools/linkpull/internal/extract/bilibili/{md5.go,wbi.go}
 // （仅去掉 Bilibili 结构体相关的方法与网络逻辑，纯函数原样保留）。
@@ -305,7 +305,7 @@ func listKindOf(u *url.URL) (listTarget, error) {
 // ———— fixture 输出 ————
 
 func main() {
-	// K 常量表（供 md5.ling 内嵌，Go 原版由 init() 现算）
+	// K 常量表（供 md5.langGo 内嵌，Go 原版由 init() 现算）
 	for i := 0; i < 64; i++ {
 		if i%8 == 0 {
 			fmt.Println()

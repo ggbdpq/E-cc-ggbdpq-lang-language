@@ -1,14 +1,14 @@
 package interp_test
 
-// 测试缝：ling 源码进，stdout/错误出。这是用户可见行为，不测内部结构。
+// 测试缝：langGo 源码进，stdout/错误出。这是用户可见行为，不测内部结构。
 
 import (
 	"bytes"
 	"strings"
 	"testing"
 
-	"ling/internal/interp"
-	"ling/internal/syntax"
+	"lang-go/internal/interp"
+	"lang-go/internal/syntax"
 )
 
 func runSrc(t *testing.T, src string) (string, error) {
@@ -80,7 +80,7 @@ func Test绑定与可变性(t *testing.T) {
 }
 
 func Test字符串(t *testing.T) {
-	wantOut(t, `println("hello" + " " + "ling")`, "hello ling\n")
+	wantOut(t, `println("hello" + " " + "langGo")`, "hello langGo\n")
 	wantOut(t, `println(len("你好ab"))`, "4\n")
 	wantOut(t, `println("hello" == "hello")`, "true\n")
 	wantOut(t, `println("a" < "b")`, "true\n")
@@ -89,7 +89,7 @@ func Test字符串(t *testing.T) {
 
 func Test索引与切片(t *testing.T) {
 	wantOut(t, `println("hello"[1])`, "e\n")
-	wantOut(t, `println("你好ling"[1])`, "好\n")
+	wantOut(t, `println("你好langGo"[1])`, "好\n")
 	wantOut(t, `println("hello"[1:3])`, "el\n")
 	wantOut(t, `println("你好世界"[1:3])`, "好世\n")
 }

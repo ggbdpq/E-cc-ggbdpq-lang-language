@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"ling/internal/syntax"
+	"lang-go/internal/syntax"
 )
 
 func write(t *testing.T, dir, name, content string) {
@@ -23,12 +23,12 @@ func write(t *testing.T, dir, name, content string) {
 
 func TestImport文件与目录(t *testing.T) {
 	dir := t.TempDir()
-	write(t, dir, "main.ling", `import "./lib"
+	write(t, dir, "main.lang-go", `import "./lib"
 fn main() {
-    println(double(21), greet("ling"))
+    println(double(21), greet("langGo"))
 }`)
-	write(t, filepath.Join(dir, "lib"), "util.ling", "fn double(x: int): int {\n    return x * 2\n}")
-	write(t, filepath.Join(dir, "lib"), "extra.ling", "fn greet(s: string): string {\n    return \"hi, \" + s\n}")
+	write(t, filepath.Join(dir, "lib"), "util.lang-go", "fn double(x: int): int {\n    return x * 2\n}")
+	write(t, filepath.Join(dir, "lib"), "extra.lang-go", "fn greet(s: string): string {\n    return \"hi, \" + s\n}")
 	prog, tests, err := Program(dir, true)
 	if err != nil {
 		t.Fatalf("装载失败: %v", err)
@@ -50,20 +50,20 @@ fn main() {
 
 func Test菱形导入去重(t *testing.T) {
 	dir := t.TempDir()
-	write(t, dir, "main.ling", `import "./a"
+	write(t, dir, "main.lang-go", `import "./a"
 import "./b"
 fn main() {
     println(shared())
 }`)
-	write(t, dir, "a.ling", `import "./c"
+	write(t, dir, "a.lang-go", `import "./c"
 fn aFn(): int {
     return 1
 }`)
-	write(t, dir, "b.ling", `import "./c"
+	write(t, dir, "b.lang-go", `import "./c"
 fn bFn(): int {
     return 2
 }`)
-	write(t, dir, "c.ling", "fn shared(): int {\n    return 42\n}")
+	write(t, dir, "c.lang-go", "fn shared(): int {\n    return 42\n}")
 	_, _, err := Program(dir, false)
 	if err != nil {
 		t.Fatalf("菱形导入应静默去重: %v", err)
@@ -72,9 +72,9 @@ fn bFn(): int {
 
 func Test循环导入报错(t *testing.T) {
 	dir := t.TempDir()
-	write(t, dir, "main.ling", "import \"./a\"")
-	write(t, dir, "a.ling", "import \"./b\"")
-	write(t, dir, "b.ling", "import \"./a\"")
+	write(t, dir, "main.lang-go", "import \"./a\"")
+	write(t, dir, "a.lang-go", "import \"./b\"")
+	write(t, dir, "b.lang-go", "import \"./a\"")
 	_, _, err := Program(dir, false)
 	if err == nil || !strings.Contains(err.Error(), "循环") {
 		t.Fatalf("循环导入应报错，得到: %v", err)
@@ -83,7 +83,7 @@ func Test循环导入报错(t *testing.T) {
 
 func Test逃出根目录报错(t *testing.T) {
 	dir := t.TempDir()
-	write(t, dir, "main.ling", "import \"./../../outside\"")
+	write(t, dir, "main.lang-go", "import \"./../../outside\"")
 	_, _, err := Program(dir, false)
 	if err == nil || !strings.Contains(err.Error(), "逃出") {
 		t.Fatalf("越界 import 应报错，得到: %v", err)
@@ -92,7 +92,7 @@ func Test逃出根目录报错(t *testing.T) {
 
 func Test非相对路径报错(t *testing.T) {
 	dir := t.TempDir()
-	write(t, dir, "main.ling", "import \"std/http\"")
+	write(t, dir, "main.lang-go", "import \"std/http\"")
 	_, _, err := Program(dir, false)
 	if err == nil || !strings.Contains(err.Error(), "相对路径") {
 		t.Fatalf("非 ./ 前缀应报错，得到: %v", err)
@@ -101,8 +101,8 @@ func Test非相对路径报错(t *testing.T) {
 
 func Test测试函数收集(t *testing.T) {
 	dir := t.TempDir()
-	write(t, dir, "main.ling", "fn main() {\n}")
-	write(t, dir, "x_test.ling", "fn testOne() {\n}\nfn testTwo() {\n}")
+	write(t, dir, "main.lang-go", "fn main() {\n}")
+	write(t, dir, "x_test.lang-go", "fn testOne() {\n}\nfn testTwo() {\n}")
 	_, tests, err := Program(dir, true)
 	if err != nil {
 		t.Fatal(err)

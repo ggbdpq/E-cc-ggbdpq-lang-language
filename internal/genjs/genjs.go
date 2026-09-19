@@ -1,6 +1,6 @@
 package genjs
 
-// TranspileJS 把 ling 程序转译为自包含、可执行的 ES Module（prelude 内联）。
+// TranspileJS 把 langGo 程序转译为自包含、可执行的 ES Module（prelude 内联）。
 // 约束与 →Go 后端一致（spec §6.2）：参数注解必填、? 只在语句顶层、
 // Result 函数 return 须为 Ok(...)/Err(...)、enum match 只支持构造/通配模式。
 // 类型映射见 prelude.go 头注（decisions #47：int=BigInt 保 64 位语义）。
@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"ling/internal/syntax"
+	"lang-go/internal/syntax"
 )
 
 func TranspileJS(prog []syntax.Stmt) (string, error) {
@@ -40,7 +40,7 @@ type jsFn struct {
 	goName  string
 	params  []jsParam
 	hasRet  bool // 有无返回注解（→JS 无类型，仅用于 Result 约束）
-	retLing syntax.TypeEx
+	retLangGo syntax.TypeEx
 }
 
 type jsgen struct {
@@ -53,7 +53,7 @@ type jsgen struct {
 	methods    map[string]string // 方法名 → 产物函数名（跨 struct 重名在 collect 报错）
 	scopes     []map[string]bool // 已声明名字（不参与代码生成，仅占位）
 	tmpN       int
-	curRetLing syntax.TypeEx
+	curRetLangGo syntax.TypeEx
 	curFn      string
 }
 
@@ -141,7 +141,7 @@ func (g *jsgen) collect(prog []syntax.Stmt) error {
 }
 
 func (g *jsgen) fnInfoOf(d *syntax.FnDecl) (*jsFn, error) {
-	info := &jsFn{goName: "lf_" + d.Name, hasRet: d.Ret != nil, retLing: d.Ret}
+	info := &jsFn{goName: "lf_" + d.Name, hasRet: d.Ret != nil, retLangGo: d.Ret}
 	for _, p := range d.Params {
 		if p.Typ == nil {
 			return nil, g.errf(d.Line, "→JS 要求参数 %s 有类型注解", p.Name)
@@ -166,7 +166,7 @@ func (g *jsgen) emitProgram(prog []syntax.Stmt) error {
 				if len(params) > 0 {
 					vals = "[" + strings.Join(params, ", ") + "]"
 				}
-				fmt.Fprintf(&g.buf, "function le_%s_%s(%s) { return lingEnumVal(%q, %s); }\n\n",
+				fmt.Fprintf(&g.buf, "function le_%s_%s(%s) { return langGoEnumVal(%q, %s); }\n\n",
 					d.Name, c.Name, strings.Join(params, ", "), c.Name, vals)
 			}
 		}
@@ -178,7 +178,7 @@ func (g *jsgen) emitProgram(prog []syntax.Stmt) error {
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(&g.buf, "let %s = lingCopy(%s);\n\n", d.Name, expr)
+			fmt.Fprintf(&g.buf, "let %s = langGoCopy(%s);\n\n", d.Name, expr)
 		}
 	}
 	for _, s := range prog {
@@ -213,8 +213,8 @@ func (g *jsgen) emitProgram(prog []syntax.Stmt) error {
 	return nil
 }
 
-func lingEnumVal(tag string, vals string) string {
-	return fmt.Sprintf("{ __lingEnum: true, tag: %q, vals: %s }", tag, vals)
+func langGoEnumVal(tag string, vals string) string {
+	return fmt.Sprintf("{ __langGoEnum: true, tag: %q, vals: %s }", tag, vals)
 }
 
 func (g *jsgen) emitFunc(d *syntax.FnDecl) error {
@@ -224,7 +224,7 @@ func (g *jsgen) emitFunc(d *syntax.FnDecl) error {
 
 func (g *jsgen) emitMethod(d *syntax.FnDecl) error {
 	goName := g.methods[d.Name]
-	fi := &jsFn{goName: goName, hasRet: d.Ret != nil, retLing: d.Ret,
+	fi := &jsFn{goName: goName, hasRet: d.Ret != nil, retLangGo: d.Ret,
 		params: append([]jsParam{{name: d.Recv.Name}}, methodParams(d)...)}
 	return g.emitFuncBody(d, goName, fi)
 }
@@ -248,7 +248,7 @@ func (g *jsgen) emitFuncBody(d *syntax.FnDecl, goName string, fi *jsFn) error {
 	// 值语义：参数进入函数体即拷贝；名字进 scopes（函数值参数直通调用）
 	for _, p := range fi.params {
 		g.scopes[len(g.scopes)-1][p.name] = true
-		fmt.Fprintf(&g.buf, "  %s = lingCopy(%s);\n", p.name, p.name)
+		fmt.Fprintf(&g.buf, "  %s = langGoCopy(%s);\n", p.name, p.name)
 	}
 	err := g.emitBody(d.Body)
 	g.popCtx(saved)
@@ -261,14 +261,14 @@ func (g *jsgen) emitFuncBody(d *syntax.FnDecl, goName string, fi *jsFn) error {
 
 type jsCtx struct {
 	indent     int
-	curRetLing syntax.TypeEx
+	curRetLangGo syntax.TypeEx
 	curFn      string
 }
 
 func (g *jsgen) pushCtx(d *syntax.FnDecl, fi *jsFn) jsCtx {
-	s := jsCtx{g.indent, g.curRetLing, g.curFn}
+	s := jsCtx{g.indent, g.curRetLangGo, g.curFn}
 	g.indent = 1
-	g.curRetLing = d.Ret
+	g.curRetLangGo = d.Ret
 	g.curFn = d.Name
 	g.scopes = []map[string]bool{{}}
 	return s
@@ -276,7 +276,7 @@ func (g *jsgen) pushCtx(d *syntax.FnDecl, fi *jsFn) jsCtx {
 
 func (g *jsgen) popCtx(s jsCtx) {
 	g.indent = s.indent
-	g.curRetLing = s.curRetLing
+	g.curRetLangGo = s.curRetLangGo
 	g.curFn = s.curFn
 }
 
@@ -362,12 +362,12 @@ func (g *jsgen) emitStmt(s syntax.Stmt) error {
 			if err != nil {
 				return err
 			}
-			args = append(args, "lingCopy("+arg+")")
+			args = append(args, "langGoCopy("+arg+")")
 		}
 		g.w("await " + fi.goName + "(" + strings.Join(args, ", ") + ");")
 		return nil
 	case *syntax.FnDecl:
-		info := &jsFn{goName: "lf_" + st.Name, hasRet: st.Ret != nil, retLing: st.Ret}
+		info := &jsFn{goName: "lf_" + st.Name, hasRet: st.Ret != nil, retLangGo: st.Ret}
 		for _, p := range st.Params {
 			if p.Typ == nil {
 				return g.errf(st.Line, "→JS 要求参数 %s 有类型注解", p.Name)
@@ -405,7 +405,7 @@ func (g *jsgen) emitFuncBodyInto(d *syntax.FnDecl, goName string, fi *jsFn) erro
 	fmt.Fprintf(&g.buf, "async function %s(%s) {\n", goName, strings.Join(ps, ", "))
 	g.indent = 1
 	for _, p := range fi.params {
-		fmt.Fprintf(&g.buf, "  %s = lingCopy(%s);\n", p.name, p.name)
+		fmt.Fprintf(&g.buf, "  %s = langGoCopy(%s);\n", p.name, p.name)
 	}
 	err := g.emitBody(d.Body)
 	if err == nil {
@@ -429,7 +429,7 @@ func (g *jsgen) emitLet(name string, typ syntax.TypeEx, init syntax.Expr, line i
 			return err
 		}
 		if name != "_" {
-			g.w("let " + name + " = lingCopy(" + tmp + ".v);")
+			g.w("let " + name + " = langGoCopy(" + tmp + ".v);")
 		}
 		return nil
 	}
@@ -444,7 +444,7 @@ func (g *jsgen) emitLet(name string, typ syntax.TypeEx, init syntax.Expr, line i
 	if isRef(init) {
 		g.w("let " + name + " = " + expr + ";") // & 引用赋值：不拷贝
 	} else {
-		g.w("let " + name + " = lingCopy(await " + expr + ");")
+		g.w("let " + name + " = langGoCopy(await " + expr + ");")
 	}
 	g.registerFnValue(name, init)
 	return nil
@@ -459,7 +459,7 @@ func isRef(e syntax.Expr) bool {
 // registerFnValue 函数值绑定注册调用名（调用点生成 await name(...) 而非 lf_ 前缀）
 func (g *jsgen) registerFnValue(name string, init syntax.Expr) {
 	if fl, ok := init.(*syntax.FnLit); ok {
-		g.fns[name] = &jsFn{goName: name, hasRet: fl.Ret != nil, retLing: fl.Ret}
+		g.fns[name] = &jsFn{goName: name, hasRet: fl.Ret != nil, retLangGo: fl.Ret}
 	}
 }
 
@@ -474,7 +474,7 @@ func (g *jsgen) emitAssign(st *syntax.AssignStmt) error {
 			if err != nil {
 				return err
 			}
-			g.w(tgt.Name + " = lingCopy(" + tmp + ".v);")
+			g.w(tgt.Name + " = langGoCopy(" + tmp + ".v);")
 			return nil
 		}
 		expr, err := g.expr(st.Val)
@@ -484,7 +484,7 @@ func (g *jsgen) emitAssign(st *syntax.AssignStmt) error {
 		if isRef(st.Val) {
 			g.w(tgt.Name + " = " + expr + ";")
 		} else {
-			g.w(tgt.Name + " = lingCopy(await " + expr + ");")
+			g.w(tgt.Name + " = langGoCopy(await " + expr + ");")
 		}
 		return nil
 	case *syntax.FieldEx:
@@ -496,7 +496,7 @@ func (g *jsgen) emitAssign(st *syntax.AssignStmt) error {
 		if err != nil {
 			return err
 		}
-		g.w(obj + "." + tgt.Name + " = lingCopy(await " + expr + ");")
+		g.w(obj + "." + tgt.Name + " = langGoCopy(await " + expr + ");")
 		return nil
 	case *syntax.IndexEx:
 		obj, err := g.expr(tgt.Obj)
@@ -511,14 +511,14 @@ func (g *jsgen) emitAssign(st *syntax.AssignStmt) error {
 		if err != nil {
 			return err
 		}
-		g.w("lingSetIndex(" + obj + ", " + idx + ", lingCopy(await " + expr + "));")
+		g.w("langGoSetIndex(" + obj + ", " + idx + ", langGoCopy(await " + expr + "));")
 		return nil
 	}
 	return g.errf(st.Line, "赋值目标不合法")
 }
 
 // emitCompoundAssign 复合赋值（decisions #52）：ident/field 原生 +=；
-// 数组 += 展开元素 push；index 复合走 lingAddIndex（Map 读改写）
+// 数组 += 展开元素 push；index 复合走 langGoAddIndex（Map 读改写）
 func (g *jsgen) emitCompoundAssign(st *syntax.AssignStmt) error {
 	op := ""
 	switch st.Op {
@@ -539,7 +539,7 @@ func (g *jsgen) emitCompoundAssign(st *syntax.AssignStmt) error {
 		}
 		if st.Op == syntax.PlusAssign {
 			// 数组 += 是元素拼接；数值/字符串原生 += 对 BigInt/number/string 均正确
-			g.w("if (Array.isArray(" + tgt.Name + ")) { " + tgt.Name + ".push(...lingIter(" + expr + ")) } else { " + tgt.Name + " " + op + " " + expr + " }")
+			g.w("if (Array.isArray(" + tgt.Name + ")) { " + tgt.Name + ".push(...langGoIter(" + expr + ")) } else { " + tgt.Name + " " + op + " " + expr + " }")
 			return nil
 		}
 		g.w(tgt.Name + " " + op + " " + expr + ";")
@@ -568,14 +568,14 @@ func (g *jsgen) emitCompoundAssign(st *syntax.AssignStmt) error {
 		if err != nil {
 			return err
 		}
-		g.w("lingAddIndex(" + obj + ", " + idx + ", " + expr + ", " + strconv.Quote(op) + ")")
+		g.w("langGoAddIndex(" + obj + ", " + idx + ", " + expr + ", " + strconv.Quote(op) + ")")
 		return nil
 	}
 	return g.errf(st.Line, "赋值目标不合法")
 }
 
 func (g *jsgen) isResultFn() bool {
-	rt, ok := g.curRetLing.(*syntax.NamedType)
+	rt, ok := g.curRetLangGo.(*syntax.NamedType)
 	return ok && rt.Name == "Result"
 }
 
@@ -589,7 +589,7 @@ func (g *jsgen) emitReturn(st *syntax.ReturnStmt) error {
 		if err != nil {
 			return err
 		}
-		g.w("return lingCopy(" + tmp + ".v);")
+		g.w("return langGoCopy(" + tmp + ".v);")
 		return nil
 	}
 	if g.isResultFn() {
@@ -606,9 +606,9 @@ func (g *jsgen) emitReturn(st *syntax.ReturnStmt) error {
 			return err
 		}
 		if id.Name == "Ok" {
-			g.w("return { __lingRes: true, ok: true, v: lingCopy(await " + expr + "), e: undefined };")
+			g.w("return { __langGoRes: true, ok: true, v: langGoCopy(await " + expr + "), e: undefined };")
 		} else {
-			g.w("return { __lingRes: true, ok: false, v: undefined, e: lingCopy(" + expr + ") };")
+			g.w("return { __langGoRes: true, ok: false, v: undefined, e: langGoCopy(" + expr + ") };")
 		}
 		return nil
 	}
@@ -616,7 +616,7 @@ func (g *jsgen) emitReturn(st *syntax.ReturnStmt) error {
 	if err != nil {
 		return err
 	}
-	g.w("return lingCopy(await " + expr + ");")
+	g.w("return langGoCopy(await " + expr + ");")
 	return nil
 }
 
@@ -633,7 +633,7 @@ func (g *jsgen) genTry(t *syntax.TryEx) (string, error) {
 	g.w("const " + tmp + " = await " + expr + ";")
 	g.w("if (!" + tmp + ".ok) {")
 	g.indent++
-	g.w("return { __lingRes: true, ok: false, v: undefined, e: " + tmp + ".e };")
+	g.w("return { __langGoRes: true, ok: false, v: undefined, e: " + tmp + ".e };")
 	g.indent--
 	g.w("}")
 	return tmp, nil
@@ -661,7 +661,7 @@ func (g *jsgen) emitForIn(st *syntax.ForInStmt) error {
 	if err != nil {
 		return err
 	}
-	g.w("for (let " + name + " of lingIter(" + it + ")) {")
+	g.w("for (let " + name + " of langGoIter(" + it + ")) {")
 	if err := g.emitBlockTyped(st.Body, name); err != nil {
 		return err
 	}
@@ -672,7 +672,7 @@ func (g *jsgen) emitForIn(st *syntax.ForInStmt) error {
 func (g *jsgen) emitBlockTyped(stmts []syntax.Stmt, name string) error {
 	g.indent++
 	g.pushScope()
-	g.w(name + " = lingCopy(" + name + ");")
+	g.w(name + " = langGoCopy(" + name + ");")
 	err := g.emitBody(stmts)
 	g.popScope()
 	g.indent--
@@ -902,7 +902,7 @@ func armBindName(arm *syntax.Arm) string {
 
 func (g *jsgen) bindArmValue(arm *syntax.Arm, valueExpr string) {
 	if name := armBindName(arm); name != "_" {
-		g.w("const " + name + " = lingCopy(" + valueExpr + ");")
+		g.w("const " + name + " = langGoCopy(" + valueExpr + ");")
 	}
 }
 
@@ -917,7 +917,7 @@ func (g *jsgen) bindEnumPayloads(p *syntax.CasePat, tmp string) error {
 		}
 		for j, sp := range p.Subs {
 			if bp, ok := sp.(*syntax.BindPat); ok {
-				g.w("const " + bp.Name + " = lingCopy(" + tmp + ".vals[" + strconv.Itoa(j) + "]);")
+				g.w("const " + bp.Name + " = langGoCopy(" + tmp + ".vals[" + strconv.Itoa(j) + "]);")
 			}
 		}
 	}
@@ -954,7 +954,7 @@ func (g *jsgen) emitLiteralMatchStmt(m *syntax.MatchEx, tmp string) error {
 			if err != nil {
 				return err
 			}
-			g.w(kw + " (lingEq(" + tmp + ", " + lit + ")) {")
+			g.w(kw + " (langGoEq(" + tmp + ", " + lit + ")) {")
 			if err := g.emitBlock([]syntax.Stmt{&syntax.ExprStmt{X: arm.Body, Line: arm.Line}}); err != nil {
 				return err
 			}
@@ -1001,10 +1001,10 @@ func (g *jsgen) expr(e syntax.Expr) (string, error) {
 			return "le_" + en + "_" + x.Name + "()", nil
 		}
 		if x.Name == "None" {
-			return "{ __lingOpt: true, has: false, v: undefined }", nil
+			return "{ __langGoOpt: true, has: false, v: undefined }", nil
 		}
 		if x.Name == "http" {
-			return "lingHTTP", nil
+			return "langGoHTTP", nil
 		}
 		if fi, isFn := g.fns[x.Name]; isFn {
 			return fi.goName, nil
@@ -1021,7 +1021,7 @@ func (g *jsgen) expr(e syntax.Expr) (string, error) {
 		case syntax.Not:
 			return "!" + inner, nil
 		case syntax.Amp:
-			// JS 对象赋值即共享引用，与 ling 的 & 语义天然对齐
+			// JS 对象赋值即共享引用，与 langGo 的 & 语义天然对齐
 			return g.expr(x.X)
 		}
 		return "", g.errf(x.Line, "未知一元运算")
@@ -1041,9 +1041,9 @@ func (g *jsgen) expr(e syntax.Expr) (string, error) {
 		case syntax.Or:
 			return "(" + l + " || " + r + ")", nil
 		case syntax.Eq:
-			return "lingEq(" + l + ", " + r + ")", nil
+			return "langGoEq(" + l + ", " + r + ")", nil
 		case syntax.Neq:
-			return "!lingEq(" + l + ", " + r + ")", nil
+			return "!langGoEq(" + l + ", " + r + ")", nil
 		case syntax.Plus:
 			op = "+"
 		case syntax.Minus:
@@ -1051,7 +1051,7 @@ func (g *jsgen) expr(e syntax.Expr) (string, error) {
 		case syntax.Star:
 			op = "*"
 		case syntax.Slash:
-			return "lingDiv(" + l + ", " + r + ")", nil
+			return "langGoDiv(" + l + ", " + r + ")", nil
 		case syntax.Percent:
 			return "(" + l + " % " + r + ")", nil
 		case syntax.Amp:
@@ -1085,7 +1085,7 @@ func (g *jsgen) expr(e syntax.Expr) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return "{ __lingRange: true, lo: " + lo + ", hi: " + hi + " }", nil
+		return "{ __langGoRange: true, lo: " + lo + ", hi: " + hi + " }", nil
 	case *syntax.CallEx:
 		return g.emitCall(x)
 	case *syntax.IndexEx:
@@ -1097,7 +1097,7 @@ func (g *jsgen) expr(e syntax.Expr) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return "lingIndex(" + obj + ", " + idx + ")", nil
+		return "langGoIndex(" + obj + ", " + idx + ")", nil
 	case *syntax.SliceEx:
 		obj, err := g.expr(x.Obj)
 		if err != nil {
@@ -1111,7 +1111,7 @@ func (g *jsgen) expr(e syntax.Expr) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return "lingSlice(" + obj + ", " + lo + ", " + hi + ")", nil
+		return "langGoSlice(" + obj + ", " + lo + ", " + hi + ")", nil
 	case *syntax.FieldEx:
 		obj, err := g.expr(x.Obj)
 		if err != nil {
@@ -1122,13 +1122,13 @@ func (g *jsgen) expr(e syntax.Expr) (string, error) {
 		return "", g.errf(x.Line, "? 只能出现在 let/return/赋值的顶层（→JS 约束）")
 	case *syntax.StructLit:
 		var fs []string
-		fs = append(fs, "__lingStruct: "+strconv.Quote(x.TypeName))
+		fs = append(fs, "__langGoStruct: "+strconv.Quote(x.TypeName))
 		for _, f := range x.Fields {
 			v, err := g.expr(f.Val)
 			if err != nil {
 				return "", err
 			}
-			fs = append(fs, f.Name+": lingCopy("+v+")")
+			fs = append(fs, f.Name+": langGoCopy("+v+")")
 		}
 		return "{ " + strings.Join(fs, ", ") + " }", nil
 	case *syntax.MapLit:
@@ -1142,9 +1142,9 @@ func (g *jsgen) expr(e syntax.Expr) (string, error) {
 			if err != nil {
 				return "", err
 			}
-			kvs = append(kvs, "["+k+", lingCopy("+v+")]")
+			kvs = append(kvs, "["+k+", langGoCopy("+v+")]")
 		}
-		return "lingNewMap(" + strings.Join(kvs, ", ") + ")", nil
+		return "langGoNewMap(" + strings.Join(kvs, ", ") + ")", nil
 	case *syntax.ArrLit:
 		var items []string
 		for _, el := range x.Items {
@@ -1152,7 +1152,7 @@ func (g *jsgen) expr(e syntax.Expr) (string, error) {
 			if err != nil {
 				return "", err
 			}
-			items = append(items, "lingCopy("+v+")")
+			items = append(items, "langGoCopy("+v+")")
 		}
 		return "[" + strings.Join(items, ", ") + "]", nil
 	case *syntax.MatchEx:
@@ -1175,13 +1175,13 @@ func (g *jsgen) emitFnLit(x *syntax.FnLit) (string, error) {
 	savedIndent := g.indent
 	g.buf = strings.Builder{}
 	g.indent = 0
-	savedRet, savedFn := g.curRetLing, g.curFn
-	g.curRetLing = x.Ret
+	savedRet, savedFn := g.curRetLangGo, g.curFn
+	g.curRetLangGo = x.Ret
 	g.curFn = "匿名函数"
 	g.w("async function(" + strings.Join(ps, ", ") + ") {")
 	g.indent++
 	for _, p := range x.Params {
-		g.w(p.Name + " = lingCopy(" + p.Name + ");")
+		g.w(p.Name + " = langGoCopy(" + p.Name + ");")
 	}
 	var bodyErr error
 	for _, st := range x.Body {
@@ -1192,7 +1192,7 @@ func (g *jsgen) emitFnLit(x *syntax.FnLit) (string, error) {
 	if bodyErr == nil {
 		g.w("}")
 	}
-	g.curRetLing, g.curFn = savedRet, savedFn
+	g.curRetLangGo, g.curFn = savedRet, savedFn
 	g.indent = savedIndent
 	out := g.buf.String()
 	g.buf = savedBuf
@@ -1341,7 +1341,7 @@ func (g *jsgen) emitLiteralMatchReturn(m *syntax.MatchEx, tmp string) error {
 			if err != nil {
 				return err
 			}
-			g.w(kw + " (lingEq(" + tmp + ", " + lit + ")) {")
+			g.w(kw + " (langGoEq(" + tmp + ", " + lit + ")) {")
 			g.indent++
 			g.pushScope()
 			if err := g.emitArmReturn(arm); err != nil {
@@ -1389,7 +1389,7 @@ func (g *jsgen) emitArmReturn(arm *syntax.Arm) error {
 	if err != nil {
 		return err
 	}
-	g.w("return lingCopy(await " + expr + ");")
+	g.w("return langGoCopy(await " + expr + ");")
 	return nil
 }
 
@@ -1414,7 +1414,7 @@ func (g *jsgen) emitCall(x *syntax.CallEx) (string, error) {
 			if err != nil {
 				return "", err
 			}
-			args = append(args, "lingCopy("+arg+")")
+			args = append(args, "langGoCopy("+arg+")")
 		}
 		return "le_" + g.caseEnum[id.Name] + "_" + id.Name + "(" + strings.Join(args, ", ") + ")", nil
 	}
@@ -1428,21 +1428,21 @@ func (g *jsgen) emitCall(x *syntax.CallEx) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return "{ __lingOpt: true, has: true, v: lingCopy(" + arg + ") }", nil
+		return "{ __langGoOpt: true, has: true, v: langGoCopy(" + arg + ") }", nil
 	case "None":
-		return "{ __lingOpt: true, has: false, v: undefined }", nil
+		return "{ __langGoOpt: true, has: false, v: undefined }", nil
 	case "Ok", "Err":
 		return "", g.errf(x.Line, "Ok/Err 只能出现在 Result 函数的 return（→JS 约束）")
 	}
 
 	builtins := map[string]string{
-		"println": "lingPrintln", "print": "lingPrint", "len": "lingLen",
-		"str": "lingStr", "int": "lingInt", "float": "lingFloat",
-		"keys": "lingKeys", "has": "lingHas", "push": "lingPush",
-		"assert": "lingAssert", "err": "lingErr", "bytes": "lingBytes",
-		"char": "lingChar", "jsonParse": "lingJSONParse", "jsonStringify": "lingJSONStringify",
-		"isNone": "lingIsNone", "makeChan": "lingNewChan",
-		"send": "lingChanSend", "recv": "lingChanRecv",
+		"println": "langGoPrintln", "print": "langGoPrint", "len": "langGoLen",
+		"str": "langGoStr", "int": "langGoInt", "float": "langGoFloat",
+		"keys": "langGoKeys", "has": "langGoHas", "push": "langGoPush",
+		"assert": "langGoAssert", "err": "langGoErr", "bytes": "langGoBytes",
+		"char": "langGoChar", "jsonParse": "langGoJSONParse", "jsonStringify": "langGoJSONStringify",
+		"isNone": "langGoIsNone", "makeChan": "langGoNewChan",
+		"send": "langGoChanSend", "recv": "langGoChanRecv",
 	}
 	if bf, ok := builtins[id.Name]; ok {
 		if id.Name == "values" {
@@ -1455,7 +1455,7 @@ func (g *jsgen) emitCall(x *syntax.CallEx) (string, error) {
 				return "", err
 			}
 			if id.Name == "push" {
-				arg = "lingCopy(" + arg + ")"
+				arg = "langGoCopy(" + arg + ")"
 			}
 			args = append(args, arg)
 		}
@@ -1469,7 +1469,7 @@ func (g *jsgen) emitCall(x *syntax.CallEx) (string, error) {
 			if err != nil {
 				return "", err
 			}
-			args = append(args, "lingCopy("+arg+")")
+			args = append(args, "langGoCopy("+arg+")")
 		}
 		_ = fi
 		return "await " + fi.goName + "(" + strings.Join(args, ", ") + ")", nil
@@ -1509,7 +1509,7 @@ func (g *jsgen) emitValues(x *syntax.CallEx) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return "lingValues(" + arg + ")", nil
+	return "langGoValues(" + arg + ")", nil
 }
 
 func (g *jsgen) emitNonIdentCall(x *syntax.CallEx) (string, error) {
@@ -1526,7 +1526,7 @@ func (g *jsgen) emitNonIdentCall(x *syntax.CallEx) (string, error) {
 				if err != nil {
 					return "", err
 				}
-				args = append(args, "lingCopy("+arg+")")
+				args = append(args, "langGoCopy("+arg+")")
 			}
 			return "await " + goName + "(" + obj + ", " + strings.Join(args, ", ") + ")", nil
 		}

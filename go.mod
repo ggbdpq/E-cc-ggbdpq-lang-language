@@ -1,3 +1,3 @@
-module ling
+module lang-go
 
 go 1.26

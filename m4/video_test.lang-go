@@ -1,4 +1,4 @@
-// video_test.ling —— fixture 取自 m4/gofixture（video.go 纯函数实测输出）
+// video_test.lang-go —— fixture 取自 m4/gofixture（video.go 纯函数实测输出）
 fn testCodecName() {
     assert(codecName(DashStream{codecs: "avc1.64001F", codecid: 0, bandwidth: 0, height: 0}) == "h264", "avc 前缀")
     assert(codecName(DashStream{codecs: "hvc1.2.4", codecid: 0, bandwidth: 0, height: 0}) == "hevc", "hvc 前缀")

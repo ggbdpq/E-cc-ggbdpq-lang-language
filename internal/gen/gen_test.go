@@ -2,7 +2,7 @@ package gen
 
 // 测试缝两层：
 // 1) Transpile 的约束报错（编译期检查：穷尽性、? 位置、注解要求）
-// 2) 端到端等价：同一 ling 程序，解释器输出与 →Go 编译执行输出逐字节一致
+// 2) 端到端等价：同一 langGo 程序，解释器输出与 →Go 编译执行输出逐字节一致
 //    ——这是 →Go 后端"跑通"的机械判据，也是 M4 的验收方式
 //
 // 命令执行安全：go build / 产物运行的命令参数全部为字面量，
@@ -17,9 +17,9 @@ import (
 	"strings"
 	"testing"
 
-	"ling/internal/interp"
-	"ling/internal/load"
-	"ling/internal/syntax"
+	"lang-go/internal/interp"
+	"lang-go/internal/load"
+	"lang-go/internal/syntax"
 )
 
 func transpile(t *testing.T, src string) string {
@@ -183,7 +183,7 @@ func Test等价_M4移植(t *testing.T) {
 	}
 	fixture := strings.Join(fixtureLines, "\n")
 	if got != fixture {
-		t.Fatalf("与 Go 原版 fixture 不一致\n=== gofixture ===\n%q\n=== ling（→Go）===\n%q", fixture, got)
+		t.Fatalf("与 Go 原版 fixture 不一致\n=== gofixture ===\n%q\n=== langGo（→Go）===\n%q", fixture, got)
 	}
 }
 
@@ -195,7 +195,7 @@ func Test等价_示例程序(t *testing.T) {
 	for _, name := range []string{"hello", "shapes", "result", "closures", "json", "compound", "tour", "channel"} {
 		name := name
 		t.Run(name, func(t *testing.T) {
-			srcBytes, err := os.ReadFile(filepath.Join("..", "..", "examples", name, "main.ling"))
+			srcBytes, err := os.ReadFile(filepath.Join("..", "..", "examples", name, "main.lang-go"))
 			if err != nil {
 				t.Fatalf("读示例失败: %v", err)
 			}
@@ -209,7 +209,7 @@ func Test等价_示例程序(t *testing.T) {
 	}
 	// goroutine 例外：→Go 真并行行序不定，只比排序后的行集合
 	t.Run("goroutine", func(t *testing.T) {
-		srcBytes, err := os.ReadFile(filepath.Join("..", "..", "examples", "goroutine", "main.ling"))
+		srcBytes, err := os.ReadFile(filepath.Join("..", "..", "examples", "goroutine", "main.lang-go"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -233,12 +233,12 @@ func TestRecv阻塞语义(t *testing.T) {
 	}
 	src := prelude + `
 func main() {
-	ch := lingNewChan()
+	ch := langGoNewChan()
 	go func() {
 		time.Sleep(50 * time.Millisecond)
-		lingSend(ch, 42)
+		langGoSend(ch, 42)
 	}()
-	r := lingRecv(ch)
+	r := langGoRecv(ch)
 	if !r.ok {
 		fmt.Println("ERR")
 		return

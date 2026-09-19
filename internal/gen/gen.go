@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"strings"
 
-	"ling/internal/syntax"
+	"lang-go/internal/syntax"
 )
 
-// Transpile 把 ling 程序转译为自包含、可编译的 Go 源码（package main，prelude 内联）。
+// Transpile 把 langGo 程序转译为自包含、可编译的 Go 源码（package main，prelude 内联）。
 //
 // →Go 约束（spec §6，违反即返回错误）：
 //   - 顶层函数与方法、函数字面量的参数必须有类型注解；
@@ -50,7 +50,7 @@ type fnInfo struct {
 	goName  string
 	params  []param
 	retGo   string        // "" 表示 void
-	retLing syntax.TypeEx // Result 注解时用于 Ok/Err/? 展开
+	retLangGo syntax.TypeEx // Result 注解时用于 Ok/Err/? 展开
 }
 
 type gen struct {
@@ -64,7 +64,7 @@ type gen struct {
 	scopes     []map[string]string
 	tmpN       int
 	curRetGo   string
-	curRetLing syntax.TypeEx
+	curRetLangGo syntax.TypeEx
 	curTparams map[string]bool
 	curFn      string
 }
@@ -89,7 +89,7 @@ var goKeywords = map[string]bool{
 }
 
 func nameClashes(name string) bool {
-	return goKeywords[name] || strings.HasPrefix(name, "Ling") ||
+	return goKeywords[name] || strings.HasPrefix(name, "LangGo") ||
 		strings.HasPrefix(name, "lf_") || strings.HasPrefix(name, "le_")
 }
 
@@ -184,7 +184,7 @@ func (g *gen) fnInfoOf(d *syntax.FnDecl) (*fnInfo, error) {
 			return nil, g.errf(d.Line, "返回类型: %v", err)
 		}
 		info.retGo = t
-		info.retLing = d.Ret
+		info.retLangGo = d.Ret
 	}
 	return info, nil
 }
@@ -228,7 +228,7 @@ func (g *gen) goTypeWith(tps map[string]bool, t syntax.TypeEx) (string, error) {
 			if err != nil {
 				return "", err
 			}
-			return "LingRes[" + et + "]", nil
+			return "LangGoRes[" + et + "]", nil
 		}
 		if tt.Name == "Option" {
 			if len(tt.Args) != 1 {
@@ -238,10 +238,10 @@ func (g *gen) goTypeWith(tps map[string]bool, t syntax.TypeEx) (string, error) {
 			if err != nil {
 				return "", err
 			}
-			return "LingOpt[" + et + "]", nil
+			return "LangGoOpt[" + et + "]", nil
 		}
 		if _, isEnum := g.enums[tt.Name]; isEnum {
-			return "LingEnum", nil
+			return "LangGoEnum", nil
 		}
 		if _, isStruct := g.structs[tt.Name]; isStruct {
 			return tt.Name, nil
@@ -255,9 +255,9 @@ func (g *gen) goTypeWith(tps map[string]bool, t syntax.TypeEx) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return "*LingArr[" + elem + "]", nil
+		return "*LangGoArr[" + elem + "]", nil
 	case *syntax.MapType:
-		return "*LingMap", nil
+		return "*LangGoMap", nil
 	case *syntax.PtrType:
 		elem, err := g.goTypeWith(tps, tt.Elem)
 		if err != nil {
@@ -300,7 +300,7 @@ func (g *gen) infer(e syntax.Expr) string {
 	case *syntax.Ident:
 		// 零参构造器裸写（Unit 等）时按 enum 值推断
 		if _, isCtor := g.caseEnum[x.Name]; isCtor {
-			return "LingEnum"
+			return "LangGoEnum"
 		}
 		return g.lookup(x.Name)
 	case *syntax.Unary:
@@ -340,32 +340,32 @@ func (g *gen) infer(e syntax.Expr) string {
 			case "send":
 				return "any"
 			case "recv":
-				return "LingRes[any]"
+				return "LangGoRes[any]"
 			case "bytes":
-				return "*LingArr[any]"
+				return "*LangGoArr[any]"
 			case "char":
 				return "string"
 			case "keys", "values":
-				return "*LingArr[any]"
+				return "*LangGoArr[any]"
 			case "push":
 				if len(x.Args) > 0 {
 					return g.infer(x.Args[0])
 				}
 			case "Some":
 				if len(x.Args) == 1 {
-					return "LingOpt[" + g.infer(x.Args[0]) + "]"
+					return "LangGoOpt[" + g.infer(x.Args[0]) + "]"
 				}
 			case "None":
-				return "LingOpt[any]"
+				return "LangGoOpt[any]"
 			case "Ok":
 				if len(x.Args) == 1 {
-					return "LingRes[" + g.infer(x.Args[0]) + "]"
+					return "LangGoRes[" + g.infer(x.Args[0]) + "]"
 				}
 			case "Err":
-				return "LingRes[any]"
+				return "LangGoRes[any]"
 			default:
 				if _, isUser := g.caseEnum[id.Name]; isUser {
-					return "LingEnum"
+					return "LangGoEnum"
 				}
 				if fi, ok := g.fns[id.Name]; ok && fi.retGo != "" {
 					return fi.retGo
@@ -387,11 +387,11 @@ func (g *gen) infer(e syntax.Expr) string {
 			}
 		}
 		if uniform && first != "any" {
-			return "*LingArr[" + first + "]"
+			return "*LangGoArr[" + first + "]"
 		}
-		return "*LingArr[any]"
+		return "*LangGoArr[any]"
 	case *syntax.MapLit:
-		return "*LingMap"
+		return "*LangGoMap"
 	case *syntax.MatchEx:
 		if len(x.Arms) > 0 {
 			return g.infer(x.Arms[0].Body)
@@ -432,12 +432,12 @@ func (g *gen) infer(e syntax.Expr) string {
 		}
 		return "any"
 	case *syntax.IndexEx:
-		// 运行时 lingIndex 恒返回 any（接口类型），推断须与之对齐
+		// 运行时 langGoIndex 恒返回 any（接口类型），推断须与之对齐
 		return "any"
 	case *syntax.SliceEx:
 		return "any"
 	case *syntax.RangeEx:
-		return "lingRange"
+		return "langGoRange"
 	}
 	return "any"
 }
@@ -466,10 +466,10 @@ func (g *gen) lookup(name string) string {
 	return "any"
 }
 
-// maybeWrap 在 any 与具体类型交界处插 lingTo 断言
+// maybeWrap 在 any 与具体类型交界处插 langGoTo 断言
 func (g *gen) maybeWrap(target, gotType, expr string) string {
 	if target != "any" && target != "" && gotType == "any" {
-		return "lingTo[" + target + "](" + expr + ")"
+		return "langGoTo[" + target + "](" + expr + ")"
 	}
 	return expr
 }
@@ -499,13 +499,13 @@ func (g *gen) emitProgram(prog []syntax.Stmt) error {
 		g.w("")
 		var parts []string
 		for _, f := range sd.Fields {
-			parts = append(parts, fmt.Sprintf("%q + \": \" + lingFmt(v.%s, false)", f.Name, f.Name))
+			parts = append(parts, fmt.Sprintf("%q + \": \" + langGoFmt(v.%s, false)", f.Name, f.Name))
 		}
-		g.w("func (v " + sd.Name + ") lingString(top bool) string {")
+		g.w("func (v " + sd.Name + ") langGoString(top bool) string {")
 		g.w("return " + strconv.Quote(sd.Name) + " + \"{\" + strings.Join([]string{" + strings.Join(parts, ", ") + "}, \", \") + \"}\"")
 		g.w("}")
-		// LingField：装箱值（any）取字段时的接口分派目标
-		g.w("func (v " + sd.Name + ") LingField(name string) any {")
+		// LangGoField：装箱值（any）取字段时的接口分派目标
+		g.w("func (v " + sd.Name + ") LangGoField(name string) any {")
 		g.w("switch name {")
 		for _, f := range sd.Fields {
 			g.w(`case "` + f.Name + `":`)
@@ -534,7 +534,7 @@ func (g *gen) emitProgram(prog []syntax.Stmt) error {
 			if len(vals) > 0 {
 				valsExpr = "[]any{" + strings.Join(vals, ", ") + "}"
 			}
-			g.w("func le_" + en.Name + "_" + c.Name + "(" + strings.Join(ps, ", ") + ") LingEnum { return LingEnum{" + strconv.Quote(c.Name) + ", " + valsExpr + "} }")
+			g.w("func le_" + en.Name + "_" + c.Name + "(" + strings.Join(ps, ", ") + ") LangGoEnum { return LangGoEnum{" + strconv.Quote(c.Name) + ", " + valsExpr + "} }")
 			g.w("")
 		}
 	}
@@ -575,7 +575,7 @@ func (g *gen) emitProgram(prog []syntax.Stmt) error {
 	if _, has := g.fns["main"]; has {
 		g.w("func main() {")
 		g.w("\tlf_main()")
-		g.w("\tlingWaitAll()")
+		g.w("\tlangGoWaitAll()")
 		g.w("}")
 	} else {
 		g.w("func main() {}")
@@ -637,7 +637,7 @@ func (g *gen) emitFunc(d *syntax.FnDecl) error {
 	err := g.emitBody(d.Body)
 	// 函数体内有 go 语句：函数边界 join（保证调用方读到任务结果）
 	if err == nil && bodyHasGo(d.Body) {
-		g.w("	lingWaitAll()")
+		g.w("	langGoWaitAll()")
 	}
 	g.popCtx(saved)
 	g.curFn = savedFn
@@ -701,15 +701,15 @@ type ctxSave struct {
 	scopes  []map[string]string
 	indent  int
 	retGo   string
-	retLing syntax.TypeEx
+	retLangGo syntax.TypeEx
 	tps     map[string]bool
 }
 
-func (g *gen) pushCtx(retGo string, retLing syntax.TypeEx, tps map[string]bool, scope map[string]string) ctxSave {
-	s := ctxSave{g.scopes, g.indent, g.curRetGo, g.curRetLing, g.curTparams}
+func (g *gen) pushCtx(retGo string, retLangGo syntax.TypeEx, tps map[string]bool, scope map[string]string) ctxSave {
+	s := ctxSave{g.scopes, g.indent, g.curRetGo, g.curRetLangGo, g.curTparams}
 	g.scopes = []map[string]string{scope}
 	g.curRetGo = retGo
-	g.curRetLing = retLing
+	g.curRetLangGo = retLangGo
 	g.curTparams = tps
 	return s
 }
@@ -718,7 +718,7 @@ func (g *gen) popCtx(s ctxSave) {
 	g.scopes = s.scopes
 	g.indent = s.indent
 	g.curRetGo = s.retGo
-	g.curRetLing = s.retLing
+	g.curRetLangGo = s.retLangGo
 	g.curTparams = s.tps
 }
 
@@ -826,7 +826,7 @@ func (g *gen) emitStmt(s syntax.Stmt) error {
 			}
 			args = append(args, arg)
 		}
-		g.w("lingGo(func() { " + fi.goName + "(" + strings.Join(args, ", ") + ") })")
+		g.w("langGoGo(func() { " + fi.goName + "(" + strings.Join(args, ", ") + ") })")
 		return nil
 
 	case *syntax.FnDecl:
@@ -845,12 +845,12 @@ func (g *gen) emitLet(name string, typ syntax.TypeEx, init syntax.Expr, line int
 		if name != "_" {
 			// 收窄源是 ? 操作数的 Result T（recv → any；用户函数按其注解）
 			bindType := "any"
-			if ot := g.infer(init); strings.HasPrefix(ot, "LingRes[") {
-				bindType = ot[len("LingRes[") : len(ot)-1]
+			if ot := g.infer(init); strings.HasPrefix(ot, "LangGoRes[") {
+				bindType = ot[len("LangGoRes[") : len(ot)-1]
 			}
 			rhs := tmp + ".v"
 			if bindType != "any" {
-				rhs = "lingTo[" + bindType + "](" + rhs + ")"
+				rhs = "langGoTo[" + bindType + "](" + rhs + ")"
 			}
 			g.w(name + " := " + rhs)
 			g.scopes[len(g.scopes)-1][name] = bindType
@@ -872,7 +872,7 @@ func (g *gen) emitLet(name string, typ syntax.TypeEx, init syntax.Expr, line int
 			return g.errf(line, "%v", err)
 		}
 		// 空数组字面量继承注解类型：var out: [U] = []
-		if al, ok := init.(*syntax.ArrLit); ok && len(al.Items) == 0 && strings.HasPrefix(t, "*LingArr[") {
+		if al, ok := init.(*syntax.ArrLit); ok && len(al.Items) == 0 && strings.HasPrefix(t, "*LangGoArr[") {
 			expr = "&" + t[1:] + "{}"
 		} else {
 			expr = g.maybeWrap(t, g.infer(init), expr)
@@ -950,14 +950,14 @@ func (g *gen) emitAssign(st *syntax.AssignStmt) error {
 		if err != nil {
 			return err
 		}
-		g.w("lingSetIndex(" + obj + ", " + idx + ", " + expr + ")")
+		g.w("langGoSetIndex(" + obj + ", " + idx + ", " + expr + ")")
 		return nil
 	}
 	return g.errf(st.Line, "赋值目标不合法")
 }
 
 // emitCompoundAssign 复合赋值：ident/field 原生 +=（Go 数值/字符串原生）；
-// 数组 += 走 lingPushFrom；index 复合走 lingAddIndex（Map 值读改写）
+// 数组 += 走 langGoPushFrom；index 复合走 langGoAddIndex（Map 值读改写）
 func (g *gen) emitCompoundAssign(st *syntax.AssignStmt) error {
 	op := ""
 	switch st.Op {
@@ -977,8 +977,8 @@ func (g *gen) emitCompoundAssign(st *syntax.AssignStmt) error {
 			return err
 		}
 		lt := g.lookup(tgt.Name)
-		if st.Op == syntax.PlusAssign && strings.HasPrefix(lt, "*LingArr[") {
-			g.w(tgt.Name + " = lingPushFrom(" + tgt.Name + ", " + expr + ")")
+		if st.Op == syntax.PlusAssign && strings.HasPrefix(lt, "*LangGoArr[") {
+			g.w(tgt.Name + " = langGoPushFrom(" + tgt.Name + ", " + expr + ")")
 			return nil
 		}
 		// any 右值（如 recv(ch)? 解包）按目标类型收窄，Go 原生 += 不接受 any（#40 统一出口）
@@ -1008,7 +1008,7 @@ func (g *gen) emitCompoundAssign(st *syntax.AssignStmt) error {
 		if err != nil {
 			return err
 		}
-		g.w("lingAddIndex(" + obj + ", " + idx + ", " + expr + ", " + strconv.Quote(op) + ")")
+		g.w("langGoAddIndex(" + obj + ", " + idx + ", " + expr + ", " + strconv.Quote(op) + ")")
 		return nil
 	}
 	return g.errf(st.Line, "赋值目标不合法")
@@ -1036,7 +1036,7 @@ func isVoidCall(e syntax.Expr, g *gen) bool {
 }
 
 func (g *gen) isResultFn() bool {
-	rt, ok := g.curRetLing.(*syntax.NamedType)
+	rt, ok := g.curRetLangGo.(*syntax.NamedType)
 	return ok && rt.Name == "Result"
 }
 
@@ -1047,15 +1047,15 @@ func (g *gen) coerceAlgebraic(scrut string, m *syntax.MatchEx, kind string) stri
 	}
 	switch kind {
 	case "result":
-		return "lingTo[LingRes[any]](" + scrut + ")"
+		return "langGoTo[LangGoRes[any]](" + scrut + ")"
 	case "option":
-		return "lingTo[LingOpt[any]](" + scrut + ")"
+		return "langGoTo[LangGoOpt[any]](" + scrut + ")"
 	}
 	return scrut
 }
 
 func (g *gen) resultT() (string, error) {
-	rt, ok := g.curRetLing.(*syntax.NamedType)
+	rt, ok := g.curRetLangGo.(*syntax.NamedType)
 	if !ok || rt.Name != "Result" || len(rt.Args) != 2 {
 		return "", fmt.Errorf("带 ? 的函数须注解为 Result[T, error]")
 	}
@@ -1093,9 +1093,9 @@ func (g *gen) emitReturn(st *syntax.ReturnStmt) error {
 			return err
 		}
 		if id.Name == "Ok" {
-			g.w("return LingOk[" + t + "](" + expr + ")")
+			g.w("return LangGoOk[" + t + "](" + expr + ")")
 		} else {
-			g.w("return LingResErr[" + t + "](" + expr + ")")
+			g.w("return LangGoResErr[" + t + "](" + expr + ")")
 		}
 		return nil
 	}
@@ -1108,7 +1108,7 @@ func (g *gen) emitReturn(st *syntax.ReturnStmt) error {
 	}
 	// 返回值按签名收窄（如 jsonStr 的 any → string）
 	if rt := strings.TrimSpace(g.curRetGo); rt != "" && rt != "any" && g.infer(st.Val) == "any" {
-		expr = "lingTo[" + rt + "](" + expr + ")"
+		expr = "langGoTo[" + rt + "](" + expr + ")"
 	}
 	// match 作返回值：包成立即调用函数字面量
 	if _, ok := st.Val.(*syntax.MatchEx); ok {
@@ -1131,7 +1131,7 @@ func (g *gen) genTry(t *syntax.TryEx) (string, error) {
 	}
 	if g.infer(t.X) == "any" {
 		// 装箱 Result（如 http.get）先收窄再解包
-		expr = "lingTo[LingRes[any]](" + expr + ")"
+		expr = "langGoTo[LangGoRes[any]](" + expr + ")"
 	}
 	tt, err := g.resultT()
 	if err != nil {
@@ -1140,7 +1140,7 @@ func (g *gen) genTry(t *syntax.TryEx) (string, error) {
 	g.w(tmp + " := " + expr)
 	g.w("if !" + tmp + ".ok {")
 	g.indent++
-	g.w("return LingResErr[" + tt + "](" + tmp + ".e)")
+	g.w("return LangGoResErr[" + tt + "](" + tmp + ".e)")
 	g.indent--
 	g.w("}")
 	return tmp, nil
@@ -1152,7 +1152,7 @@ func (g *gen) condExpr(e syntax.Expr) (string, error) {
 		return "", err
 	}
 	if g.infer(e) != "bool" {
-		expr = "lingTruthy(" + expr + ")"
+		expr = "langGoTruthy(" + expr + ")"
 	}
 	return expr, nil
 }
@@ -1203,8 +1203,8 @@ func (g *gen) emitForIn(st *syntax.ForInStmt) error {
 	t := g.infer(st.Iter)
 	name := st.Var
 	switch {
-	case strings.HasPrefix(t, "*LingArr["):
-		elem := t[len("*LingArr[") : len(t)-1]
+	case strings.HasPrefix(t, "*LangGoArr["):
+		elem := t[len("*LangGoArr[") : len(t)-1]
 		g.w(tmp + " := " + it)
 		g.w("for _, " + name + " := range " + tmp + ".Items {")
 		if err := g.emitBlockTyped(st.Body, name, elem); err != nil {
@@ -1218,7 +1218,7 @@ func (g *gen) emitForIn(st *syntax.ForInStmt) error {
 		}
 		g.w("}")
 	case t == "string":
-		// ling 语义：按码点迭代，绑定单字符字符串
+		// langGo 语义：按码点迭代，绑定单字符字符串
 		g.w("for _, _r" + tmp + " := range []rune(" + it + ") {")
 		g.indent++
 		g.pushScope()
@@ -1231,11 +1231,11 @@ func (g *gen) emitForIn(st *syntax.ForInStmt) error {
 		g.indent--
 		g.w("}")
 	default:
-		// 动态值（JSON 结果等）：运行时分派迭代（lingIter 做快照）
+		// 动态值（JSON 结果等）：运行时分派迭代（langGoIter 做快照）
 		if t != "any" {
 			return g.errf(st.Line, "类型 %s 不可迭代（→Go）", t)
 		}
-		g.w(tmp + " := lingIter(" + it + ")")
+		g.w(tmp + " := langGoIter(" + it + ")")
 		g.w("for _, " + name + " := range " + tmp + ".Items {")
 		if err := g.emitBlockTyped(st.Body, name, "any"); err != nil {
 			return err
@@ -1276,7 +1276,7 @@ func (g *gen) emitNestedFn(d *syntax.FnDecl) error {
 			return g.errf(d.Line, "返回类型: %v", err)
 		}
 		info.retGo = t
-		info.retLing = d.Ret
+		info.retLangGo = d.Ret
 	}
 	tpsAll := map[string]bool{}
 	for tp := range g.curTparams {
@@ -1470,7 +1470,7 @@ func (g *gen) emitMatchStmt(m *syntax.MatchEx) error {
 				g.pushScope()
 				if bp, ok := arm.Pat.(*syntax.BindPat); ok {
 					g.w(bp.Name + " := " + tmp)
-					g.scopes[len(g.scopes)-1][bp.Name] = "LingEnum"
+					g.scopes[len(g.scopes)-1][bp.Name] = "LangGoEnum"
 				}
 				if err := g.emitArmStmt(arm); err != nil {
 					return err
@@ -1564,7 +1564,7 @@ func (g *gen) bindEnumPayloads(p *syntax.CasePat, tmp string) error {
 						pt = got
 					}
 				}
-				g.w(bp.Name + " := lingTo[" + pt + "](" + tmp + ".Vals[" + strconv.Itoa(j) + "])")
+				g.w(bp.Name + " := langGoTo[" + pt + "](" + tmp + ".Vals[" + strconv.Itoa(j) + "])")
 				g.scopes[len(g.scopes)-1][bp.Name] = pt
 			}
 		}
@@ -1603,7 +1603,7 @@ func (g *gen) emitLiteralMatchStmt(m *syntax.MatchEx, tmp string) error {
 			if err != nil {
 				return err
 			}
-			g.w(kw + " lingEq(" + tmp + ", " + lit + ") {")
+			g.w(kw + " langGoEq(" + tmp + ", " + lit + ") {")
 			if err := g.emitBlock([]syntax.Stmt{&syntax.ExprStmt{X: arm.Body, Line: arm.Line}}); err != nil {
 				return err
 			}
@@ -1634,7 +1634,7 @@ func (g *gen) emitLiteralMatchStmt(m *syntax.MatchEx, tmp string) error {
 // ———— 表达式 ————
 
 // operand 生成二元/一元运算的操作数：子式本身是运算时强制加括号，
-// 消除 ling 与 Go 优先级表的残留差异（如 % 在 Go 里高于 +）
+// 消除 langGo 与 Go 优先级表的残留差异（如 % 在 Go 里高于 +）
 func (g *gen) operand(e syntax.Expr) (string, error) {
 	s, err := g.expr(e)
 	if err != nil {
@@ -1667,11 +1667,11 @@ func (g *gen) expr(e syntax.Expr) (string, error) {
 			return "le_" + en + "_" + x.Name + "()", nil
 		}
 		if x.Name == "None" {
-			return "LingNone[any]()", nil
+			return "LangGoNone[any]()", nil
 		}
 		if x.Name == "http" {
-			// 预载 HTTP 服务值（prelude 的 lingHTTP，避让 net/http 包名）
-			return "lingHTTP", nil
+			// 预载 HTTP 服务值（prelude 的 langGoHTTP，避让 net/http 包名）
+			return "langGoHTTP", nil
 		}
 		if fi, ok := g.fns[x.Name]; ok {
 			return fi.goName, nil
@@ -1708,12 +1708,12 @@ func (g *gen) expr(e syntax.Expr) (string, error) {
 		case syntax.Or:
 			return l + " || " + r, nil
 		case syntax.Eq:
-			return "lingEq(" + l + ", " + r + ")", nil
+			return "langGoEq(" + l + ", " + r + ")", nil
 		case syntax.Neq:
-			return "!lingEq(" + l + ", " + r + ")", nil
+			return "!langGoEq(" + l + ", " + r + ")", nil
 		case syntax.Lt, syntax.Le, syntax.Gt, syntax.Ge:
-			// 排序比较统一走 lingCompare（任一侧 any 也能运行时分派）
-			cmp := "lingCompare(" + l + ", " + r + ")"
+			// 排序比较统一走 langGoCompare（任一侧 any 也能运行时分派）
+			cmp := "langGoCompare(" + l + ", " + r + ")"
 			switch x.Op {
 			case syntax.Lt:
 				return cmp + " < 0", nil
@@ -1725,24 +1725,24 @@ func (g *gen) expr(e syntax.Expr) (string, error) {
 				return cmp + " >= 0", nil
 			}
 		case syntax.Plus:
-			// 任一侧为 any（如字符串索引/切片）时按 ling 语义收窄：
+			// 任一侧为 any（如字符串索引/切片）时按 langGo 语义收窄：
 			// 已知字符串走拼接，否则按 int 收窄（非该类型运行时 panic，镜像解释器）
 			li, ri := g.infer(x.L), g.infer(x.R)
 			if li == "any" || ri == "any" {
 				if li == "string" || ri == "string" {
-					return "lingStrVal(" + l + ") + lingStrVal(" + r + ")", nil
+					return "langGoStrVal(" + l + ") + langGoStrVal(" + r + ")", nil
 				}
-				return "lingInt(" + l + ") + lingInt(" + r + ")", nil
+				return "langGoInt(" + l + ") + langGoInt(" + r + ")", nil
 			}
 		case syntax.Minus, syntax.Star, syntax.Slash, syntax.Percent,
 			syntax.Amp, syntax.BitOr, syntax.Xor, syntax.Shl, syntax.Shr:
 			// 数值/位运算：any 侧按 int 收窄
 			li, ri := g.infer(x.L), g.infer(x.R)
 			if li == "any" {
-				l = "lingInt(" + l + ")"
+				l = "langGoInt(" + l + ")"
 			}
 			if ri == "any" {
-				r = "lingInt(" + r + ")"
+				r = "langGoInt(" + r + ")"
 			}
 		}
 		op := ""
@@ -1787,7 +1787,7 @@ func (g *gen) expr(e syntax.Expr) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return "lingRange{Lo: " + lo + ", Hi: " + hi + "}", nil
+		return "langGoRange{Lo: " + lo + ", Hi: " + hi + "}", nil
 
 	case *syntax.CallEx:
 		return g.emitCall(x)
@@ -1801,7 +1801,7 @@ func (g *gen) expr(e syntax.Expr) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return "lingIndex(" + obj + ", " + idx + ")", nil
+		return "langGoIndex(" + obj + ", " + idx + ")", nil
 
 	case *syntax.SliceEx:
 		obj, err := g.expr(x.Obj)
@@ -1816,7 +1816,7 @@ func (g *gen) expr(e syntax.Expr) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return "lingSlice(" + obj + ", " + lo + ", " + hi + ")", nil
+		return "langGoSlice(" + obj + ", " + lo + ", " + hi + ")", nil
 
 	case *syntax.FieldEx:
 		obj, err := g.expr(x.Obj)
@@ -1825,13 +1825,13 @@ func (g *gen) expr(e syntax.Expr) (string, error) {
 		}
 		if g.infer(x.Obj) == "error" {
 			if x.Name == "msg" {
-				return "lingErrMsg(" + obj + ")", nil
+				return "langGoErrMsg(" + obj + ")", nil
 			}
 			return "", g.errf(x.Line, "error 只有 msg 字段")
 		}
 		// 装箱值（如 http 响应）经接口分派取字段
 		if g.infer(x.Obj) == "any" {
-			return "lingField(" + obj + ", " + strconv.Quote(x.Name) + ")", nil
+			return "langGoField(" + obj + ", " + strconv.Quote(x.Name) + ")", nil
 		}
 		return obj + "." + x.Name, nil
 
@@ -1866,15 +1866,15 @@ func (g *gen) expr(e syntax.Expr) (string, error) {
 			if err != nil {
 				return "", err
 			}
-			kvs = append(kvs, "lingKV{"+k+", "+v+"}")
+			kvs = append(kvs, "langGoKV{"+k+", "+v+"}")
 		}
-		return "lingNewMap(" + strings.Join(kvs, ", ") + ")", nil
+		return "langGoNewMap(" + strings.Join(kvs, ", ") + ")", nil
 
 	case *syntax.ArrLit:
 		t := g.infer(x)
 		elem := "any"
-		if strings.HasPrefix(t, "*LingArr[") {
-			elem = t[len("*LingArr[") : len(t)-1]
+		if strings.HasPrefix(t, "*LangGoArr[") {
+			elem = t[len("*LangGoArr[") : len(t)-1]
 		}
 		var items []string
 		for _, el := range x.Items {
@@ -1885,9 +1885,9 @@ func (g *gen) expr(e syntax.Expr) (string, error) {
 			items = append(items, g.maybeWrap(elem, g.infer(el), v))
 		}
 		if len(items) == 0 {
-			return "&LingArr[" + elem + "]{}", nil
+			return "&LangGoArr[" + elem + "]{}", nil
 		}
-		return "&LingArr[" + elem + "]{Items: []" + elem + "{" + strings.Join(items, ", ") + "}}", nil
+		return "&LangGoArr[" + elem + "]{Items: []" + elem + "{" + strings.Join(items, ", ") + "}}", nil
 
 	case *syntax.MatchEx:
 		return g.exprMatch(x)
@@ -1989,7 +1989,7 @@ func (g *gen) exprMatch(m *syntax.MatchEx) (string, error) {
 				g.pushScope()
 				if bp, ok := arm.Pat.(*syntax.BindPat); ok {
 					g.w(bp.Name + " := " + tmp)
-					g.scopes[len(g.scopes)-1][bp.Name] = "LingEnum"
+					g.scopes[len(g.scopes)-1][bp.Name] = "LangGoEnum"
 				}
 				if err := g.emitArmReturn(arm); err != nil {
 					emitErr = err
@@ -2056,7 +2056,7 @@ func (g *gen) emitLiteralMatchReturn(m *syntax.MatchEx, tmp string) error {
 			if err != nil {
 				return err
 			}
-			g.w(kw + " lingEq(" + tmp + ", " + lit + ") {")
+			g.w(kw + " langGoEq(" + tmp + ", " + lit + ") {")
 			g.indent++
 			g.pushScope()
 			if err := g.emitArmReturn(arm); err != nil {
@@ -2140,8 +2140,8 @@ func (g *gen) emitFnLit(x *syntax.FnLit) (string, error) {
 	// 闭包语义：字面量可见外层作用域（类型环境随之继承）
 	savedScopes := g.scopes
 	g.scopes = append(append([]map[string]string{}, savedScopes...), scope)
-	savedRetGo, savedRetLing, savedTps := g.curRetGo, g.curRetLing, g.curTparams
-	g.curRetGo, g.curRetLing, g.curTparams = retDecl, x.Ret, tps
+	savedRetGo, savedRetLangGo, savedTps := g.curRetGo, g.curRetLangGo, g.curTparams
+	g.curRetGo, g.curRetLangGo, g.curTparams = retDecl, x.Ret, tps
 	g.w("func(" + strings.Join(ps, ", ") + ")" + retDecl + " {")
 	var bodyErr error
 	for _, st := range x.Body {
@@ -2153,7 +2153,7 @@ func (g *gen) emitFnLit(x *syntax.FnLit) (string, error) {
 		g.w("}")
 	}
 	g.scopes = savedScopes
-	g.curRetGo, g.curRetLing, g.curTparams = savedRetGo, savedRetLing, savedTps
+	g.curRetGo, g.curRetLangGo, g.curTparams = savedRetGo, savedRetLangGo, savedTps
 	out := g.buf.String()
 	g.buf = savedBuf
 	g.indent = savedIndent
@@ -2173,14 +2173,14 @@ func (g *gen) isBuiltinFn(name string) bool {
 }
 
 var builtinMap = map[string]string{
-	"println": "lingPrintln", "print": "lingPrint", "len": "lingLen",
-	"str": "lingStr", "int": "lingInt", "float": "lingFloat",
-	"keys": "lingKeys", "values": "lingValues", "has": "lingHas",
-	"push": "lingPush", "assert": "lingAssert", "err": "lingErr",
-	"bytes": "lingBytes", "char": "lingChar",
-	"makeChan": "lingNewChan", "send": "lingSend", "recv": "lingRecv",
-	"jsonParse": "lingJSONParse", "jsonStringify": "lingJSONStringify",
-	"isNone": "lingIsNone",
+	"println": "langGoPrintln", "print": "langGoPrint", "len": "langGoLen",
+	"str": "langGoStr", "int": "langGoInt", "float": "langGoFloat",
+	"keys": "langGoKeys", "values": "langGoValues", "has": "langGoHas",
+	"push": "langGoPush", "assert": "langGoAssert", "err": "langGoErr",
+	"bytes": "langGoBytes", "char": "langGoChar",
+	"makeChan": "langGoNewChan", "send": "langGoSend", "recv": "langGoRecv",
+	"jsonParse": "langGoJSONParse", "jsonStringify": "langGoJSONStringify",
+	"isNone": "langGoIsNone",
 }
 
 func (g *gen) emitCall(x *syntax.CallEx) (string, error) {
@@ -2211,9 +2211,9 @@ func (g *gen) emitCall(x *syntax.CallEx) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return "LingSome(" + arg + ")", nil
+		return "LangGoSome(" + arg + ")", nil
 	case "None":
-		return "LingNone[any]()", nil
+		return "LangGoNone[any]()", nil
 	case "Ok", "Err":
 		return "", g.errf(x.Line, "Ok/Err 只能出现在 Result 函数的 return（→Go 约束）")
 	}
@@ -2269,16 +2269,16 @@ func (g *gen) emitBuiltinCall(x *syntax.CallEx, name, bf string) (string, error)
 			return "", err
 		}
 		if g.infer(x.Args[0]) != "bool" {
-			cond = "lingTruthy(" + cond + ")"
+			cond = "langGoTruthy(" + cond + ")"
 		}
 		if len(x.Args) == 2 {
 			msg, err := g.expr(x.Args[1])
 			if err != nil {
 				return "", err
 			}
-			return "lingAssert(" + cond + ", " + msg + ")", nil
+			return "langGoAssert(" + cond + ", " + msg + ")", nil
 		}
-		return "lingAssert(" + cond + ")", nil
+		return "langGoAssert(" + cond + ")", nil
 	case "push":
 		if len(x.Args) < 2 {
 			return "", g.errf(x.Line, "push 需要至少 2 个参数")
@@ -2288,10 +2288,10 @@ func (g *gen) emitBuiltinCall(x *syntax.CallEx, name, bf string) (string, error)
 			return "", err
 		}
 		at := g.infer(x.Args[0])
-		if !strings.HasPrefix(at, "*LingArr[") {
+		if !strings.HasPrefix(at, "*LangGoArr[") {
 			return "", g.errf(x.Line, "push 目标类型未知（→Go 需可推断的数组）")
 		}
-		elem := at[len("*LingArr[") : len(at)-1]
+		elem := at[len("*LangGoArr[") : len(at)-1]
 		var vs []string
 		for _, a := range x.Args[1:] {
 			v, err := g.expr(a)

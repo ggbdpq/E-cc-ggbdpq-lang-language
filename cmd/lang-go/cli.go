@@ -1,8 +1,8 @@
 package main
 
 // CLI 实现：run/test/REPL
-// 路径安全（v0.1）：不接收任何路径参数——ling run 固定运行当前目录的 main.ling，
-// ling test 固定扫描当前目录。文件输入无 ../ 穿越面。
+// 路径安全（v0.1）：不接收任何路径参数——lang-go run 固定运行当前目录的 main.lang-go，
+// lang-go test 固定扫描当前目录。文件输入无 ../ 穿越面。
 
 import (
 	"bufio"
@@ -12,19 +12,19 @@ import (
 	"path/filepath"
 	"strings"
 
-	"ling/internal/bind"
-	"ling/internal/format"
-	"ling/internal/gen"
-	"ling/internal/genjs"
-	"ling/internal/interp"
-	"ling/internal/load"
-	"ling/internal/syntax"
+	"lang-go/internal/bind"
+	"lang-go/internal/format"
+	"lang-go/internal/gen"
+	"lang-go/internal/genjs"
+	"lang-go/internal/interp"
+	"lang-go/internal/load"
+	"lang-go/internal/syntax"
 )
 
 const version = "0.1.0"
 
 // entryFile 固定入口文件名：与 Go「每目录一个 main」的习惯一致
-const entryFile = "main.ling"
+const entryFile = "main.lang-go"
 
 func cliMain() int {
 	args := os.Args[1:]
@@ -50,7 +50,7 @@ func cliMain() int {
 		}
 		return runBuild(target)
 	case "version", "--version", "-v":
-		fmt.Println("ling", version)
+		fmt.Println("lang-go", version)
 		return 0
 	case "help", "--help", "-h":
 		usage()
@@ -63,13 +63,13 @@ func cliMain() int {
 }
 
 func usage() {
-	fmt.Print(`ling ` + version + ` — 个人三域语言（v0 解释器）
+	fmt.Print(`lang-go ` + version + ` — 个人三域语言（v0 解释器）
 
 用法:
-  ling          启动 REPL（:quit 退出，:help 帮助）
-  ling run      运行当前目录的 main.ling
-  ling test     运行当前目录 *_test.ling 里的 test* 函数
-  ling version  版本
+  lang-go          启动 REPL（:quit 退出，:help 帮助）
+  lang-go run      运行当前目录的 main.lang-go
+  lang-go test     运行当前目录 *_test.lang-go 里的 test* 函数
+  lang-go version  版本
 
 文档: docs/spec.md（语言规范）  docs/decisions.md（设计决策）
 `)
@@ -87,8 +87,8 @@ func runBind() int {
 	return 0
 }
 
-// runBuild 静态检查 + 产物写入 out/（Q21）：ling build → out/main.go，
-// ling build js → out/main.mjs。写路径为常量，无用户输入参与。
+// runBuild 静态检查 + 产物写入 out/（Q21）：lang-go build → out/main.go，
+// lang-go build js → out/main.mjs。写路径为常量，无用户输入参与。
 func runBuild(target string) int {
 	prog, _, err := load.Program(".", false)
 	if err != nil {
@@ -129,7 +129,7 @@ func runBuild(target string) int {
 	return 2
 }
 
-// runFmt 就地格式化当前目录全部 .ling（不递归），打印改动的文件
+// runFmt 就地格式化当前目录全部 .lang-go（不递归），打印改动的文件
 func runFmt() int {
 	entries, err := os.ReadDir(".")
 	if err != nil {
@@ -139,7 +139,7 @@ func runFmt() int {
 	changed := 0
 	for _, e := range entries {
 		name := e.Name()
-		if e.IsDir() || !strings.HasSuffix(name, ".ling") {
+		if e.IsDir() || !strings.HasSuffix(name, ".lang-go") {
 			continue
 		}
 		src, err := os.ReadFile(name)
@@ -196,7 +196,7 @@ func runFile(path string) int {
 	return 0
 }
 
-// runTests 装载目录即包（实现文件 + *_test.ling，import 由装载器展开）后依序执行 test* 函数
+// runTests 装载目录即包（实现文件 + *_test.lang-go，import 由装载器展开）后依序执行 test* 函数
 func runTests() int {
 	it := interp.New(os.Stdout)
 	prog, tests, err := load.Program(".", true)
@@ -209,7 +209,7 @@ func runTests() int {
 		return 1
 	}
 	if len(tests) == 0 {
-		fmt.Println("未发现 *_test.ling")
+		fmt.Println("未发现 *_test.lang-go")
 		return 0
 	}
 
@@ -232,11 +232,11 @@ func runTests() int {
 
 func repl() int {
 	it := interp.New(os.Stdout)
-	fmt.Printf("ling v%s — :help 帮助, :quit 退出\n", version)
+	fmt.Printf("lang-go v%s — :help 帮助, :quit 退出\n", version)
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
 	var buf strings.Builder
-	prompt := "ling> "
+	prompt := "lang-go> "
 	for {
 		fmt.Print(prompt)
 		if !scanner.Scan() {
@@ -251,7 +251,7 @@ func repl() int {
 			case ":quit", ":q", "exit":
 				return 0
 			case ":help":
-				fmt.Println("输入 ling 源码回车执行；未闭合的块会进入续行模式；:quit 退出")
+				fmt.Println("输入 lang-go 源码回车执行；未闭合的块会进入续行模式；:quit 退出")
 				continue
 			}
 		}
@@ -266,7 +266,7 @@ func repl() int {
 			}
 			fmt.Println("错误:", err)
 			buf.Reset()
-			prompt = "ling> "
+			prompt = "lang-go> "
 			continue
 		}
 		val, has, err := it.EvalChunk(prog)
@@ -276,6 +276,6 @@ func repl() int {
 			fmt.Println("=>", interp.Fmt(val))
 		}
 		buf.Reset()
-		prompt = "ling> "
+		prompt = "lang-go> "
 	}
 }

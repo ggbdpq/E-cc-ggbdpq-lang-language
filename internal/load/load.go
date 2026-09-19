@@ -1,7 +1,7 @@
 package load
 
 // 目录即包 + import 装载器（spec §5，decisions #19/#40）：
-// Program() 把目录内全部非测试 .ling 按文件名序合并为一个程序，
+// Program() 把目录内全部非测试 .lang-go 按文件名序合并为一个程序，
 // 递归展开 import "./x"（文件或目录），限制在根目录树内；
 // 循环导入报错，菱形导入（多处导同一库）静默去重。
 
@@ -12,10 +12,10 @@ import (
 	"sort"
 	"strings"
 
-	"ling/internal/syntax"
+	"lang-go/internal/syntax"
 )
 
-// Program 装载 dir 为一个合并程序。includeTests 时 *_test.ling 追加在后，
+// Program 装载 dir 为一个合并程序。includeTests 时 *_test.lang-go 追加在后，
 // 并返回其中全部 test 前缀无参函数名（按文件名序）。
 func Program(dir string, includeTests bool) ([]syntax.Stmt, []string, error) {
 	root, err := filepath.Abs(dir)
@@ -29,7 +29,7 @@ func Program(dir string, includeTests bool) ([]syntax.Stmt, []string, error) {
 	}
 	var tests []string
 	if includeTests {
-		testFiles, err := listLing(root, true)
+		testFiles, err := listLangGo(root, true)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -57,7 +57,7 @@ type loader struct {
 	done       map[string]bool // 已完整装载的路径（菱形去重）
 }
 
-func listLing(dir string, tests bool) ([]string, error) {
+func listLangGo(dir string, tests bool) ([]string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
@@ -65,10 +65,10 @@ func listLing(dir string, tests bool) ([]string, error) {
 	var out []string
 	for _, e := range entries {
 		n := e.Name()
-		if e.IsDir() || !strings.HasSuffix(n, ".ling") {
+		if e.IsDir() || !strings.HasSuffix(n, ".lang-go") {
 			continue
 		}
-		isTest := strings.HasSuffix(n, "_test.ling")
+		isTest := strings.HasSuffix(n, "_test.lang-go")
 		if isTest == tests {
 			out = append(out, n)
 		}
@@ -77,9 +77,9 @@ func listLing(dir string, tests bool) ([]string, error) {
 	return out, nil
 }
 
-// loadDir 合并目录内非测试 .ling 并展开 import；根文件标记为 done 供去重
+// loadDir 合并目录内非测试 .lang-go 并展开 import；根文件标记为 done 供去重
 func (l *loader) loadDir(dir string) ([]syntax.Stmt, error) {
-	files, err := listLing(dir, false)
+	files, err := listLangGo(dir, false)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +112,7 @@ func (l *loader) loadFile(ap string) ([]syntax.Stmt, error) {
 	return stmts, nil
 }
 
-// expand 展开语句序列里的 ImportStmt：相对 fromDir 解析 "./x" → x.ling 或 x/ 目录
+// expand 展开语句序列里的 ImportStmt：相对 fromDir 解析 "./x" → x.lang-go 或 x/ 目录
 func (l *loader) expand(stmts []syntax.Stmt, fromDir string) ([]syntax.Stmt, error) {
 	var out []syntax.Stmt
 	for _, s := range stmts {
@@ -136,7 +136,7 @@ func (l *loader) expand(stmts []syntax.Stmt, fromDir string) ([]syntax.Stmt, err
 			sub, err = l.loadDir(target)
 		} else {
 			var fileStmts []syntax.Stmt
-			fileStmts, err = l.loadFile(target + ".ling")
+			fileStmts, err = l.loadFile(target + ".lang-go")
 			if err == nil {
 				sub, err = l.expand(fileStmts, filepath.Dir(target))
 			}

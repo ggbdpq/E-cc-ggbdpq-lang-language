@@ -1,4 +1,4 @@
-// video.ling —— video.go 纯函数层移植（linkpull bilibili）
+// video.lang-go —— video.go 纯函数层移植（linkpull bilibili）
 // 不含 probeVideo 网络编排（属 linkpull 结构体层）；dashStream 只保留纯函数用到的字段。
 struct DashStream {
     codecs: string
@@ -7,7 +7,7 @@ struct DashStream {
     height: int
 }
 
-// qnName 清晰度代号 → 展示名（数据表原样；ling 无 init()，直接全局字面量）
+// qnName 清晰度代号 → 展示名（数据表原样；lang-go 无 init()，直接全局字面量）
 var QNNAME = {"127": "8K 超高清", "126": "杜比视界", "125": "HDR 真彩", "120": "4K 超清", "116": "1080P 60帧", "112": "1080P 高码率", "100": "智能修复", "80": "1080P 高清", "74": "720P 60帧", "64": "720P 高清", "32": "480P 清晰", "16": "360P 流畅"}
 
 // hasPrefix 前缀判断
