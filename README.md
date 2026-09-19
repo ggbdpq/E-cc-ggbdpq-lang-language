@@ -17,7 +17,7 @@ v0 解释器的边界（诚实声明）：不做静态类型检查（注解为�
 ## 上手
 
 ```bash
-cd vibe/labs/ling
+cd vibe/languages/lang-go
 go build -o ling.exe ./cmd/ling
 
 (cd examples/hello && ../../ling.exe run)     # 每个示例目录一个 main.ling
