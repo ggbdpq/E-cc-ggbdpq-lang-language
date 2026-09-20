@@ -1,0 +1,28 @@
+// 二维向量：加法 / 数乘 / 点积 / 长度平方
+struct Vec2 {
+    x: float
+    y: float
+}
+fn vecAdd(a: Vec2, b: Vec2): Vec2 {
+    return Vec2{x: a.x + b.x, y: a.y + b.y}
+}
+fn vecScale(a: Vec2, k: float): Vec2 {
+    return Vec2{x: a.x * k, y: a.y * k}
+}
+fn vecDot(a: Vec2, b: Vec2): float {
+    return a.x * b.x + a.y * b.y
+}
+fn vecNorm2(a: Vec2): float {
+    return vecDot(a, a)
+}
+fn vecRunSelfCheck(): int {
+    let a = Vec2{x: 1.0, y: 2.0}
+    let b = Vec2{x: 3.0, y: 4.0}
+    let s = vecAdd(a, b)
+    assert(s.x == 4.0 && s.y == 6.0, "向量加法")
+    assert(vecDot(a, b) == 11.0, "点积")
+    assert(vecNorm2(b) == 25.0, "长度平方")
+    let k = vecScale(a, 2.0)
+    assert(k.x == 2.0 && k.y == 4.0, "数乘")
+    return 32
+}

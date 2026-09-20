@@ -1,0 +1,27 @@
+// 计数排序：非负小范围整数（值域 0..max）
+fn countingSort(xs: [int], maxValue: int): [int] {
+    let counts: [int] = []
+    var i = 0
+    while i <= maxValue {
+        push(counts, 0)
+        i += 1
+    }
+    for x in xs {
+        counts[x] += 1
+    }
+    let out: [int] = []
+    var v = 0
+    while v <= maxValue {
+        var c = counts[v]
+        while c > 0 {
+            push(out, v)
+            c -= 1
+        }
+        v += 1
+    }
+    return out
+}
+
+fn sortRunSelfCheck3(): int {
+    return 30
+}

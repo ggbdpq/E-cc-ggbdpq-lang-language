@@ -1,0 +1,38 @@
+// 回文与变位：规范化（仅字母、小写）后比较
+fn normalize(s: string): string {
+    var out = ""
+    for c in s {
+        let code = int(bytes(c)[0])
+        if code >= 65 && code <= 90 {
+            out += char(code + 32)
+        } else if code >= 97 && code <= 122 {
+            out += c
+        }
+    }
+    return out
+}
+
+fn isAlphaPalindrome(s: string): bool {
+    let norm = normalize(s)
+    return norm == reverse(norm)
+}
+
+fn isAnagram(a: string, b: string): bool {
+    if len(a) != len(b) {
+        return false
+    }
+    for c in a {
+        if countChar(b, c) != countChar(a, c) {
+            return false
+        }
+    }
+    return true
+}
+
+fn stringsRunSelfCheck3(): int {
+    assert(isAlphaPalindrome("A man a plan a canal Panama"), "复杂回文")
+    assert(!isAlphaPalindrome("hello"), "非回文")
+    assert(isAnagram("listen", "silent"), "变位词")
+    assert(!isAnagram("listen", "sound"), "非变位词")
+    return 13
+}

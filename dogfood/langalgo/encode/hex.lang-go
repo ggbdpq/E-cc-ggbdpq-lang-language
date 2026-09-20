@@ -1,0 +1,47 @@
+// 十六进制编解码：bytes（int 数组）↔ hex 字符串
+fn hexDigit(v: int): string {
+    if v < 10 {
+        return char(48 + v)
+    }
+    return char(87 + v)
+}
+
+fn hexVal(c: string): int {
+    let code = int(bytes(c)[0])
+    if code >= 97 && code <= 102 {
+        return code - 87
+    }
+    if code >= 65 && code <= 70 {
+        return code - 55
+    }
+    return code - 48
+}
+
+fn hexEncode(bs: [int]): string {
+    var out = ""
+    for b in bs {
+        out += hexDigit(b / 16)
+        out += hexDigit(b % 16)
+    }
+    return out
+}
+
+fn hexDecode(s: string): [int] {
+    let out: [int] = []
+    var i = 0
+    while i + 1 < len(s) + 1 && i + 1 <= len(s) - 1 + 1 {
+        if i * 2 + 1 >= len(s) {
+            break
+        }
+        push(out, hexVal(s[i * 2]) * 16 + hexVal(s[i * 2 + 1]))
+        i += 1
+    }
+    return out
+}
+
+fn hexRunSelfCheck(): int {
+    assert(hexEncode([0, 15, 255]) == "000fff", "hexEncode")
+    let back = hexDecode("000fff")
+    assert(back[0] == 0 && back[1] == 15 && back[2] == 255, "hexDecode")
+    return 28
+}

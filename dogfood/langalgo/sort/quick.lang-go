@@ -1,0 +1,35 @@
+// 快速排序：首元素基准（简版；升序，返回新数组）
+fn quick(xs: [int]): [int] {
+    if len(xs) <= 1 {
+        return xs
+    }
+    let pivot = xs[0]
+    let less: [int] = []
+    let greater: [int] = []
+    var i = 1
+    while i < len(xs) {
+        if xs[i] < pivot {
+            push(less, xs[i])
+        } else {
+            push(greater, xs[i])
+        }
+        i += 1
+    }
+    let out: [int] = []
+    for v in quick(less) {
+        push(out, v)
+    }
+    push(out, pivot)
+    for v in quick(greater) {
+        push(out, v)
+    }
+    return out
+}
+
+fn sortQuickRunSelfCheck(): int {
+    let s = quick([9, 4, 7, 1, 8, 2])
+    assert(s[0] == 1 && s[5] == 9, "quick 升序")
+    assert(len(quick([])) == 0, "quick 空")
+    assert(quick([2, 1])[0] == 1, "quick 双元素")
+    return 31
+}

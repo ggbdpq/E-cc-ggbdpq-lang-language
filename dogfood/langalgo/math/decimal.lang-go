@@ -1,0 +1,19 @@
+// 小数位工具：round2（保留两位）与格式化（分单位）
+// round2 四舍五入到两位小数（负数对称处理：先取绝对值再还原符号）
+fn round2(v: float): float {
+    var out = 0.0
+    if v < 0.0 {
+        let a = -v
+        out = -float(int(a * 100.0 + 0.5)) / 100.0
+    } else {
+        out = float(int(v * 100.0 + 0.5)) / 100.0
+    }
+    return out
+}
+
+fn decimalRunSelfCheck(): int {
+    assert(round2(1.005) == 1.01 || round2(1.005) == 1.0, "round2 边界稳定")
+    assert(round2(2.567) == 2.57, "round2 四舍五入")
+    assert(round2(-1.505) == -1.51 || round2(-1.505) == -1.5, "round2 负数")
+    return 44
+}

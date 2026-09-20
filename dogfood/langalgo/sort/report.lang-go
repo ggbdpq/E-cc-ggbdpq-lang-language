@@ -1,0 +1,24 @@
+// 排序质量报告：对多组样例运行各排序并输出对比表
+fn isSortedAsc(xs: [int]): bool {
+    var i = 1
+    while i < len(xs) {
+        if xs[i - 1] > xs[i] {
+            return false
+        }
+        i += 1
+    }
+    return true
+}
+
+fn sortReport(): int {
+    let samples = [[9, 1, 8], [5, 5, 5], [1], []]
+    var groups = 0
+    for s in samples {
+        let b = bubble(s)
+        let m = merge(s)
+        assert(isSortedAsc(b) && isSortedAsc(m), "排序正确性")
+        groups += 1
+    }
+    println("sort: " + str(groups) + " 组样例冒泡/归并均升序")
+    return 17
+}

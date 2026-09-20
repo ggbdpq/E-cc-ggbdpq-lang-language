@@ -1,0 +1,23 @@
+// 游程编码（RLE）：连续相同字符压缩为 字符+计数
+fn rleEncode(s: string): string {
+    var out = ""
+    var i = 0
+    let n = len(s)
+    while i < n {
+        let c = s[i]
+        var run = 1
+        while i + run < n && s[i + run] == c {
+            run += 1
+        }
+        out += c + str(run)
+        i += run
+    }
+    return out
+}
+
+fn encodeMoreRunSelfCheck(): int {
+    assert(rleEncode("aaabbc") == "a3b2c1", "rleEncode")
+    assert(rleEncode("") == "", "rleEncode 空")
+    assert(rleEncode("abc") == "a1b1c1", "rleEncode 无连续")
+    return 10
+}

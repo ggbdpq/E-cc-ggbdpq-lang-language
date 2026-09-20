@@ -1,0 +1,66 @@
+// 字符串工具第二组：split / join / trimSpace / startsWith / endsWith / repeat
+// split 按单字符分隔符切分（分隔符不出现在结果中）；空串输入返回 [""] 语义由调用方裁决
+fn split(s: string, sep: string): [string] {
+    let out = [""]
+    var idx = 0
+    for c in s {
+        if c == sep {
+            idx += 1
+            push(out, "")
+        } else {
+            let last = out[idx]
+            let merged = last + c
+            out[idx] = merged
+        }
+    }
+    return out
+}
+
+fn join(parts: [string], sep: string): string {
+    var out = ""
+    var i = 0
+    for p in parts {
+        if i > 0 {
+            out += sep
+        }
+        out += p
+        i += 1
+    }
+    return out
+}
+
+fn trimSpace(s: string): string {
+    var start = 0
+    var end = len(s)
+    while start < end && s[start] == " " {
+        start += 1
+    }
+    while end > start && s[end - 1] == " " {
+        end -= 1
+    }
+    return s[start:end]
+}
+
+fn startsWith(s: string, prefix: string): bool {
+    if len(prefix) > len(s) {
+        return false
+    }
+    return s[0:len(prefix)] == prefix
+}
+
+fn endsWith(s: string, suffix: string): bool {
+    if len(suffix) > len(s) {
+        return false
+    }
+    return s[len(s) - len(suffix):len(s)] == suffix
+}
+
+fn repeat(s: string, n: int): string {
+    var out = ""
+    var i = 0
+    while i < n {
+        out += s
+        i += 1
+    }
+    return out
+}

@@ -1,0 +1,25 @@
+// 分组：按首字符分组字符串（映射到数组）
+fn groupByFirst(words: [string]): map[string][string] {
+    let m: map[string][string] = {}
+    for w in words {
+        if w == "" {
+            continue
+        }
+        let k = w[0]
+        if has(m, k) {
+            let cur: [string] = m[k]
+            push(cur, w)
+            m[k] = cur
+        } else {
+            m[k] = [w]
+        }
+    }
+    return m
+}
+
+fn groupRunSelfCheck(): int {
+    let m = groupByFirst(["apple", "avocado", "banana"])
+    assert(len(m["a"]) == 2, "分组 a")
+    assert(m["b"][0] == "banana", "分组 b")
+    return 45
+}

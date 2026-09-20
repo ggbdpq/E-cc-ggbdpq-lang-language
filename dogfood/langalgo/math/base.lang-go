@@ -1,0 +1,68 @@
+// 进制转换：int → 2..16 进制字符串；16 进制字符串 → int
+fn digitChar(v: int): string {
+    if v < 10 {
+        return char(48 + v)
+    }
+    return char(55 + v)
+}
+
+fn digitVal(c: string): int {
+    let code = int(bytes(c)[0])
+    if code >= 48 && code <= 57 {
+        return code - 48
+    }
+    if code >= 65 && code <= 90 {
+        return code - 55
+    }
+    return code - 87
+}
+
+fn toBase(v: int, base: int): string {
+    assert(base >= 2 && base <= 16, "进制须在 2..16")
+    if v == 0 {
+        return "0"
+    }
+    var neg = false
+    var x = v
+    if x < 0 {
+        neg = true
+        x = -x
+    }
+    var out = ""
+    while x > 0 {
+        out = digitChar(x % base) + out
+        x = x / base
+    }
+    if neg {
+        out = "-" + out
+    }
+    return out
+}
+
+fn fromBase(s: string, base: int): int {
+    assert(base >= 2 && base <= 16, "进制须在 2..16")
+    var neg = false
+    var body = s
+    if startsWith(body, "-") {
+        neg = true
+        body = body[1:len(body)]
+    }
+    var out = 0
+    for c in body {
+        out = out * base + digitVal(c)
+    }
+    if neg {
+        return -out
+    }
+    return out
+}
+
+fn baseRunSelfCheck(): int {
+    assert(toBase(255, 16) == "FF", "toBase hex")
+    assert(toBase(6, 2) == "110", "toBase bin")
+    assert(fromBase("110", 2) == 6, "fromBase bin")
+    assert(fromBase("FF", 16) == 255, "fromBase hex")
+    assert(toBase(0, 2) == "0", "toBase 零")
+    assert(fromBase("-1A", 16) == -26, "fromBase 负数")
+    return 26
+}

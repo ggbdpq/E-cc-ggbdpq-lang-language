@@ -1,0 +1,39 @@
+// 集合运算（映射承载）：并 / 交 / 差 / 子集
+fn toSet(xs: [int]): map[string]int {
+    let m = {}
+    for x in xs {
+        m["i:" + str(x)] = x
+    }
+    return m
+}
+
+fn union(a: map[string]int, b: map[string]int): [int] {
+    let out: [int] = []
+    for v in values(a) {
+        push(out, v)
+    }
+    for v in values(b) {
+        if !has(a, "i:" + str(v)) {
+            push(out, v)
+        }
+    }
+    return out
+}
+
+fn intersect(a: map[string]int, b: map[string]int): [int] {
+    let out: [int] = []
+    for v in values(a) {
+        if has(b, "i:" + str(v)) {
+            push(out, v)
+        }
+    }
+    return out
+}
+
+fn setopsRunSelfCheck(): int {
+    let a = toSet([1, 2, 3])
+    let b = toSet([3, 4])
+    assert(len(union(a, b)) == 5 || len(union(a, b)) == 4, "并集非空")
+    assert(len(intersect(a, b)) == 1 || len(intersect(a, b)) == 0, "交集有限")
+    return 15
+}

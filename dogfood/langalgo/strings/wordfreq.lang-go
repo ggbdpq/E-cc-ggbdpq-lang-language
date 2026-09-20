@@ -1,0 +1,36 @@
+// 词频统计：分隔单词后用映射计数（映射插入序输出）
+fn wordFreq(s: string): map[string]int {
+    let words = split(s, " ")
+    let m = {}
+    for w in words {
+        if w == "" {
+            continue
+        }
+        if has(m, w) {
+            m[w] += 1
+        } else {
+            m[w] = 1
+        }
+    }
+    return m
+}
+
+fn topWord(m: map[string]int): string {
+    var best = ""
+    var bestN = 0
+    for k in keys(m) {
+        let n = m[k]
+        if n > bestN {
+            bestN = n
+            best = k
+        }
+    }
+    return best + ":" + str(bestN)
+}
+
+fn stringsFreqRunSelfCheck(): int {
+    let m = wordFreq("go go lang")
+    assert(m["go"] == 2 && m["lang"] == 1, "词频计数")
+    assert(topWord(m) == "go:2", "topWord")
+    return 35
+}

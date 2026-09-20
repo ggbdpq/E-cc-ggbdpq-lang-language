@@ -1,0 +1,15 @@
+// 多行文本工具：按换行切分与合并
+fn splitLines(s: string): [string] {
+    return split(s, "\n")
+}
+
+fn joinLines(lines: [string]): string {
+    return join(lines, "\n")
+}
+
+fn linesRunSelfCheck(): int {
+    let ls = splitLines("a\nb\nc")
+    assert(len(ls) == 3 && ls[1] == "b", "splitLines")
+    assert(joinLines(ls) == "a\nb\nc", "joinLines 往返")
+    return 53
+}

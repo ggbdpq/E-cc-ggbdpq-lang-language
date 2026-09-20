@@ -1,0 +1,57 @@
+// 简化摩斯电码：字母 A-Z 编码表 + 编码函数
+fn morseTable(): map[string]string {
+    let m = {}
+    m["a"] = ".-"
+    m["b"] = "-..."
+    m["c"] = "-.-."
+    m["d"] = "-.."
+    m["e"] = "."
+    m["f"] = "..-."
+    m["g"] = "--."
+    m["h"] = "...."
+    m["i"] = ".."
+    m["j"] = ".---"
+    m["k"] = "-.-"
+    m["l"] = ".-.."
+    m["m"] = "--"
+    m["n"] = "-."
+    m["o"] = "---"
+    m["p"] = ".--."
+    m["q"] = "--.-"
+    m["r"] = ".-."
+    m["s"] = "..."
+    m["t"] = "-"
+    m["u"] = "..-"
+    m["v"] = "...-"
+    m["w"] = ".--"
+    m["x"] = "-..-"
+    m["y"] = "-.--"
+    m["z"] = "--.."
+    return m
+}
+
+fn morseEncode(s: string): string {
+    let table = morseTable()
+    var out = ""
+    var i = 0
+    for c in s {
+        if i > 0 {
+            out += " "
+        }
+        let lower = toUpperAscii(c)
+        let low = char(int(bytes(lower)[0]) + 32)
+        if has(table, low) {
+            out += table[low]
+        } else {
+            out += c
+        }
+        i += 1
+    }
+    return out
+}
+
+fn encodeRunSelfCheck2(): int {
+    assert(morseEncode("sos") == "... --- ...", "morse SOS")
+    assert(morseEncode("hi") == ".... ..", "morse HI")
+    return 16
+}

@@ -1,0 +1,32 @@
+// 条件计数与过滤：以谓词闭包为条件（泛型 + 闭包）
+fn countIf[T](xs: [T], pred: fn(T): bool): int {
+    var n = 0
+    for x in xs {
+        if pred(x) {
+            n += 1
+        }
+    }
+    return n
+}
+
+fn filterInts(xs: [int], pred: fn(int): bool): [int] {
+    let out: [int] = []
+    for x in xs {
+        if pred(x) {
+            push(out, x)
+        }
+    }
+    return out
+}
+
+fn countIfRunSelfCheck(): int {
+    let nums = [1, 2, 3, 4, 5, 6]
+    assert(countIf(nums, fn(v: int): bool {
+        return v % 2 == 0
+    }) == 3, "偶数计数")
+    let evens = filterInts(nums, fn(v: int): bool {
+        return v % 2 == 0
+    })
+    assert(len(evens) == 3 && evens[0] == 2, "过滤偶数")
+    return 54
+}

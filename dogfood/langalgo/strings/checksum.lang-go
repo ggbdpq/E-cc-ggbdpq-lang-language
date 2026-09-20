@@ -1,0 +1,14 @@
+// 校验和：字符码点求和取模（简单完整性校验）
+fn checksum(s: string, mod: int): int {
+    var total = 0
+    for c in s {
+        total += int(bytes(c)[0])
+    }
+    return total % mod
+}
+
+fn checksumRunSelfCheck(): int {
+    assert(checksum("abc", 1000) == checksum("abc", 1000), "checksum 确定性")
+    assert(checksum("abc", 1000) != checksum("abd", 1000), "checksum 区分输入")
+    return 56
+}

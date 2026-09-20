@@ -1,0 +1,23 @@
+// 双校验和：码点和与异或值（数据完整性双保险）
+fn sumChecksum(s: string): int {
+    var total = 0
+    for c in s {
+        total += int(bytes(c)[0])
+    }
+    return total % 65536
+}
+
+fn xorChecksum(s: string): int {
+    var acc = 0
+    for c in s {
+        acc = acc ^ int(bytes(c)[0])
+    }
+    return acc
+}
+
+fn checksum2RunSelfCheck(): int {
+    assert(sumChecksum("abc") == sumChecksum("abc"), "求和校验确定性")
+    assert(xorChecksum("ab") == xorChecksum("ab"), "异或校验确定性")
+    assert(sumChecksum("abc") != sumChecksum("abd"), "求和区分")
+    return 56
+}

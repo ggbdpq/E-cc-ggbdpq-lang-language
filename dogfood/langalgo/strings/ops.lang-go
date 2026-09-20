@@ -1,0 +1,46 @@
+// 字符串算法集：全部基于码点遍历（len/char/索引，VALUE-IMMUT-005）
+fn reverse(s: string): string {
+    var out = ""
+    var i = len(s) - 1
+    while i >= 0 {
+        out += s[i]
+        i -= 1
+    }
+    return out
+}
+
+fn isPalindrome(s: string): bool {
+    return s == reverse(s)
+}
+
+fn countChar(s: string, target: string): int {
+    var n = 0
+    for c in s {
+        if c == target {
+            n += 1
+        }
+    }
+    return n
+}
+
+fn toUpperAscii(s: string): string {
+    var out = ""
+    for c in s {
+        let code = int(bytes(c)[0])
+        if code >= 97 && code <= 122 {
+            out += char(code - 32)
+        } else {
+            out += c
+        }
+    }
+    return out
+}
+
+fn stringsRunSelfCheck(): int {
+    assert(reverse("abc") == "cba", "reverse")
+    assert(isPalindrome("aba") && !isPalindrome("ab"), "palindrome")
+    assert(countChar("aaa", "a") == 3, "countChar")
+    assert(toUpperAscii("aBc") == "ABC", "toUpperAscii")
+    assert(reverse("") == "", "reverse 空")
+    return 3
+}

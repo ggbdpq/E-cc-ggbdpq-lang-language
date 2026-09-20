@@ -1,0 +1,54 @@
+// 素数工具：n 以内素数枚举（试除法）与计数
+fn primesUpTo(limit: int): [int] {
+    let out: [int] = []
+    var n = 2
+    while n <= limit {
+        var isP = true
+        var d = 2
+        while d * d <= n {
+            if n % d == 0 {
+                isP = false
+            }
+            d += 1
+        }
+        if isP {
+            push(out, n)
+        }
+        n += 1
+    }
+    return out
+}
+
+fn countPrimes(limit: int): int {
+    return len(primesUpTo(limit))
+}
+
+fn absInt(v: int): int {
+    if v < 0 {
+        return -v
+    }
+    return v
+}
+
+fn maxInt(a: int, b: int): int {
+    if a > b {
+        return a
+    }
+    return b
+}
+
+fn minInt(a: int, b: int): int {
+    if a < b {
+        return a
+    }
+    return b
+}
+
+fn mathMoreRunSelfCheck(): int {
+    let ps = primesUpTo(20)
+    assert(len(ps) == 8 && ps[0] == 2 && ps[7] == 19, "primesUpTo")
+    assert(countPrimes(10) == 4, "countPrimes")
+    assert(absInt(-9) == 9 && absInt(9) == 9, "abs")
+    assert(maxInt(3, 7) == 7 && minInt(3, 7) == 3, "max/min")
+    return 8
+}

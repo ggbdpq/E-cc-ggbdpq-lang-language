@@ -1,0 +1,35 @@
+// 比例与百分数：约分（gcd）与安全除法（Result 错误面）
+fn ratio(n: int, d: int): Result[int, error] {
+    if d == 0 {
+        return Err(err("分母为零"))
+    }
+    let g = gcd(n, d)
+    if g < 0 {
+        return Err(err("负公约数"))
+    }
+    return Ok(n / g)
+}
+
+fn percent(part: int, whole: int): Result[float, error] {
+    if whole == 0 {
+        return Err(err("总量为零"))
+    }
+    return Ok(float(part) * 100.0 / float(whole))
+}
+
+fn mathRunSelfCheck2(): int {
+    // Result 断言惯用法：match 解构（Result 不支持 == 比较，Ok/Err 仅限 Result 函数 return）
+    match ratio(6, 9) {
+        Ok(v) => assert(v == 2, "ratio 6/9 约分分子")
+        Err(e) => assert(false, "ratio 不应失败")
+    }
+    match percent(1, 4) {
+        Ok(v) => assert(v == 25.0, "percent 1/4")
+        Err(e) => assert(false, "percent 不应失败")
+    }
+    match percent(1, 0) {
+        Ok(v) => assert(false, "percent 除零应 Err，得到 " + str(v))
+        Err(e) => assert(len(e.msg) > 0, "应有错误信息")
+    }
+    return 14
+}

@@ -1,0 +1,10 @@
+// ROT13：凯撒特例（自反加密）
+fn rot13(s: string): string {
+    return caesar(s, 13)
+}
+
+fn rot13RunSelfCheck(): int {
+    assert(rot13(rot13("hello")) == "hello", "rot13 自反")
+    assert(rot13("abc") == "nop", "rot13 前移")
+    return 42
+}

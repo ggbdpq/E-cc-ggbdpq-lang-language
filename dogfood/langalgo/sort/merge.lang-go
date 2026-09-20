@@ -1,0 +1,35 @@
+// 归并排序：返回新切片（不动传入参数）
+fn mergeSorted(left: [int], right: [int]): [int] {
+    let out: [int] = []
+    var li = 0
+    var ri = 0
+    while li < len(left) && ri < len(right) {
+        if left[li] <= right[ri] {
+            push(out, left[li])
+            li += 1
+        } else {
+            push(out, right[ri])
+            ri += 1
+        }
+    }
+    while li < len(left) {
+        push(out, left[li])
+        li += 1
+    }
+    while ri < len(right) {
+        push(out, right[ri])
+        ri += 1
+    }
+    return out
+}
+
+// 递归归并入口
+fn merge(xs: [int]): [int] {
+    if len(xs) <= 1 {
+        return xs
+    }
+    let mid = len(xs) / 2
+    let left = merge(xs[0:mid])
+    let right = merge(xs[mid:len(xs)])
+    return mergeSorted(left, right)
+}

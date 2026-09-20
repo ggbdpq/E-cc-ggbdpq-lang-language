@@ -1,0 +1,44 @@
+// 大小写工具：首字母大写 / 标题式 / 反转大小写（仅 ASCII）
+fn capitalize(s: string): string {
+    if len(s) == 0 {
+        return s
+    }
+    let first = s[0]
+    let code = int(bytes(first)[0])
+    if code >= 97 && code <= 122 {
+        return char(code - 32) + s[1:len(s)]
+    }
+    return s
+}
+
+fn title(s: string): string {
+    let words = split(s, " ")
+    let out: [string] = []
+    for w in words {
+        push(out, capitalize(w))
+    }
+    return join(out, " ")
+}
+
+fn swapCase(s: string): string {
+    var out = ""
+    for c in s {
+        let code = int(bytes(c)[0])
+        if code >= 97 && code <= 122 {
+            out += char(code - 32)
+        } else if code >= 65 && code <= 90 {
+            out += char(code + 32)
+        } else {
+            out += c
+        }
+    }
+    return out
+}
+
+fn stringsCaseRunSelfCheck(): int {
+    assert(capitalize("hello") == "Hello", "capitalize")
+    assert(capitalize("") == "", "capitalize 空")
+    assert(title("the quick fox") == "The Quick Fox", "title")
+    assert(swapCase("aBc") == "AbC", "swapCase")
+    return 33
+}

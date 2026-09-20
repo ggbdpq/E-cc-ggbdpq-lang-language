@@ -1,0 +1,19 @@
+// 排序算法集：冒泡 / 插入 / 快速 / 归并（int 切片，引用语义原位或返回新切片）
+// 冒泡排序：原位升序（VALUE-SHARE-002：对传入切片原位修改）
+fn bubble(xs: [int]): [int] {
+    let n = len(xs)
+    var i = 0
+    while i < n {
+        var j = 0
+        while j < n - 1 - i {
+            if xs[j] > xs[j + 1] {
+                let t = xs[j]
+                xs[j] = xs[j + 1]
+                xs[j + 1] = t
+            }
+            j += 1
+        }
+        i += 1
+    }
+    return xs
+}

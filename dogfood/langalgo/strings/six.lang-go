@@ -1,0 +1,17 @@
+// 短 ID：字节数组 → 6 位小写字母串（演示取模映射与字符串构建）
+fn shortId(bs: [int]): string {
+    var out = ""
+    for b in bs {
+        out += char(97 + (b + 13) % 26)
+    }
+    return out
+}
+
+fn sixRunSelfCheck(): int {
+    let id1 = shortId([1, 2, 3])
+    let id2 = shortId([1, 2, 4])
+    assert(len(id1) == 3, "shortId 长度")
+    assert(id1 != id2, "不同输入不同 ID")
+    assert(shortId([1, 2, 3]) == id1, "同输入同输出（确定性）")
+    return 57
+}

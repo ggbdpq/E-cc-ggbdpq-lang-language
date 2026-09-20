@@ -1,0 +1,26 @@
+// 简化 Base32：字母 A-Z 编码 int 数组（每 5 位一组）
+fn base32Char(v: int): string {
+    return char(65 + v)
+}
+
+fn base32Encode(bs: [int]): string {
+    var out = ""
+    for b in bs {
+        let hi = b / 16
+        let lo = b % 16
+        out += base32Char(hi * 2)
+        if lo >= 8 {
+            out += base32Char(lo - 8)
+        } else {
+            out += base32Char(lo)
+        }
+    }
+    return out
+}
+
+fn base32RunSelfCheck(): int {
+    let e = base32Encode([0, 15, 255])
+    assert(len(e) == 6, "base32 长度")
+    assert(base32Char(0) == "A", "base32 字母表起点")
+    return 34
+}

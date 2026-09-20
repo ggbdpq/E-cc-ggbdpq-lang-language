@@ -1,0 +1,24 @@
+// JSON 动态值取值：路径逐段下钻（键或索引），isNone 表示缺失
+fn jsonGet(v: any, key: string): any {
+    if has(v, key) {
+        return v[key]
+    }
+    return None
+}
+
+fn jsonGetIdx(v: any, i: int): any {
+    if len(v) > i {
+        return v[i]
+    }
+    return None
+}
+
+fn jsonPathRunSelfCheck(): int {
+    let v = jsonParse("{\"list\": [{\"id\": 7}]}")
+    let list = jsonGet(v, "list")
+    let first = jsonGetIdx(list, 0)
+    assert(jsonGet(first, "id") == 7, "jsonGet 路径取值")
+    assert(isNone(jsonGet(first, "nope")), "缺失键 None")
+    assert(isNone(jsonGetIdx(list, 9)), "越界索引 None")
+    return 55
+}

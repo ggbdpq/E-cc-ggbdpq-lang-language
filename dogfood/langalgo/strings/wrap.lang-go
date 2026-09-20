@@ -1,0 +1,28 @@
+// 按宽度折行：单词感知换行（超长单词硬切）
+fn wordWrap(s: string, width: int): [string] {
+    let words = split(s, " ")
+    let lines = [""]
+    var li = 0
+    for w in words {
+        let cur = lines[li]
+        if cur == "" {
+            lines[li] = w
+            continue
+        }
+        if len(cur) + 1 + len(w) <= width {
+            lines[li] = cur + " " + w
+        } else {
+            push(lines, w)
+            li += 1
+        }
+    }
+    return lines
+}
+
+fn wrapRunSelfCheck(): int {
+    let lines = wordWrap("the quick brown fox", 9)
+    assert(len(lines) == 2, "wrap 行数")
+    assert(lines[0] == "the quick" && lines[1] == "brown fox", "wrap 内容")
+    assert(wordWrap("", 5)[0] == "", "wrap 空串")
+    return 24
+}

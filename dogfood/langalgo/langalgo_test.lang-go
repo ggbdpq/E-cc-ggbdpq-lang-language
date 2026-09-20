@@ -1,0 +1,42 @@
+// langalgo 测试套件：test 前缀函数由 lang-go test 自动发现
+import "./sort"
+import "./search"
+import "./strings"
+import "./math"
+import "./collections"
+import "./encode"
+fn testSort() {
+    let xs = [5, 2, 8, 1]
+    let b = bubble(xs)
+    assert(b[0] == 1 && b[3] == 8, "bubble")
+    let m = merge(xs)
+    assert(m[1] == 2 && m[2] == 5, "merge")
+}
+fn testSearch() {
+    let data = [1, 3, 5, 7]
+    assert(linear(data, 5) == 2, "linear")
+    assert(binary(data, 7) == 3, "binary")
+    assert(binary(data, 0) == -1, "binary miss")
+}
+fn testStrings() {
+    assert(reverse("abc") == "cba", "reverse")
+    assert(countChar("aa", "a") == 2, "count")
+    assert(trimSpace("  x ") == "x", "trim")
+}
+fn testMath() {
+    assert(gcd(8, 12) == 4, "gcd")
+    assert(fib(6) == 8, "fib")
+    assert(isPrime(7), "prime")
+}
+fn testCollections() {
+    var s = newStack()
+    pushStack(s, 9)
+    assert(top(s) == 9, "stack top")
+    let q = newQueue()
+    enqueue(q, "m")
+    assert(queueFront(q) == "m", "queue front")
+}
+fn testEncode() {
+    assert(caesar("ab", 1) == "bc", "caesar")
+    assert(rleEncode("aaa") == "a3", "rle")
+}

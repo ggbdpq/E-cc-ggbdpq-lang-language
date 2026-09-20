@@ -1,0 +1,19 @@
+// repr：lang-go 值的调试表示（与 jsonStringify 互补的手写表示）
+fn reprList(xs: [int]): string {
+    var out = "["
+    var i = 0
+    for x in xs {
+        if i > 0 {
+            out += ", "
+        }
+        out += str(x)
+        i += 1
+    }
+    return out + "]"
+}
+
+fn reprRunSelfCheck(): int {
+    assert(reprList([1, 2, 3]) == "[1, 2, 3]", "reprList")
+    assert(reprList([]) == "[]", "reprList 空")
+    return 58
+}

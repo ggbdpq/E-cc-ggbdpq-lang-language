@@ -1,0 +1,10 @@
+fn collectionsMoreRunSelfCheck(): int {
+    let q = newQueue()
+    enqueue(q, "a")
+    enqueue(q, "b")
+    assert(queueLen(q) == 2, "队列长度")
+    assert(queueFront(q) == "a", "队首 FIFO")
+    let q2 = dequeue(q)
+    assert(queueFront(q2) == "b", "出队 FIFO")
+    return 9
+}

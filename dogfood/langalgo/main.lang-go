@@ -1,0 +1,11 @@
+import "./sort"
+import "./search"
+import "./strings"
+import "./math"
+import "./collections"
+import "./encode"
+fn main() {
+    var passed = 0
+    passed += sortRunSelfCheck()
+    println("ok " + str(passed))
+}

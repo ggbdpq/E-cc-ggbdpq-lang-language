@@ -1,0 +1,35 @@
+// 游程解码：与 rleEncode 互逆（encode/rle.lang-go 的 encode）
+fn rleDecode(s: string): string {
+    var out = ""
+    var i = 0
+    let n = len(s)
+    while i < n {
+        let c = s[i]
+        i += 1
+        var num = 0
+        while i < n {
+            let code = int(bytes(s[i])[0])
+            if code < 48 || code > 57 {
+                break
+            }
+            num = num * 10 + (code - 48)
+            i += 1
+        }
+        if num == 0 {
+            num = 1
+        }
+        var k = 0
+        while k < num {
+            out += c
+            k += 1
+        }
+    }
+    return out
+}
+
+fn rleRoundRunSelfCheck(): int {
+    let src = "aaabbc"
+    assert(rleDecode(rleEncode(src)) == src, "rle 往返")
+    assert(rleDecode("a3b1") == "aaab", "rleDecode 直接")
+    return 51
+}

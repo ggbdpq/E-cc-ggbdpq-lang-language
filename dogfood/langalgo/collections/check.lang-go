@@ -1,0 +1,13 @@
+// collections 自检
+fn collectionsRunSelfCheck(): int {
+    var s = newStack()
+    pushStack(s, 1)
+    pushStack(s, 2)
+    assert(stackLen(s) == 2, "栈长度")
+    assert(top(s) == 2, "栈顶")
+    s = popStack(s)
+    assert(top(s) == 1, "栈 LIFO")
+    s = popStack(s)
+    assert(stackLen(s) == 0, "弹空")
+    return 5
+}

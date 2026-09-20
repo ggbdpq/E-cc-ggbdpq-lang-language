@@ -1,0 +1,8 @@
+// 编码报告：caesar + rle + morse 组合往返
+fn encodeReport(): int {
+    assert(caesar(caesar("attack", 5), 21) == "attack", "caesar 双向还原")
+    assert(rleEncode("aab") == "a2b1", "rle 稳定")
+    assert(len(morseEncode("lang")) > 0, "morse 非空")
+    println("encode: caesar/rle/morse 组合通过")
+    return 22
+}

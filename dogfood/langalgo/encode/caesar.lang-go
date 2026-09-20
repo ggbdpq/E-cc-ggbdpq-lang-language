@@ -1,0 +1,22 @@
+// 凯撒加密（仅 ASCII 字母循环，其余字符原样）
+fn caesar(s: string, shift: int): string {
+    var out = ""
+    for c in s {
+        let code = int(bytes(c)[0])
+        if code >= 97 && code <= 122 {
+            out += char(97 + (code - 97 + shift) % 26)
+        } else if code >= 65 && code <= 90 {
+            out += char(65 + (code - 65 + shift) % 26)
+        } else {
+            out += c
+        }
+    }
+    return out
+}
+
+fn encodeRunSelfCheck(): int {
+    assert(caesar("abc", 1) == "bcd", "caesar 前移")
+    assert(caesar(caesar("xyz", 3), 23) == "xyz", "caesar 可逆")
+    assert(caesar("a B!", 2) == "c D!", "caesar 保留非字母")
+    return 6
+}

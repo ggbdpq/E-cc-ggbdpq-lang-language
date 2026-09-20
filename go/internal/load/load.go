@@ -51,8 +51,13 @@ func ProgramEx(dir string, includeTests bool) ([]syntax.Stmt, []string, []FileIn
 			if err != nil {
 				return nil, nil, nil, err
 			}
-			prog = append(prog, stmts...)
-			for _, s := range stmts {
+			// 测试文件与普通文件同等待遇：import 在装载期展开（v1.0 dogfood 修复）
+			expanded, err := l.expand(stmts, root)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			prog = append(prog, expanded...)
+			for _, s := range expanded {
 				if d, ok := s.(*syntax.FnDecl); ok {
 					if d.Recv == nil && len(d.Params) == 0 && strings.HasPrefix(d.Name, "test") {
 						tests = append(tests, d.Name)

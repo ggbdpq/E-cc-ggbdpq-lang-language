@@ -1,0 +1,38 @@
+// 搜索算法集：线性搜索与二分搜索（二分要求升序输入）
+fn linear(xs: [int], target: int): int {
+    var i = 0
+    while i < len(xs) {
+        if xs[i] == target {
+            return i
+        }
+        i += 1
+    }
+    return -1
+}
+
+fn binary(xs: [int], target: int): int {
+    var lo = 0
+    var hi = len(xs)
+    while lo < hi {
+        let mid = (lo + hi) / 2
+        if xs[mid] == target {
+            return mid
+        }
+        if xs[mid] < target {
+            lo = mid + 1
+        } else {
+            hi = mid
+        }
+    }
+    return -1
+}
+
+fn binaryRunSelfCheck(): int {
+    let sorted = [1, 3, 5, 7, 9]
+    assert(linear(sorted, 7) == 3, "linear 命中")
+    assert(linear(sorted, 8) == -1, "linear 未命中")
+    assert(binary(sorted, 1) == 0, "binary 首元素")
+    assert(binary(sorted, 9) == 4, "binary 尾元素")
+    assert(binary(sorted, 4) == -1, "binary 缺口")
+    return 2
+}

@@ -100,6 +100,13 @@ func (a *LangGoArr[T]) LangGoGet(i int64) any { return a.Items[i] }
 // LangGoSet 让 langGoSetIndex/langGoAddIndex 能经接口分派写任意元素类型的实例
 func (a *LangGoArr[T]) LangGoSet(i int64, v any) { a.Items[i] = v.(T) }
 
+// LangGoSliceItem 返回子切片 [i:j) 的新数组（同元素类型）
+func (a *LangGoArr[T]) LangGoSliceItem(i, j int64) any {
+	items := make([]T, j-i)
+	copy(items, a.Items[i:j])
+	return &LangGoArr[T]{Items: items}
+}
+
 func (a *LangGoArr[T]) langGoItems() []any {
 	out := make([]any, len(a.Items))
 	for i, v := range a.Items {
@@ -693,14 +700,17 @@ func langGoSetIndex(obj, idx, v any) {
 
 func langGoSlice(obj, lo, hi any) any {
 	i, j := langGoInt(lo), langGoInt(hi)
-	switch c := obj.(type) {
-	case *LangGoArr[any]:
-		if i < 0 || j < i || j > int64(len(c.Items)) {
-			panic(fmt.Sprintf("切片 [%d:%d] 越界（长度 %d）", i, j, len(c.Items)))
+	if c, ok := obj.(interface {
+		LangGoGet(int64) any
+		LangGoLen() int64
+		LangGoSliceItem(int64, int64) any
+	}); ok {
+		if i < 0 || j < i || j > c.LangGoLen() {
+			panic(fmt.Sprintf("切片 [%d:%d] 越界（长度 %d）", i, j, c.LangGoLen()))
 		}
-		items := make([]any, j-i)
-		copy(items, c.Items[i:j])
-		return &LangGoArr[any]{Items: items}
+		return c.LangGoSliceItem(i, j)
+	}
+	switch c := obj.(type) {
 	case string:
 		runes := []rune(c)
 		if i < 0 || j < i || j > int64(len(runes)) {

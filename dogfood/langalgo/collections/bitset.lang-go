@@ -1,0 +1,51 @@
+// 位集合：单 int 位运算承载 0..62 的非负整数集合
+struct BitSet {
+    bits: int
+}
+fn newBitSet(): BitSet {
+    return BitSet{bits: 0}
+}
+fn bsAdd(s: BitSet, v: int): BitSet {
+    return BitSet{bits: s.bits | (1 << v)}
+}
+fn bsHas(s: BitSet, v: int): bool {
+    return (s.bits & (1 << v)) != 0
+}
+fn bsRemove(s: BitSet, v: int): BitSet {
+    // 清位掩码：全部位为 1、目标位为 0（0^(1<<v) 的补）
+    var mask = 0
+    var i = 0
+    while i < 62 {
+        if i != v {
+            mask = mask | (1 << i)
+        }
+        i += 1
+    }
+    return BitSet{bits: s.bits & mask}
+}
+fn bsUnion(a: BitSet, b: BitSet): BitSet {
+    return BitSet{bits: a.bits | b.bits}
+}
+fn bsCount(s: BitSet): int {
+    var n = 0
+    var i = 0
+    while i < 63 {
+        if (s.bits & (1 << i)) != 0 {
+            n += 1
+        }
+        i += 1
+    }
+    return n
+}
+fn bsRunSelfCheck(): int {
+    var s = newBitSet()
+    s = bsAdd(s, 1)
+    s = bsAdd(s, 5)
+    assert(bsHas(s, 1) && bsHas(s, 5), "位集合含元素")
+    assert(!bsHas(s, 3), "位集合不含未加元素")
+    s = bsRemove(s, 1)
+    assert(!bsHas(s, 1) && bsHas(s, 5), "位集合移除")
+    let u = bsUnion(s, bsAdd(newBitSet(), 3))
+    assert(bsCount(u) == 2, "并集计数")
+    return 46
+}

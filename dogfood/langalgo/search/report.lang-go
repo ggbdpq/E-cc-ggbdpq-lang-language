@@ -1,0 +1,20 @@
+// 搜索报告：升序语料上两种搜索的全命中矩阵
+fn searchReport(): int {
+    let data = [2, 4, 6, 8, 10, 12]
+    var hits = 0
+    var misses = 0
+    for v in data {
+        if binary(data, v) >= 0 {
+            hits += 1
+        }
+    }
+    for probe in [-1, 0, 13, 5] {
+        if binary(data, probe) == -1 {
+            misses += 1
+        }
+    }
+    assert(hits == 6, "全部命中")
+    assert(misses == 4, "全部探测未命中")
+    println("search: " + str(hits) + " 命中 / " + str(misses) + " 缺口探测")
+    return 18
+}

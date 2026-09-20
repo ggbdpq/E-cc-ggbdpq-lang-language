@@ -190,8 +190,12 @@ func (it *Interp) execStmt(s syntax.Stmt, env *Env) error {
 			if !t {
 				return nil
 			}
-			if err := it.execLoopBody(st.Body, newEnv(env)); err != nil {
+			stopped, err := it.execLoopBody(st.Body, newEnv(env))
+			if err != nil {
 				return err
+			}
+			if stopped {
+				return nil
 			}
 		}
 
@@ -235,17 +239,18 @@ func (it *Interp) execStmt(s syntax.Stmt, env *Env) error {
 }
 
 // execLoopBody 执行循环体并消化 break/continue；return/err 信号向上抛
-func (it *Interp) execLoopBody(body []syntax.Stmt, env *Env) error {
+// execLoopBody 执行循环体：返回 breaked=true 表示体内 break（循环应终止）
+func (it *Interp) execLoopBody(body []syntax.Stmt, env *Env) (bool, error) {
 	err := it.execStmts(body, env)
 	if sig, ok := asSignal(err); ok {
 		switch sig.kind {
 		case sigBreak:
-			return nil
+			return true, nil
 		case sigContinue:
-			return nil
+			return false, nil
 		}
 	}
-	return err
+	return false, err
 }
 
 func (it *Interp) cond(e syntax.Expr, env *Env) (bool, error) {
@@ -285,8 +290,12 @@ func (it *Interp) execForIn(st *syntax.ForInStmt, env *Env) error {
 				return err
 			}
 		}
-		if err := it.execLoopBody(st.Body, benv); err != nil {
+		stopped, err := it.execLoopBody(st.Body, benv)
+		if err != nil {
 			return err
+		}
+		if stopped {
+			break
 		}
 	}
 	return nil

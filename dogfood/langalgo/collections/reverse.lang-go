@@ -1,0 +1,38 @@
+// 容器反转与旋转：数组反转 / 左旋转 k 位（值语义返回新数组）
+fn reversed(xs: [int]): [int] {
+    let out: [int] = []
+    var i = len(xs) - 1
+    while i >= 0 {
+        push(out, xs[i])
+        i -= 1
+    }
+    return out
+}
+
+fn rotateLeft(xs: [int], k: int): [int] {
+    let n = len(xs)
+    if n == 0 {
+        return xs
+    }
+    let shift = k % n
+    let out: [int] = []
+    var i = shift
+    while i < n {
+        push(out, xs[i])
+        i += 1
+    }
+    i = 0
+    while i < shift {
+        push(out, xs[i])
+        i += 1
+    }
+    return out
+}
+
+fn collectionsRevRunSelfCheck(): int {
+    assert(reversed([1, 2, 3])[0] == 3, "反转")
+    assert(len(reversed([])) == 0, "反转空")
+    let r = rotateLeft([1, 2, 3, 4], 2)
+    assert(r[0] == 3 && r[3] == 2, "左旋转")
+    return 40
+}

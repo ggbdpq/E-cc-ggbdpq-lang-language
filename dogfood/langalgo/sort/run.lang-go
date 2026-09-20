@@ -1,0 +1,12 @@
+// sort 模块自检：断言全部通过返回 1，否则运行时错误终止
+fn sortRunSelfCheck(): int {
+    let a = [5, 1, 4, 1, 5, 9, 2, 6]
+    assert(len(bubble(a)) == 8, "bubble 保持长度")
+    assert(bubble(a)[0] == 1 && bubble(a)[7] == 9, "bubble 升序端点")
+    let m = merge([9, 3, 7])
+    assert(len(m) == 3 && m[0] == 3 && m[2] == 9, "merge 升序")
+    assert(len(merge([])) == 0, "merge 空数组")
+    let one = [42]
+    assert(merge(one)[0] == 42, "merge 单元素")
+    return 1
+}

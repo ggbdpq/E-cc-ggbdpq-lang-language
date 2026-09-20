@@ -1,0 +1,12 @@
+// strings 第二组自检
+fn stringsMoreRunSelfCheck(): int {
+    let parts = split("a,b,c", ",")
+    assert(len(parts) == 3 && parts[0] == "a" && parts[2] == "c", "split 基础")
+    assert(join(parts, "-") == "a-b-c", "join 回填")
+    assert(trimSpace("  hi  ") == "hi", "trimSpace")
+    assert(startsWith("lang-go", "lang") && !startsWith("lang", "lang-go"), "startsWith")
+    assert(endsWith("lang-go", "go") && !endsWith("lang-go", "run"), "endsWith")
+    assert(repeat("ab", 3) == "ababab", "repeat")
+    assert(len(split("", ",")) == 1, "split 空串")
+    return 7
+}

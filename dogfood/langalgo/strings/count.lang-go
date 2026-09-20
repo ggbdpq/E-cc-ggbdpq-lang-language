@@ -1,0 +1,28 @@
+// 统计工具：元音计数 / 数字计数 / 全长度
+fn countVowels(s: string): int {
+    var n = 0
+    for c in s {
+        if c == "a" || c == "e" || c == "i" || c == "o" || c == "u" {
+            n += 1
+        }
+    }
+    return n
+}
+
+fn countDigits(s: string): int {
+    var n = 0
+    for c in s {
+        let code = int(bytes(c)[0])
+        if code >= 48 && code <= 57 {
+            n += 1
+        }
+    }
+    return n
+}
+
+fn stringsCountRunSelfCheck(): int {
+    assert(countVowels("language") == 4, "元音")
+    assert(countDigits("a1b2c3") == 3, "数字")
+    assert(countVowels("xyz") == 0, "无元音")
+    return 43
+}

@@ -1,0 +1,38 @@
+// 堆排序（复用最小堆思想：建堆后逐个取最小输出）
+fn heapSort(xs: [int]): [int] {
+    let out: [int] = []
+    var work: [int] = []
+    for x in xs {
+        push(work, x)
+    }
+    var n = len(work)
+    while n > 0 {
+        var minIdx = 0
+        var i = 1
+        while i < n {
+            if work[i] < work[minIdx] {
+                minIdx = i
+            }
+            i += 1
+        }
+        push(out, work[minIdx])
+        let joined: [int] = []
+        var k = 0
+        while k < n {
+            if k != minIdx {
+                push(joined, work[k])
+            }
+            k += 1
+        }
+        work = joined
+        n -= 1
+    }
+    return out
+}
+
+fn sortHeapRunSelfCheck(): int {
+    let s = heapSort([7, 2, 9, 4])
+    assert(s[0] == 2 && s[3] == 9, "堆排序升序")
+    assert(len(heapSort([])) == 0, "堆排序空")
+    return 41
+}

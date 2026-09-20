@@ -1,0 +1,22 @@
+// 记忆化 fib：映射缓存（演示映射 + 递归 + 值语义组合）
+fn fibMemo(n: int, cache: map[string]int): int {
+    let key = "f" + str(n)
+    if has(cache, key) {
+        return cache[key]
+    }
+    var v = 0
+    if n <= 1 {
+        v = n
+    } else {
+        v = fibMemo(n - 1, cache) + fibMemo(n - 2, cache)
+    }
+    cache[key] = v
+    return v
+}
+
+fn memoRunSelfCheck(): int {
+    let cache = {}
+    assert(fibMemo(20, cache) == 6765, "fibMemo 20")
+    assert(fibMemo(10, cache) == 55, "fibMemo 缓存命中")
+    return 57
+}

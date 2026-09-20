@@ -1,0 +1,18 @@
+// 异或加密：单字节密钥循环异或（对称可逆）
+fn xorCrypt(data: [int], key: int): [int] {
+    let out: [int] = []
+    for b in data {
+        push(out, b ^ key)
+    }
+    return out
+}
+
+fn xorRunSelfCheck(): int {
+    let msg = [72, 73]
+    let key = 42
+    let cipher = xorCrypt(msg, key)
+    assert(cipher[0] != msg[0], "异或后改变")
+    let plain = xorCrypt(cipher, key)
+    assert(plain[0] == 72 && plain[1] == 73, "异或可逆")
+    return 29
+}

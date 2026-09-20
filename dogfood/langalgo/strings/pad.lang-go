@@ -1,0 +1,23 @@
+// 填充工具：padStart / padEnd（用指定字符补齐到目标宽度）
+fn padStart(s: string, width: int, fill: string): string {
+    var out = s
+    while len(out) < width {
+        out = fill + out
+    }
+    return out
+}
+
+fn padEnd(s: string, width: int, fill: string): string {
+    var out = s
+    while len(out) < width {
+        out += fill
+    }
+    return out
+}
+
+fn padRunSelfCheck(): int {
+    assert(padStart("7", 3, "0") == "007", "padStart")
+    assert(padEnd("7", 3, "*") == "7**", "padEnd")
+    assert(padStart("1234", 2, "0") == "1234", "超宽不变")
+    return 38
+}

@@ -1,0 +1,17 @@
+fn heapRunSelfCheck(): int {
+    var h = newHeap()
+    heapPush(h, 5)
+    heapPush(h, 1)
+    heapPush(h, 3)
+    heapPush(h, 2)
+    assert(heapMin(h) == 1, "堆最小 1")
+    h = heapPop(h)
+    assert(heapMin(h) == 2, "堆最小 2")
+    h = heapPop(h)
+    assert(heapMin(h) == 3, "堆最小 3")
+    h = heapPop(h)
+    assert(heapMin(h) == 5, "堆最后")
+    h = heapPop(h)
+    assert(heapSize(h) == 0, "堆空")
+    return 25
+}

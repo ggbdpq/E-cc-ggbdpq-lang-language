@@ -1324,6 +1324,10 @@ func (g *gen) exprArg(e ir.Expr, target *types.Type) (string, error) {
 	if c, ok := e.(*ir.Ctor); ok && c.Sym.Name == "None" && target != nil && target.Kind == types.KOption && target.Elem != nil && !isAny(target.Elem) {
 		return "LangGoNone[" + goTypeOf(target.Elem) + "]()", nil
 	}
+	// 空数组字面量按目标参数类型特化（否则生成 *LangGoArr[any] 与具体类型不匹配）
+	if al, ok := e.(*ir.SliceLit); ok && len(al.Elems) == 0 && target != nil && target.Kind == types.KSlice && target.Elem != nil && !isAny(target.Elem) {
+		return "&LangGoArr[" + goTypeOf(target.Elem) + "]{}", nil
+	}
 	return g.expr(e)
 }
 
@@ -1543,7 +1547,7 @@ func (g *gen) emitBuiltinCall(x *ir.Call, name, bf string) (string, error) {
 		}
 		at := goTypeOf(x.Args[0].Typ())
 		if !strings.HasPrefix(at, "*LangGoArr[") {
-			return "", g.errf(0, "push 目标类型未知（→Go 需可推断的数组）")
+			return "", g.errf(0, "push 目标类型未知（→Go 需可推断的数组）: got %s for arg0 %T", at, x.Args[0])
 		}
 		elem := at[len("*LangGoArr[") : len(at)-1]
 		var vs []string

@@ -1,0 +1,65 @@
+// 子串搜索：朴素算法（O(n*m)）与首次/全部出现位置
+fn indexOf(s: string, needle: string): int {
+    let n = len(s)
+    let m = len(needle)
+    if m == 0 {
+        return 0
+    }
+    var i = 0
+    while i + m <= n {
+        var j = 0
+        var matched = true
+        while j < m {
+            if s[i + j] != needle[j] {
+                matched = false
+            }
+            j += 1
+        }
+        if matched {
+            return i
+        }
+        i += 1
+    }
+    return -1
+}
+
+fn indexOfAll(s: string, needle: string): [int] {
+    let out: [int] = []
+    let n = len(s)
+    let m = len(needle)
+    if m == 0 {
+        return out
+    }
+    var i = 0
+    while i + m <= n {
+        var j = 0
+        var matched = true
+        while j < m {
+            if s[i + j] != needle[j] {
+                matched = false
+            }
+            j += 1
+        }
+        if matched {
+            push(out, i)
+            i += m
+        } else {
+            i += 1
+        }
+    }
+    return out
+}
+
+fn contains(s: string, needle: string): bool {
+    return indexOf(s, needle) >= 0
+}
+
+fn indexOfRunSelfCheck(): int {
+    assert(indexOf("hello world", "world") == 6, "indexOf 命中")
+    assert(indexOf("hello", "xyz") == -1, "indexOf 未命中")
+    assert(indexOf("aaa", "aa") == 0, "indexOf 重叠首")
+    let all = indexOfAll("ababab", "ab")
+    assert(len(all) == 3 && all[2] == 4, "indexOfAll 重叠跳步")
+    assert(contains("lang-go", "go"), "contains")
+    return 23
+}

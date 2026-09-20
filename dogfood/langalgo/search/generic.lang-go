@@ -1,0 +1,22 @@
+// 泛型线性搜索：以相等闭包判等（任意元素类型）
+fn find[T](xs: [T], eq: fn(T): bool): int {
+    var i = 0
+    while i < len(xs) {
+        if eq(xs[i]) {
+            return i
+        }
+        i += 1
+    }
+    return -1
+}
+
+fn searchRunSelfCheck2(): int {
+    let words = ["alpha", "beta", "gamma"]
+    assert(find(words, fn(w: string): bool {
+        return w == "beta"
+    }) == 1, "find 命中")
+    assert(find(words, fn(w: string): bool {
+        return w == "delta"
+    }) == -1, "find 未命中")
+    return 12
+}

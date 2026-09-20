@@ -1,0 +1,10 @@
+// 字符串报告：split/join 往返与大小写转换组合验证
+fn stringsReport(): int {
+    let src = "lang,go,algorithms"
+    let parts = split(src, ",")
+    assert(len(parts) == 3, "split 数量")
+    assert(join(parts, ",") == src, "split/join 往返")
+    assert(toUpperAscii(join(parts, "+")) == "LANG+GO+ALGORITHMS", "join 后转大写")
+    println("strings: " + str(len(parts)) + " 段往返一致")
+    return 19
+}

@@ -1,0 +1,36 @@
+// 命名风格转换：snake_case ↔ camelCase（词法切分下划线，逐词处理）
+fn snakeToCamel(s: string): string {
+    let parts = split(s, "_")
+    var out = ""
+    var i = 0
+    for p in parts {
+        if i == 0 {
+            out += p
+        } else if len(p) > 0 {
+            out += capitalize(p)
+        }
+        i += 1
+    }
+    return out
+}
+
+fn camelToSnake(s: string): string {
+    var out = ""
+    for c in s {
+        let code = int(bytes(c)[0])
+        if code >= 65 && code <= 90 {
+            out += "_"
+            out += char(code + 32)
+        } else {
+            out += c
+        }
+    }
+    return out
+}
+
+fn namingRunSelfCheck(): int {
+    assert(snakeToCamel("hello_world_x") == "helloWorldX", "snake→camel")
+    assert(camelToSnake("helloWorldX") == "hello_world_x", "camel→snake")
+    assert(snakeToCamel(camelToSnake("myLongName")) == "myLongName", "双向往返")
+    return 56
+}

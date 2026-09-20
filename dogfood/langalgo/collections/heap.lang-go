@@ -1,0 +1,59 @@
+// 二叉最小堆（数组表示；上浮/下沉标准操作）
+struct MinHeap {
+    items: [int]
+}
+fn newHeap(): MinHeap {
+    return MinHeap{items: []}
+}
+fn heapSize(h: MinHeap): int {
+    return len(h.items)
+}
+fn heapPush(h: MinHeap, v: int) {
+    push(h.items, v)
+    var i = len(h.items) - 1
+    while i > 0 {
+        let parent = (i - 1) / 2
+        if h.items[parent] <= h.items[i] {
+            break
+        }
+        let t = h.items[parent]
+        h.items[parent] = h.items[i]
+        h.items[i] = t
+        i = parent
+    }
+}
+// 值语义惯用法：heapMin 只读最小值；heapPop 返回去掉最小后的新堆
+fn heapMin(h: MinHeap): int {
+    assert(len(h.items) > 0, "空堆无最小值")
+    return h.items[0]
+}
+
+fn heapPop(h: MinHeap): MinHeap {
+    assert(len(h.items) > 0, "空堆不可弹出")
+    let last = h.items[len(h.items) - 1]
+    let cut = h.items[0:len(h.items) - 1]
+    let next = MinHeap{items: cut}
+    if len(next.items) > 0 {
+        next.items[0] = last
+        var i = 0
+        while true {
+            let l = i * 2 + 1
+            let r = i * 2 + 2
+            var smallest = i
+            if l < len(next.items) && next.items[l] < next.items[smallest] {
+                smallest = l
+            }
+            if r < len(next.items) && next.items[r] < next.items[smallest] {
+                smallest = r
+            }
+            if smallest == i {
+                break
+            }
+            let t = next.items[smallest]
+            next.items[smallest] = next.items[i]
+            next.items[i] = t
+            i = smallest
+        }
+    }
+    return next
+}

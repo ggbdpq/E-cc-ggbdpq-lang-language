@@ -1,0 +1,12 @@
+// 数学报告：fib 序列自洽（相邻项和）与素数计数
+fn mathReport(): int {
+    assert(fib(7) + fib(8) == fib(9), "fib 递推自洽")
+    let ps = primesUpTo(30)
+    var sum = 0
+    for p in ps {
+        sum += p
+    }
+    assert(sum == 129, "30 内素数和")
+    println("math: 30 内素数 " + str(len(ps)) + " 个")
+    return 20
+}

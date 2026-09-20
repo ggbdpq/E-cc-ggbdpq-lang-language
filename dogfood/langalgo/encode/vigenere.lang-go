@@ -1,0 +1,29 @@
+// 维吉尼亚密码：多表位移加密（仅 ASCII 字母，密钥循环使用）
+fn shiftLetter(c: string, k: string): string {
+    let code = int(bytes(c)[0])
+    let kc = int(bytes(k)[0]) - 97
+    let base = 97
+    let moved = (code - base + kc) % 26
+    return char(base + moved)
+}
+
+fn vigenere(s: string, key: string): string {
+    var out = ""
+    var ki = 0
+    for c in s {
+        let code = int(bytes(c)[0])
+        if code >= 97 && code <= 122 {
+            out += shiftLetter(c, key[ki % len(key)])
+            ki += 1
+        } else {
+            out += c
+        }
+    }
+    return out
+}
+
+fn vigenereRunSelfCheck(): int {
+    assert(vigenere("abc", "aaa") == "abc", "零密钥等价原串")
+    assert(vigenere("ab", "b") == "bc", "密钥 b 位移 1")
+    return 49
+}

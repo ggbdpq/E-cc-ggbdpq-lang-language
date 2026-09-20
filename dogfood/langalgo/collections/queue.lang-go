@@ -1,0 +1,21 @@
+// 队列（数组承载；pop 走值语义惯用法返回新队列）
+struct Queue {
+    items: [string]
+}
+fn newQueue(): Queue {
+    return Queue{items: []}
+}
+fn enqueue(q: Queue, v: string) {
+    push(q.items, v)
+}
+fn dequeue(q: Queue): Queue {
+    assert(len(q.items) > 0, "空队列不可出队")
+    return Queue{items: q.items[1:len(q.items)]}
+}
+fn queueFront(q: Queue): string {
+    assert(len(q.items) > 0, "空队列无队首")
+    return q.items[0]
+}
+fn queueLen(q: Queue): int {
+    return len(q.items)
+}

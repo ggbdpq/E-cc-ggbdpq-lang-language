@@ -1,0 +1,24 @@
+// 单位换算：摄氏↔华氏、米↔英尺、千克↔磅
+fn cToF(c: float): float {
+    return c * 1.8 + 32.0
+}
+fn fToC(f: float): float {
+    return (f - 32.0) / 1.8
+}
+fn mToFt(m: float): float {
+    return m * 3.28084
+}
+fn ftToM(ft: float): float {
+    return ft / 3.28084
+}
+fn kgToLb(kg: float): float {
+    return kg * 2.20462
+}
+fn unitsRunSelfCheck(): int {
+    assert(cToF(100.0) == 212.0, "水沸点")
+    assert(fToC(32.0) == 0.0, "水冰点")
+    assert(mToFt(1.0) > 3.28 && mToFt(1.0) < 3.29, "米英尺")
+    assert(ftToM(mToFt(2.0)) > 1.99, "英尺米往返")
+    assert(kgToLb(1.0) > 2.2, "千克磅")
+    return 47
+}

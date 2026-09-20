@@ -1,0 +1,24 @@
+// 栈与队列（数组承载，引用语义共享）
+struct Stack {
+    items: [int]
+}
+fn newStack(): Stack {
+    return Stack{items: []}
+}
+fn pushStack(s: Stack, v: int) {
+    push(s.items, v)
+}
+// 值语义惯用法（VALUE-COPY-001）：结构体按值传递，弹出不原位改写——
+// 返回新栈（去掉栈顶）与栈顶值分离表达
+fn popStack(s: Stack): Stack {
+    assert(len(s.items) > 0, "空栈不可弹出")
+    let cut = s.items[0:len(s.items) - 1]
+    return Stack{items: cut}
+}
+fn top(s: Stack): int {
+    assert(len(s.items) > 0, "空栈无栈顶")
+    return s.items[len(s.items) - 1]
+}
+fn stackLen(s: Stack): int {
+    return len(s.items)
+}

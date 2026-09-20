@@ -1,0 +1,39 @@
+// 有序插入：向升序数组插入并保持升序（返回新数组，值语义）
+fn sortedInsert(xs: [int], v: int): [int] {
+    let out: [int] = []
+    var placed = false
+    for x in xs {
+        if !placed && v < x {
+            push(out, v)
+            placed = true
+        }
+        push(out, x)
+    }
+    if !placed {
+        push(out, v)
+    }
+    return out
+}
+
+fn dedupSorted(xs: [int]): [int] {
+    let out: [int] = []
+    var prev = 0
+    var first = true
+    for x in xs {
+        if first || x != prev {
+            push(out, x)
+            prev = x
+            first = false
+        }
+    }
+    return out
+}
+
+fn listRunSelfCheck(): int {
+    let s = sortedInsert([1, 3, 5], 4)
+    assert(len(s) == 4 && s[2] == 4, "有序插入中部")
+    assert(sortedInsert([], 7)[0] == 7, "空数组插入")
+    assert(dedupSorted([1, 1, 2, 3, 3])[2] == 3, "去重")
+    assert(len(dedupSorted([5, 5, 5])) == 1, "全重复去重")
+    return 36
+}

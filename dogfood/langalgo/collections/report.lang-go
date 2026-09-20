@@ -1,0 +1,17 @@
+// 集合报告：栈与队列混合演练
+fn collectionsReport(): int {
+    var s = newStack()
+    var i = 0
+    while i < 5 {
+        pushStack(s, i)
+        i += 1
+    }
+    var drained = 0
+    while stackLen(s) > 0 {
+        s = popStack(s)
+        drained += 1
+    }
+    assert(drained == 5, "栈排空次数")
+    println("collections: 栈入 5 弹 " + str(drained))
+    return 21
+}
