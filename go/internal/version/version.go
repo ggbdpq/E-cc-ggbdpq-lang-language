@@ -3,4 +3,4 @@
 package version
 
 // Version 当前工具版本（发布时与 git tag 一致）
-const Version = "1.0.0"
+const Version = "1.0.0-rc.1"
