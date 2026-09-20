@@ -1,0 +1,9 @@
+name: return-outside-fn
+category: diagnostics
+mode: check
+expect:
+  diagnostics:
+    - code: E2008
+      ruleId: NAME-PLACE-008
+      severity: error
+      line: 2

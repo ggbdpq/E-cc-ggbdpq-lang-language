@@ -1,0 +1,9 @@
+name: method-reads-mutable-field
+category: struct
+ruleIds:
+  - CALL-RESOLVE-001
+expect:
+  exitCode: 0
+  stdout: |
+    18
+  stderr: ""

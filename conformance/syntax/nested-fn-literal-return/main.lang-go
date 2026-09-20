@@ -1,0 +1,10 @@
+fn make(): fn(): int {
+    let v = 40
+    return fn(): int {
+        return v + 2
+    }
+}
+fn main() {
+    let f = make()
+    println(f())
+}

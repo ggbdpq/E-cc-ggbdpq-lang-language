@@ -1,0 +1,5 @@
+import "./dup"
+import "./dup"
+fn main() {
+    println(d())
+}

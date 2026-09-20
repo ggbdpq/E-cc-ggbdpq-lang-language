@@ -1,0 +1,11 @@
+name: spawn-two-tasks-deterministic
+category: concurrency
+ruleIds:
+  - TASK-SPAWN-002
+  - TASK-DETERMINISM-003
+expect:
+  exitCode: 0
+  stdout: |
+    Ok(10)
+    Ok(20)
+  stderr: ""

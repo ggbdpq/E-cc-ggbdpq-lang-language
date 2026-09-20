@@ -1,0 +1,6 @@
+fn (p Ghost).hi(): int {
+    return 1
+}
+fn main() {
+    println(1)
+}

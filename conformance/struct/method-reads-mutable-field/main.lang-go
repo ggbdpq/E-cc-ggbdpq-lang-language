@@ -1,0 +1,11 @@
+struct Acc {
+    total: int
+}
+fn (a Acc).add(n: int): Acc {
+    return Acc{total: a.total + n}
+}
+fn main() {
+    var a = Acc{total: 10}
+    a = a.add(5).add(3)
+    println(a.total)
+}

@@ -1,0 +1,9 @@
+name: nested-struct-decl
+category: diagnostics
+mode: check
+expect:
+  diagnostics:
+    - code: E2010
+      ruleId: NAME-NEST-009
+      severity: error
+      line: 2

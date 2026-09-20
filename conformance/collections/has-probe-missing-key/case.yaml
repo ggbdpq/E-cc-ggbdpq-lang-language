@@ -1,0 +1,9 @@
+name: has-probe-missing-key
+category: collections
+ruleIds:
+  - TYPE-INDEX-008
+expect:
+  exitCode: 0
+  stdout: |
+    missing
+  stderr: ""

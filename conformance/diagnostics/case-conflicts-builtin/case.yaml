@@ -1,0 +1,9 @@
+name: case-conflicts-builtin
+category: diagnostics
+mode: check
+expect:
+  diagnostics:
+    - code: E2006
+      ruleId: NAME-CTOR-005
+      severity: error
+      line: 2

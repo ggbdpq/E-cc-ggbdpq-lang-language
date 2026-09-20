@@ -1,0 +1,9 @@
+name: eval-assign-index-from-call
+category: expressions
+ruleIds:
+  - EVAL-ASSIGN-003
+expect:
+  exitCode: 0
+  stdout: |
+    [0, 7]
+  stderr: ""

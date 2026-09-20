@@ -1,0 +1,9 @@
+name: bool-combos
+category: expressions
+ruleIds:
+  - EVAL-SHORTCUT-006
+expect:
+  exitCode: 0
+  stdout: |
+    false true true false
+  stderr: ""

@@ -1,0 +1,9 @@
+name: string-compare-ordering
+category: types
+ruleIds:
+  - PARSE-004
+expect:
+  exitCode: 0
+  stdout: |
+    true false true true
+  stderr: ""

@@ -1,0 +1,8 @@
+fn v(): int {
+    return 7
+}
+fn main() {
+    let xs = [0, 0]
+    xs[1] = v()
+    println(xs)
+}

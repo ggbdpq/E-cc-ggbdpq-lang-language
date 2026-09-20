@@ -1,0 +1,9 @@
+name: match-on-call-result
+category: match
+ruleIds:
+  - MATCH-EXPR-004
+expect:
+  exitCode: 0
+  stdout: |
+    even odd
+  stderr: ""

@@ -63,7 +63,7 @@ function usage(): void {
 `);
 }
 
-function main(): number {
+async function main(): Promise<number> {
   const args = process.argv.slice(2);
   if (args.length === 0) return repl();
   switch (args[0]) {
@@ -802,7 +802,7 @@ function runConformance(root: string): number {
 
 // —— REPL ——
 
-function repl(): number {
+async function repl(): Promise<number> {
   const it = new Interp({ write: (s) => process.stdout.write(s) });
   process.stdout.write(`lang-ts v${version} — :help 帮助, :quit 退出\n`);
   const rl = readline.createInterface({ input: process.stdin, terminal: false });
@@ -820,8 +820,10 @@ function repl(): number {
         return;
       }
       if (t === ":quit" || t === ":q" || t === "exit") {
+        // stdout 到管道是异步写：先排空再退出，否则待写求值输出被截断
         rl.close();
-        process.exit(0);
+        process.stdout.write("", () => process.exit(0));
+        return;
       }
       if (t === ":help") {
         process.stdout.write("输入 lang-go 源码回车执行；未闭合的块会进入续行模式；:quit 退出\n");
@@ -849,8 +851,7 @@ function repl(): number {
     loop();
   });
   rl.on("close", () => {
-    process.stdout.write("\n");
-    process.exit(0);
+    process.stdout.write("\n", () => process.exit(0));
   });
   return 0;
 }

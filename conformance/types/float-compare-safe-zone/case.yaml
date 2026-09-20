@@ -1,0 +1,10 @@
+name: float-compare-safe-zone
+category: types
+ruleIds:
+  - PARSE-004
+  - RUNTIME-OUTPUT-004
+expect:
+  exitCode: 0
+  stdout: |
+    true true true true
+  stderr: ""

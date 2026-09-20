@@ -1,0 +1,6 @@
+enum Bad {
+    len
+}
+fn main() {
+    println(len)
+}

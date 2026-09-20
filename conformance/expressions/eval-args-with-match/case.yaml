@@ -1,0 +1,10 @@
+name: eval-args-with-match
+category: expressions
+ruleIds:
+  - EVAL-CALL-002
+  - MATCH-EXPR-004
+expect:
+  exitCode: 0
+  stdout: |
+    one/other
+  stderr: ""

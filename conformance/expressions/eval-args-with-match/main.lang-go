@@ -1,0 +1,12 @@
+fn label(n: int): string {
+    return match n {
+        1 => "one"
+        _ => "other"
+    }
+}
+fn pair(a: string, b: string): string {
+    return a + "/" + b
+}
+fn main() {
+    println(pair(label(1), label(2)))
+}

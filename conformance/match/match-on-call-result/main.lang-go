@@ -1,0 +1,9 @@
+fn kind(n: int): string {
+    return match n % 2 {
+        0 => "even"
+        _ => "odd"
+    }
+}
+fn main() {
+    println(kind(4), kind(7))
+}

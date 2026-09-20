@@ -1,0 +1,10 @@
+name: string-char-index
+category: collections
+ruleIds:
+  - VALUE-IMMUT-005
+expect:
+  exitCode: 0
+  stdout: |
+    h o
+    llo
+  stderr: ""

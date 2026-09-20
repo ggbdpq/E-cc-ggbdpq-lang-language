@@ -1,0 +1,10 @@
+fn put(ch: chan[int], v: int) {
+    send(ch, v)
+}
+fn main() {
+    let ch = makeChan()
+    go put(ch, 10)
+    println(recv(ch))
+    go put(ch, 20)
+    println(recv(ch))
+}

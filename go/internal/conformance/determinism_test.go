@@ -105,9 +105,11 @@ func TestDeterminism两次运行快照一致(t *testing.T) {
 			}
 			dir := filepath.Join(root, cat.Name(), c.Name())
 			first := snapshotProgram(t, dir)
-			second := snapshotProgram(t, dir)
-			if first != second {
-				t.Errorf("非确定性: %s/%s 两次快照不一致", cat.Name(), c.Name())
+			for round := 2; round <= 10; round++ {
+				if snapshotProgram(t, dir) != first {
+					t.Errorf("非确定性: %s/%s 第 %d 次快照不一致", cat.Name(), c.Name(), round)
+					break
+				}
 			}
 			checked++
 		}
@@ -115,7 +117,7 @@ func TestDeterminism两次运行快照一致(t *testing.T) {
 	if checked == 0 {
 		t.Fatal("未检查任何 case")
 	}
-	t.Logf("确定性检查 %d case × 2 次快照全部一致", checked)
+	t.Logf("确定性检查 %d case × 10 次快照全部一致", checked)
 }
 
 func TestDeterminism格式化幂等全语料(t *testing.T) {

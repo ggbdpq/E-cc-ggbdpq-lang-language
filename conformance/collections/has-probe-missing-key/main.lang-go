@@ -1,0 +1,8 @@
+fn main() {
+    let m = {"a": 1}
+    if has(m, "b") {
+        println(m["b"])
+    } else {
+        println("missing")
+    }
+}

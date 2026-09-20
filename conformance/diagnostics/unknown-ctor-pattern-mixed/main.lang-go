@@ -1,0 +1,9 @@
+fn f(o: Option[int]): int {
+    return match o {
+        Some(v) => v
+        Err(_) => 0
+    }
+}
+fn main() {
+    println(f(None))
+}

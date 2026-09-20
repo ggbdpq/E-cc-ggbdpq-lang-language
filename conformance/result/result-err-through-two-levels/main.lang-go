@@ -1,0 +1,14 @@
+fn a(): Result[int, error] {
+    return Err(err("deep"))
+}
+fn b(): Result[int, error] {
+    let v = a()?
+    return Ok(v)
+}
+fn c(): Result[int, error] {
+    let v = b()?
+    return Ok(v)
+}
+fn main() {
+    println(c())
+}

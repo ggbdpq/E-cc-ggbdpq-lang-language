@@ -75,14 +75,12 @@ export function apply(ws: WorkspaceEdit, root: string): void {
         throw new Error(`edit: ${file} 存在重叠编辑区间`);
       }
     }
-    let out = "";
-    let pos = 0;
+    // 逐编辑 splice（降序下每个编辑的区间不受更高偏移编辑影响），与 Go 一致
+    let out = runes;
     for (const e of edits) {
-      out += runes.slice(pos, e.startOffset).join("") + e.replacement;
-      pos = e.endOffset;
+      out = [...out.slice(0, e.startOffset), ...toCodePoints(e.replacement), ...out.slice(e.endOffset)];
     }
-    out += runes.slice(pos).join("");
-    newContents.set(file, Buffer.from(out, "utf8"));
+    newContents.set(file, Buffer.from(out.join(""), "utf8"));
   }
   for (const [file, content] of newContents) {
     try {

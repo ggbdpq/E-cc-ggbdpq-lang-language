@@ -1,0 +1,9 @@
+name: unknown-ctor-pattern-mixed
+category: diagnostics
+mode: check
+expect:
+  diagnostics:
+    - code: E4003
+      ruleId: MATCH-KIND-001
+      severity: error
+      line: 2

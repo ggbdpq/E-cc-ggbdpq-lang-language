@@ -1,0 +1,9 @@
+name: method-recv-unknown-struct
+category: diagnostics
+mode: check
+expect:
+  diagnostics:
+    - code: E2004
+      ruleId: NAME-RECV-006
+      severity: error
+      line: 1

@@ -1,0 +1,9 @@
+name: nested-fn-literal-return
+category: syntax
+ruleIds:
+  - VALUE-CAPTURE-004
+expect:
+  exitCode: 0
+  stdout: |
+    42
+  stderr: ""

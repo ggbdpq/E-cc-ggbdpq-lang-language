@@ -1,0 +1,6 @@
+fn main() {
+    struct Inner {
+        v: int
+    }
+    println(1)
+}
