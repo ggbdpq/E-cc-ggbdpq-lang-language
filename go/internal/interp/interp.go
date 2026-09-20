@@ -359,7 +359,138 @@ func (it *Interp) registerEnum(name string, cases []string, line int) (*EnumDef,
 	return def, nil
 }
 
+// assignAddr 预求的赋值目标地址。
+// 求值顺序（specs/expressions.md EVAL-ASSIGN-001）：目标地址组件先于右侧值求值
+// （左到右），与 →Go/→JS 后端一致。
+type assignAddr struct {
+	cell  *cell  // Ident：绑定单元格
+	vname string // Ident：绑定名（错误消息用）
+	obj   Value  // FieldEx/IndexEx：容器值（已解引用）
+	name  string // FieldEx：字段名
+	idx   Value  // IndexEx：索引值
+	line  int
+}
+
+// evalAssignAddr 求值赋值目标的地址组件（不做写入）
+func (it *Interp) evalAssignAddr(tgt syntax.Expr, env *Env) (*assignAddr, error) {
+	line := 0
+	if sp, ok := tgt.(interface{ Line() int }); ok {
+		line = sp.Line()
+	}
+	switch t := tgt.(type) {
+	case *syntax.Ident:
+		c, ok := env.lookup(t.Name)
+		if !ok {
+			return nil, it.errf(line, "未定义变量 %s", t.Name)
+		}
+		return &assignAddr{cell: c, vname: t.Name, line: line}, nil
+	case *syntax.FieldEx:
+		ov, err := it.eval(t.Obj, env)
+		if err != nil {
+			return nil, err
+		}
+		if p, ok := ov.(*PtrVal); ok {
+			ov = *p.Cell
+		}
+		if _, ok := ov.(*StructVal); !ok {
+			return nil, it.errf(line, "只能给 struct 字段赋值，得到 %s", typeName(ov))
+		}
+		return &assignAddr{obj: ov, name: t.Name, line: line}, nil
+	case *syntax.IndexEx:
+		ov, err := it.eval(t.Obj, env)
+		if err != nil {
+			return nil, err
+		}
+		if p, ok := ov.(*PtrVal); ok {
+			ov = *p.Cell
+		}
+		iv, err := it.eval(t.Idx, env)
+		if err != nil {
+			return nil, err
+		}
+		return &assignAddr{obj: ov, idx: iv, line: line}, nil
+	}
+	return nil, it.errf(line, "赋值目标不合法")
+}
+
+// writeAddr 向预求地址写入（= 赋值的唯一出口）
+func (it *Interp) writeAddr(a *assignAddr, v Value) error {
+	if a.cell != nil {
+		if !a.cell.mutable {
+			return it.errf(a.line, "%s 由 let 绑定，不可重新赋值", a.vname)
+		}
+		a.cell.val = v
+		return nil
+	}
+	switch container := a.obj.(type) {
+	case *StructVal:
+		idx := -1
+		for i, f := range container.Def.Fields {
+			if f == a.name {
+				idx = i
+				break
+			}
+		}
+		if idx < 0 {
+			return it.errf(a.line, "%s 没有字段 %s", container.Def.Name, a.name)
+		}
+		container.Fields[idx] = v
+		return nil
+	case *ArrVal:
+		i, err := it.intIndex(a.idx, len(container.Items), a.line)
+		if err != nil {
+			return err
+		}
+		container.Items[i] = v
+		return nil
+	case *MapVal:
+		if err := container.Set(a.idx, v); err != nil {
+			return it.errf(a.line, "%s", err)
+		}
+		return nil
+	case StrVal:
+		return it.errf(a.line, "字符串不可变")
+	default:
+		return it.errf(a.line, "%s 不可索引赋值", typeName(a.obj))
+	}
+}
+
+// readAddr 从预求地址读取旧值（复合赋值用）
+func (it *Interp) readAddr(a *assignAddr) (Value, error) {
+	if a.cell != nil {
+		return a.cell.val, nil
+	}
+	switch container := a.obj.(type) {
+	case *StructVal:
+		for i, f := range container.Def.Fields {
+			if f == a.name {
+				return container.Fields[i], nil
+			}
+		}
+		return nil, it.errf(a.line, "%s 没有字段 %s", container.Def.Name, a.name)
+	case *ArrVal:
+		i, err := it.intIndex(a.idx, len(container.Items), a.line)
+		if err != nil {
+			return nil, err
+		}
+		return container.Items[i], nil
+	case *MapVal:
+		if v, ok := container.Get(a.idx); ok {
+			return v, nil
+		}
+		return nil, it.errf(a.line, "映射无键 %s（用 has() 探测）", fmtVal(a.idx, true))
+	case StrVal:
+		return container, nil
+	default:
+		return nil, it.errf(a.line, "%s 不可索引读取", typeName(a.obj))
+	}
+}
+
 func (it *Interp) assign(st *syntax.AssignStmt, env *Env) error {
+	addr, err := it.evalAssignAddr(st.Target, env)
+	if err != nil {
+		return err
+	}
 	v, err := it.eval(st.Val, env)
 	if err != nil {
 		return err
@@ -368,106 +499,17 @@ func (it *Interp) assign(st *syntax.AssignStmt, env *Env) error {
 
 	// 复合赋值：读旧值运算后写回（数组 += 是原位 push，单独处理）
 	if st.Op != syntax.Assign {
-		return it.assignCompound(st, v, env)
+		return it.assignCompound(st, addr, v, env)
 	}
 
-	return it.writeTarget(st.Target, v, st.Line, env)
-}
-
-// writeTarget 按目标类型写回值（= 赋值的唯一出口）
-func (it *Interp) writeTarget(tgt syntax.Expr, v Value, line int, env *Env) error {
-	switch t := tgt.(type) {
-	case *syntax.Ident:
-		c, ok := env.lookup(t.Name)
-		if !ok {
-			return it.errf(line, "未定义变量 %s", t.Name)
-		}
-		if !c.mutable {
-			return it.errf(line, "%s 由 let 绑定，不可重新赋值", t.Name)
-		}
-		c.val = v
-		return nil
-
-	case *syntax.FieldEx:
-		ov, err := it.eval(t.Obj, env)
-		if err != nil {
-			return err
-		}
-		if p, ok := ov.(*PtrVal); ok {
-			ov = *p.Cell
-		}
-		sv, ok := ov.(*StructVal)
-		if !ok {
-			return it.errf(line, "只能给 struct 字段赋值，得到 %s", typeName(ov))
-		}
-		idx := -1
-		for i, f := range sv.Def.Fields {
-			if f == t.Name {
-				idx = i
-				break
-			}
-		}
-		if idx < 0 {
-			return it.errf(line, "%s 没有字段 %s", sv.Def.Name, t.Name)
-		}
-		sv.Fields[idx] = v
-		return nil
-
-	case *syntax.IndexEx:
-		ov, err := it.eval(t.Obj, env)
-		if err != nil {
-			return err
-		}
-		if p, ok := ov.(*PtrVal); ok {
-			ov = *p.Cell
-		}
-		iv, err := it.eval(t.Idx, env)
-		if err != nil {
-			return err
-		}
-		switch container := ov.(type) {
-		case *ArrVal:
-			i, err := it.intIndex(iv, len(container.Items), line)
-			if err != nil {
-				return err
-			}
-			container.Items[i] = v
-			return nil
-		case *MapVal:
-			if err := container.Set(iv, v); err != nil {
-				return it.errf(line, "%s", err)
-			}
-			return nil
-		case StrVal:
-			return it.errf(line, "字符串不可变")
-		default:
-			return it.errf(line, "%s 不可索引赋值", typeName(ov))
-		}
-	default:
-		return it.errf(line, "赋值目标不合法")
-	}
+	return it.writeAddr(addr, v)
 }
 
 // assignCompound 复合赋值（+= -= *= /=）：读旧值、运算、写回。
 // 数组 += 是原位 push（引用可见），不做读改写。
-func (it *Interp) assignCompound(st *syntax.AssignStmt, v Value, env *Env) error {
-	readTarget := func() (Value, error) {
-		switch t := st.Target.(type) {
-		case *syntax.Ident:
-			if c, ok := env.lookup(t.Name); ok {
-				return c.val, nil
-			}
-			return nil, it.errf(st.Line, "未定义变量 %s", t.Name)
-		case *syntax.FieldEx:
-			return it.eval(t, env)
-		case *syntax.IndexEx:
-			return it.eval(t, env)
-		}
-		return nil, it.errf(st.Line, "赋值目标不合法")
-	}
-
+func (it *Interp) assignCompound(st *syntax.AssignStmt, addr *assignAddr, v Value, env *Env) error {
 	if st.Op == syntax.PlusAssign {
-		cur, err := readTarget()
+		cur, err := it.readAddr(addr)
 		if err != nil {
 			return err
 		}
@@ -484,7 +526,7 @@ func (it *Interp) assignCompound(st *syntax.AssignStmt, v Value, env *Env) error
 		}
 	}
 
-	old, err := readTarget()
+	old, err := it.readAddr(addr)
 	if err != nil {
 		return err
 	}
@@ -495,7 +537,7 @@ func (it *Interp) assignCompound(st *syntax.AssignStmt, v Value, env *Env) error
 	if err != nil {
 		return err
 	}
-	return it.writeTarget(st.Target, combined, st.Line, env)
+	return it.writeAddr(addr, combined)
 }
 
 // applyOp 复合赋值的数值/字符串运算（语义与 evalBinary 的对应分支一致）

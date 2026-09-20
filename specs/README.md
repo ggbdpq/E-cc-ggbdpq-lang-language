@@ -1,21 +1,45 @@
-# specs —— 语言无关规范
+# specs —— 唯一语言真值源
 
-跨实现共享的语义规范。真值源目前是 `../go/docs/spec.md` 与 `../go/docs/decisions.md`（70 条决策台账）；
-某主题在三方实现（go/python/rust…）需要共同遵守时，把相应章节抽离沉淀到这里，实现侧只留引用。
+本目录是 lang-go 的**最高语义真值源**。冲突裁决顺序：
 
-v0.3 起已宿主无关化的部分：诊断码分段（E1xxx/E2xxx/E3xxx/E4xxx，见 `../go/docs/spec.md` §5）、
-Core IR 后端契约（见 `../go/internal/ir/`——多宿主实现只需实现同一 IR 契约）、
-架构决策 `../docs/adr/0001-semantic-core.md`。
+```text
+specs/（语言规范 + Rule ID）
+  ↓
+conformance/（行为契约）
+  ↓
+go/ 参考实现（Reference Implementation）
+  ↓
+README / tour / 教程
+```
 
-## 待沉淀主题（骨架，按需充实，不做预填）
+文档、代码、测试冲突时：定位冲突 → 判断规范是否合理 → 经 ADR 修规范或修实现 →
+补回归测试 → 更新 Conformance Case。**go/ 内部代码不是规范**；后端只做平台映射，
+不得重新决定核心语义。
 
-- Lexer（词法：记号、字面量、换行即语句结束、续行规则）
-- Token（记号分类与关键字/保留字表）
-- Parser（文法、优先级表、match 臂换行约定）
-- AST（节点清单与位置信息）
-- Interpreter（求值规则、值语义、闭包捕获）
-- Type System（注解、推断边界、chan[T] 装箱、Result/Option）
-- Error Model（Result + `?` 传播、运行时错误分类、死锁行为）
-- Runtime（go 语句与 chan 阻塞语义、三路平台差异矩阵）
+## 主题规范（Rule ID 分区）
 
-规则：每个主题一份文档；规范变更先改 `../go/docs/decisions.md` 留痕，再同步到这里。
+| 文件 | Rule 分区 | 主题 |
+|------|-----------|------|
+| lexical-grammar.md | LEX | 源文件、记号、字面量、换行续行 |
+| grammar.md | PARSE | 程序结构、语句、优先级、match 臂 |
+| name-resolution.md | NAME | 作用域、shadowing、合并命名空间 |
+| type-system.md | TYPE / GEN | 类型类别、兼容性、Any/Unknown、泛型 |
+| values.md | VALUE | 值/引用语义、struct 拷贝、闭包捕获 |
+| expressions.md | EVAL / CALL | 求值顺序、调用、运算符 |
+| control-flow.md | CTRL / MATCH | 条件、循环、迭代协议、match 与穷尽性 |
+| option-result.md | RESULT | Option/Result、`?` 传播 |
+| modules.md | MODULE | 模块根、import 解析、初始化 |
+| concurrency.md | TASK / CHAN | Task 模型、channel、确定性边界 |
+| runtime.md | RUNTIME / EFFECT / FFI | 运行时失败、效果面、extern |
+| rules.md | — | Rule Catalog 总表（ID ↔ 诊断码 ↔ Conformance） |
+
+## 工具与实现契约（非语言语义）
+
+diagnostics.md（诊断协议与 Rule 映射）、agent-protocol.md、source-span.md、
+runner-contract.md、../schemas/（JSON Schema）。
+
+## 实现侧文档
+
+`go/docs/spec.md` 自 v0.9 起为**实现侧摘要**（管线架构、后端映射、工具命令），
+语义真值以本目录为准；`go/docs/decisions.md` 是决策台账（为什么）；`docs/adr/` 是
+重大架构决策的完整上下文。
