@@ -6,7 +6,7 @@ lang-go 语言的 monorepo：一门覆盖前端、后端与日常工具开发的
 
 | 目录 | 用途 | 状态 |
 |------|------|------|
-| `go/` | Go 参考实现（语义前端 + 解释器 + →Go/→JS 双转译后端 + 契约层 + CLI + REPL） | **可用**：`cd go && go build -o lang-go.exe ./cmd/lang-go`；`v0.6.0`（历史经 subtree 并入本仓库） |
+| `go/` | Go 参考实现（语义前端 + 解释器 + →Go/→JS 双转译后端 + 契约层 + CLI + REPL） | **可用**：`cd go && go build -o lang-go.exe ./cmd/lang-go`；`v0.7.0`（历史经 subtree 并入本仓库） |
 | `specs/` | 语言无关规范（词法/语法/AST/解释器/类型系统/错误模型/运行时），实现共守的唯一语义真值源 | 骨架，待沉淀 |
 | `docs/` | 语言级文档：`plans/`（v0.3 实施计划）、`adr/`（架构决策） | 增长中 |
 | `examples/` | 语言级示例索引 | 骨架，实际示例在 `go/examples/` |
@@ -30,3 +30,5 @@ lang-go 语言的 monorepo：一门覆盖前端、后端与日常工具开发的
 - v0.4 起 Agent 通过稳定 JSON 协议理解程序：`check/inspect/dump --json`（specs/agent-protocol.md、schemas/agent-protocol.schema.json；schemaVersion 1）。
 - v0.5 起 `lang-go fix --safe` 提供机械安全修复（结构化 TextEdit/WorkspaceEdit + sha256 前置校验 + 编辑事务闭环），Formatter 注释 100% 保留且幂等（ADR-0003）。
 - v0.6 起 `lang-go inspect callers/callees/impact/references/dependency --json` 提供语义图查询（decisions #81）。
+- v0.7 起 `lang-go refactor rename/organize-imports/safe-remove --json` 提供语义级重构（基于 SymbolId + 引用集，禁止 Regex；decisions #85–#86）。
+- v0.7 起 `lang-go refactor rename/organize-imports/safe-remove --json` 提供语义级重构（基于 SymbolId + 引用集，禁止 Regex；decisions #82–#84）。

@@ -441,7 +441,7 @@ func (b *builder) call(x *syntax.CallEx) Expr {
 	if fe, ok := x.Callee.(*syntax.FieldEx); ok {
 		recv := b.expr(fe.Obj)
 		if st := structOf(Typ(recv)); st != nil && st.Methods[fe.Name] != nil {
-			n := &MethodCall{Node: b.node(x.Sp, x.Line, st.Methods[fe.Name], t), Recv: recv, Method: st.Methods[fe.Name]}
+			n := &MethodCall{Node: b.node(x.Sp, x.Line, st.Methods[fe.Name], t), Recv: recv, Method: st.Methods[fe.Name], NameSp: methodNameSpan(fe)}
 			for _, a := range x.Args {
 				n.Args = append(n.Args, b.expr(a))
 			}
@@ -468,6 +468,17 @@ func (b *builder) call(x *syntax.CallEx) Expr {
 		n.Args = append(n.Args, b.expr(a))
 	}
 	return n
+}
+
+// methodNameSpan 方法名的 token 区间（fe.Sp.End = 名字 token 终点；File 随表达式区间）
+func methodNameSpan(fe *syntax.FieldEx) syntax.Span {
+	sp := fe.Sp
+	n := len([]rune(fe.Name))
+	return syntax.Span{
+		File:  sp.File,
+		Start: syntax.Position{Offset: sp.End.Offset - n, Line: sp.End.Line, Col: sp.End.Col - n},
+		End:   sp.End,
+	}
 }
 
 // structOf 取类型对应的 struct 符号（引用自动解引用）

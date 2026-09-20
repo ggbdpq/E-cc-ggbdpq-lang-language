@@ -17,7 +17,7 @@
 
 - `schemaVersion`：协议版本。v0.4.x 内字段只加不改不删；破坏性变更升 `"2"`。
 - `toolVersion`：工具版本，与 `lang-go version` 同源。
-- `kind`：`check | dump.ast | dump.hir | dump.ir | inspect.symbols | inspect.refs | inspect.type | inspect.dependencies | inspect.effects`。
+- `kind`：`check | dump.ast | dump.hir | dump.ir | inspect.symbols | inspect.refs | inspect.type | inspect.dependencies | inspect.effects | inspect.callers | inspect.callees | inspect.impact | inspect.references | inspect.dependency | refactor.rename | refactor.organize-imports | refactor.safe-remove`。
 - 错误负载：`"error": "<人类可读原因>"`，配非零退出码（定位失败/参数缺失=1 或 2）。
 
 ## 2. 命令
@@ -36,6 +36,9 @@
 | `lang-go inspect impact <sym> --json [--depth N]` | `impact{symbol,direct[],transitive[],effectWatch[],modules[],note}` |
 | `lang-go inspect references <sym> --json` | `references[]`（按符号过滤） |
 | `lang-go inspect dependency <file> --json` | `dependency{module,imports,dependsOn}` |
+| `lang-go refactor rename --symbol <sym> --to <name> [--apply]` | `applied`, `editCount`, `symbol`, `workspaceEdit` |
+| `lang-go refactor organize-imports [--apply]` | `applied`, `editCount`, `workspaceEdit` |
+| `lang-go refactor safe-remove --symbol <sym> [--apply]` | 可删：`applied`, `editCount`, `workspaceEdit`；不可删：`removable:false`, `reason`, `refSites[]` |
 
 `<sym>` 接受 SymbolID（数字）或符号名。`--depth` 缺省不限；impact 的
 direct/transitive 分别对应直接入边与沿调用链传递的入边；effectWatch =
@@ -106,3 +109,14 @@ inspect → plan → precondition check → edit → format → parse → resolv
 - `lang-go fix --safe` 内置闭环：analyze → plan → precondition → apply → parse →
   resolve → typecheck；任一步失败输出结构化 error（`stage: apply|verify`）并退出码 1。
   `--dry-run` 只输出 WorkspaceEdit 不落盘。
+
+## 7. 语义重构（v0.7 Refactoring）
+
+- `lang-go refactor rename|organize-imports|safe-remove` 基于 SymbolId + 语义引用（禁止 Regex Rename）；
+  默认 dry-run 只输出 `workspaceEdit`，`--apply` 落盘并复用 §6 闭环
+  （precondition → apply → parse → resolve → typecheck；失败输出 `stage: apply|verify`，退出码 1）。
+- rename 支持函数/方法/变量/参数；struct/enum/构造器/字段显式拒绝（列 P1）。
+  合并程序内存在同名目标即拒绝（保守冲突检测）。
+- safe-remove 仅当目标（顶层 fn/全局变量）引用计数为 0 时给出删除编辑；
+  有引用时返回 `removable:false` 与 `refSites[]` 证据。
+- 编辑为跨文件集合：每个涉及的文件都带独立 precondition（sha256）。

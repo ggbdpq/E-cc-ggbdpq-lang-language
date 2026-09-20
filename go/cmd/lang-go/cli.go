@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -25,6 +26,7 @@ import (
 	"lang-go/internal/interp"
 	"lang-go/internal/load"
 	"lang-go/internal/pipeline"
+	"lang-go/internal/refactor"
 	"lang-go/internal/syntax"
 )
 
@@ -76,6 +78,8 @@ func cliMain() int {
 		return runDump(args[1:])
 	case "fix":
 		return runFix(args[1:])
+	case "refactor":
+		return runRefactor(args[1:])
 	case "bind":
 		// 包目录固定为当前目录的 bind.d/（安全边界：任何路径输入都不进数据流）
 		return runBind()
@@ -110,6 +114,9 @@ func usage() {
   lang-go dump       ast|hir|ir --json 输出编译器内部树
   lang-go fix --safe [--dry-run] [--json]
                      机械安全修复（重复/未使用 import、行尾空白、EOF 换行）+ 验证闭环
+  lang-go refactor rename|organize-imports|safe-remove [--symbol N] [--to NAME]
+                     [--apply] [--json]
+                     语义级重构（SymbolId + 引用集，禁止 Regex）；默认只报编辑，--apply 落盘+验证闭环
   lang-go fmt        就地格式化当前目录 .lang-go
   lang-go build      语义检查后写 out/main.go（build js 写 out/main.mjs）
   lang-go bind       生成 extern "go" 声明草案（bind.d/）
@@ -623,4 +630,178 @@ func fixStop(toolVersion, kind, stage, msg string) map[string]any {
 		"stage":         stage,
 		"error":         msg,
 	}
+}
+
+// runRefactor 语义级重构（v0.7 P0）：rename / organize-imports / safe-remove。
+// 一律输出契约 JSON（编辑集本身是结构化产物）；默认 dry-run 只报编辑，
+// --apply 落盘（sha256 前置校验）并走验证闭环 parse → resolve → typecheck。
+func runRefactor(args []string) int {
+	if len(args) == 0 {
+		printJSON(contract.ErrorEnvelope("refactor", "缺少子命令：rename|organize-imports|safe-remove"))
+		return 2
+	}
+	sub := args[0]
+	kind := "refactor." + sub
+	switch sub {
+	case "rename", "organize-imports", "safe-remove":
+	default:
+		printJSON(contract.ErrorEnvelope(kind, "未知子命令 "+sub))
+		return 2
+	}
+	symbol, to := "", ""
+	apply := hasFlag(args, "--apply")
+	for i, a := range args {
+		switch a {
+		case "--symbol":
+			if i+1 < len(args) {
+				symbol = args[i+1]
+			}
+		case "--to":
+			if i+1 < len(args) {
+				to = args[i+1]
+			}
+		}
+	}
+
+	prog, _, files, err := load.ProgramEx(".", false)
+	if err != nil {
+		printJSON(contract.ErrorEnvelope(kind, "装载失败: "+err.Error()))
+		return 1
+	}
+	// 每文件源码（token 扫描按声明所在文件取）+ 哈希前置
+	byFile := map[string]string{}
+	def := ""
+	for _, fi := range files {
+		bs, rerr := os.ReadFile(filepath.Join(".", filepath.FromSlash(fi.Path)))
+		if rerr != nil {
+			printJSON(contract.ErrorEnvelope(kind, "读 "+fi.Path+": "+rerr.Error()))
+			return 1
+		}
+		byFile[fi.Path] = string(bs)
+		if fi.Path == entryFile || def == "" {
+			def = string(bs)
+		}
+	}
+	srcs := refactor.Sources{Default: def, ByFile: byFile}
+
+	a, aerr := pipeline.AnalyzeStmts(prog)
+	if aerr != nil {
+		printJSON(contract.ErrorEnvelope(kind, pipeline.FormatDiags(pipeline.Diagnostics(aerr))))
+		return 1
+	}
+
+	var edits []edit.TextEdit
+	symJSON := map[string]any{}
+	switch sub {
+	case "rename", "safe-remove":
+		target, terr := refactor.ResolveTarget(a.Res, symbol)
+		if terr != nil {
+			printJSON(contract.ErrorEnvelope(kind, terr.Error()))
+			return 1
+		}
+		symJSON = map[string]any{"id": int(target.ID), "name": target.Name, "kind": target.Kind}
+		if sub == "rename" {
+			if to == "" {
+				printJSON(contract.ErrorEnvelope(kind, "缺少 --to 参数"))
+				return 2
+			}
+			edits, err = refactor.Rename(prog, srcs, a.Res, a.HIR, target, to)
+		} else {
+			chk, cerr := refactor.SafeRemoveCheck(prog, a.Res, target)
+			if cerr != nil {
+				printJSON(contract.ErrorEnvelope(kind, cerr.Error()))
+				return 1
+			}
+			if !chk.Removable {
+				printJSON(map[string]any{
+					"schemaVersion": contract.SchemaVersion,
+					"toolVersion":   contract.ToolVersion,
+					"kind":          kind,
+					"removable":     false,
+					"reason":        chk.Reason,
+					"refSites":      chk.RefSites,
+					"symbol":        symJSON,
+				})
+				return 1
+			}
+			edits, err = refactor.SafeRemoveEdits(prog, srcs, a.Res, target)
+		}
+	case "organize-imports":
+		// 每文件独立整理；变化文件以整文件替换编辑表达
+		var paths []string
+		for p := range byFile {
+			paths = append(paths, p)
+		}
+		sort.Strings(paths)
+		for _, p := range paths {
+			out, changed, oerr := refactor.OrganizeImports(byFile[p])
+			if oerr != nil {
+				printJSON(contract.ErrorEnvelope(kind, p+": "+oerr.Error()))
+				return 1
+			}
+			if changed {
+				edits = append(edits, edit.TextEdit{
+					File:        p,
+					StartOffset: 0,
+					EndOffset:   len([]rune(byFile[p])),
+					Replacement: out,
+				})
+			}
+		}
+	}
+	if err != nil {
+		printJSON(contract.ErrorEnvelope(kind, err.Error()))
+		return 1
+	}
+
+	// 前置哈希：编辑涉及的全部文件
+	pre := map[string]bool{}
+	var preconds []edit.Precondition
+	for _, e := range edits {
+		if pre[e.File] {
+			continue
+		}
+		pre[e.File] = true
+		preconds = append(preconds, edit.Precondition{
+			File:     e.File,
+			FileHash: edit.HashBytes([]byte(srcs.Source(e.File))),
+		})
+	}
+	ws := edit.WorkspaceEdit{Edits: edits, Preconditions: preconds}
+
+	report := func(applied bool) int {
+		printJSON(map[string]any{
+			"schemaVersion": contract.SchemaVersion,
+			"toolVersion":   contract.ToolVersion,
+			"kind":          kind,
+			"applied":       applied,
+			"editCount":     len(edits),
+			"symbol":        symJSON,
+			"workspaceEdit": ws,
+		})
+		return 0
+	}
+	if !apply {
+		return report(false)
+	}
+
+	if err := edit.Apply(ws, "."); err != nil {
+		printJSON(fixStop(contract.ToolVersion, kind, "apply", err.Error()))
+		fmt.Fprintln(os.Stderr, "STOP——应用编辑失败:", err)
+		return 1
+	}
+	// 验证闭环：parse → resolve → typecheck
+	vprog, _, _, derr := load.ProgramEx(".", false)
+	if derr != nil {
+		printJSON(fixStop(contract.ToolVersion, kind, "verify", derr.Error()))
+		fmt.Fprintln(os.Stderr, "STOP——重构后验证失败:", derr)
+		return 1
+	}
+	if diags, _ := pipeline.CheckStmts(vprog); len(diags) > 0 {
+		msg := pipeline.FormatDiags(diags)
+		printJSON(fixStop(contract.ToolVersion, kind, "verify", msg))
+		fmt.Fprintln(os.Stderr, "STOP——重构后验证失败:", msg)
+		return 1
+	}
+	return report(true)
 }

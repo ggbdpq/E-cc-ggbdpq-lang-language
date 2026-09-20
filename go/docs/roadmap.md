@@ -12,6 +12,8 @@
 | M4 移植 linkpull bilibili 提取器（v0.2.0） | 完成 |
 | — R1 extern / R2 http+json / R3 import / chan 阻塞语义 / bind | 完成 |
 | **v0.3 Semantic Core** | **完成**：semantic（resolver）→ types（checker）→ hir（Typed HIR）→ ir（Core IR）；check 独立前端（稳定诊断码 E1xxx–E4xxx）；后端改消费 IR；三处静默分歧收口（ADR-0001、decisions #65–#70b） |
+| **v0.7 Refactoring** | **完成**：rename symbol（fn/method/全局/局部/参数，SymbolId + 引用集，冲突保守拒绝）、organize imports（去重/排序/未使用删除/注释随行）、safe remove（零入边证明 + 引用证据拒绝）；CLI refactor 接线（decisions #82–#84） |
+| **v0.7 Refactoring** | **完成**：rename symbol（SymbolId + 引用集 + 冲突拒绝）、organize imports（去重/排序/未使用删除）、safe remove（零入边证明 + 引用证据拒绝）；CLI refactor 接线（decisions #85–#86） |
 | **v0.6 Semantic Graph** | **完成**：internal/graph 内存语义图（Symbol 节点 + call/references/writes/spawn/depends_on/imports 边）；inspect callers/callees/impact/references/dependency --json（--depth、direct/transitive + evidence）；effects 推导迁入 graph（decisions #81） |
 | **v0.5 Safe Editing** | **完成**：注释 trivia 流 + Formatter 注释插回（100% 保留/幂等/语义等价，corpus 级锁定）；internal/edit 结构化编辑（TextEdit/WorkspaceEdit/sha256 前置校验）；fix --safe 三修复 + 编辑事务闭环（decisions #77–#80、ADR-0003） |
 | **v0.4 Agent Contract** | **完成**：internal/contract 契约层（schemaVersion 1）；check/dump ast·hir·ir/inspect symbols·refs·type·dependencies·effects 全部 --json；列级 Span + 文件归属；Effect Metadata 从 IR 推导（decisions #71–#76、specs/agent-protocol.md、schemas/agent-protocol.schema.json） |
@@ -25,5 +27,5 @@
 
 ## 下一阶段（承接总路线）
 
-- **v0.7 Refactoring**：rename（SymbolId + 引用集，复用 graph 引用边）、organize imports、safe remove；优先 P0
+- **v0.8 Verification**：conformance/ 套件（syntax/types/generics/struct/enum/match/option/result/closure/module/collections/io/concurrency/diagnostics 分类）+ manifest + runner contract
 - v0.6 Semantic Graph / v0.7 Refactoring / v0.8 Verification（conformance suite）/ v0.9 Hardening / v1.0 Freeze

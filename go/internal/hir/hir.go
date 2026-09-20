@@ -225,6 +225,7 @@ type MethodCall struct {
 	Method *semantic.Symbol
 	Field  string
 	Args   []Expr
+	NameSp syntax.Span // 方法名的 token 区间（rename 用；字段函数值调用为字段名区间）
 }
 
 // Unary 一元运算（- ! &）

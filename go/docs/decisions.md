@@ -189,3 +189,18 @@ null、异常、宏、继承、隐式数值转换、包管理器、LSP、调试�
 | # | 决定 | 理由 |
 |---|------|------|
 | 81 | **语义图**：internal/graph 以 SymbolID 为节点（function/method/variable/parameter/struct/enum/constructor），边五类（call/references/writes/pattern+type 经 references/depends_on）+ 文件级 imports；call/spawn/method 边来自 HIR（已解析符号 + Span），引用边来自 AST+resolver；impact 按 direct/transitive 分级并附证据，明示保守性（证据集≠完整证明）；效果推导从 contract 迁入 graph（唯一实现） | Agent 的「谁调用/调用谁/改它影响什么」问题全部可机答；纯内存图（Prompt 03 禁 graph DB）；字段/case 以节点 Fields 列表表达，不建伪符号 |
+
+## v0.7 Refactoring（2026-09-20 追加）
+
+| # | 决定 | 理由 |
+|---|------|------|
+| 82 | **rename symbol 落地（P0）**：基于 SymbolId + resolver 引用表的编辑集构建（定义位 token 扫描 + 引用位 Ident Span），冲突检测保守拒绝（合并程序内其他同名符号）；fn/method/全局/局部/参数支持，struct/enum/ctor/字段显式拒绝列 P1 | 禁止 Regex Rename（Prompt 04）；shadowing 由 SymbolID 天然区分；保守拒绝优于误改 |
+| 83 | **organize imports 落地（P0）**：同文件 import 去重 + 未使用删除（保守：文件内非 import 行出现路径最后段名即视为使用）+ 按路径排序；行尾注释随行移动 | 注释随行保留；装载器对 done 文件跳过，删除冗余 import 语义零变化 |
+| 84 | **safe remove 落地（P0）**：Semantic Graph 证明零入边才允许删除顶层 fn / 全局变量；有引用即拒绝并输出引用证据（Span 列表）；方法/字段删除列 P1 | 「不确定就拒绝」（Prompt 04）；拒绝时给出引用计数与位置 |
+
+## v0.7 Refactoring（2026-09-20 追加）
+
+| # | 决定 | 理由 |
+|---|------|------|
+| 85 | **rename symbol（P0）**：基于 SymbolId + resolver 引用集（Ident Span 精确定位）+ 冲突保守拒绝（合并程序内其他同名即拒）。fn/method/全局/局部/参数支持；struct/enum/ctor/字段显式拒绝列 P1 | 禁止 Regex Rename；shadowing 由 SymbolID 天然区分 |
+| 86 | **organize imports + safe remove**：import 去重/未使用删除/排序（注释随行）；safe remove 仅顶层 fn/全局变量零入边才删（有引用附证据拒绝） | Prompt 04 P0 三项全覆盖；保守拒绝优于误改 |
