@@ -1,0 +1,9 @@
+name: evaluation-order-assign-target-first
+category: expressions
+ruleIds:
+  - EVAL-ASSIGN-003
+expect:
+  exitCode: 0
+  stdout: |
+    KV
+  stderr: ""

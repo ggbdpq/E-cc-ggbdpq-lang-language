@@ -32,6 +32,7 @@ type Case struct {
 	Category string
 	Mode     string // run | check
 	Note     string
+	RuleIDs  []string // 关联的 Semantic Rule ID（specs/rules.md；元数据，随结果透出）
 	Expect   Expect
 }
 
@@ -47,6 +48,7 @@ func ParseManifest(src string) (*Case, error) {
 		ctxExpect
 		ctxStdoutBlock
 		ctxDiag
+		ctxRules
 	)
 	ctx := ctxTop
 	var diag *DiagExpect
@@ -69,6 +71,14 @@ func ParseManifest(src string) (*Case, error) {
 			ctx = ctxExpect
 		}
 
+		if ctx == ctxRules {
+			// 列表项是无值裸标量（"- RULE-ID"），不走 key: value 切分
+			if strings.HasPrefix(line, "- ") {
+				c.RuleIDs = append(c.RuleIDs, strings.TrimPrefix(line, "- "))
+				continue
+			}
+			ctx = ctxTop
+		}
 		key, val, hasVal := cutKey(line)
 		if !hasVal {
 			return nil, fmt.Errorf("manifest 第%d行: 形态不支持 %q", i+1, line)
@@ -84,6 +94,11 @@ func ParseManifest(src string) (*Case, error) {
 				c.Mode = val
 			case "note":
 				c.Note = val
+			case "ruleIds":
+				if val != "" {
+					return nil, fmt.Errorf("manifest 第%d行: ruleIds 不接受内联值", i+1)
+				}
+				ctx = ctxRules
 			case "expect":
 				if val != "" {
 					return nil, fmt.Errorf("manifest 第%d行: expect 不接受内联值", i+1)

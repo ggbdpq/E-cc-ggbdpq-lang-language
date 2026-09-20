@@ -1,0 +1,13 @@
+name: map-iteration-insertion-order
+category: collections
+ruleIds:
+  - VALUE-MAP-006
+  - CTRL-FORIN-003
+expect:
+  exitCode: 0
+  stdout: |
+    z
+    a
+    m
+    ["z", "a", "m"]
+  stderr: ""

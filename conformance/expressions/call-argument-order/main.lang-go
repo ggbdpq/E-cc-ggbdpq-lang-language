@@ -1,0 +1,12 @@
+var log = ""
+fn mark(s: string): int {
+    log = log + s
+    return 1
+}
+fn take(x: int, y: int): int {
+    return x * 10 + y
+}
+fn main() {
+    println(take(mark("A"), mark("B")))
+    println(log)
+}

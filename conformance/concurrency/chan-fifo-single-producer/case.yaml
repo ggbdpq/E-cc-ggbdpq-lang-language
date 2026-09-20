@@ -1,0 +1,11 @@
+name: chan-fifo-single-producer
+category: concurrency
+ruleIds:
+  - CHAN-RECV-003
+  - TASK-DETERMINISM-003
+expect:
+  exitCode: 0
+  stdout: |
+    Ok(1)
+    Ok(2)
+  stderr: ""

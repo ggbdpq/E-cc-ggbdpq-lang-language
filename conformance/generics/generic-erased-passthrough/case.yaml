@@ -1,0 +1,11 @@
+name: generic-erased-passthrough
+category: generics
+ruleIds:
+  - GEN-INFER-002
+  - GEN-SUBST-003
+expect:
+  exitCode: 0
+  stdout: |
+    1 y
+    Some(7)
+  stderr: ""

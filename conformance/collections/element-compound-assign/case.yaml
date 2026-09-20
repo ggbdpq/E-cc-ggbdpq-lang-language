@@ -1,0 +1,10 @@
+name: element-compound-assign
+category: collections
+ruleIds:
+  - EVAL-ASSIGN-003
+expect:
+  exitCode: 0
+  stdout: |
+    [11, 6]
+    {"k": 6}
+  stderr: ""

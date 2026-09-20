@@ -1,0 +1,14 @@
+var log = ""
+fn kmark(): int {
+    log = log + "K"
+    return 1
+}
+fn vmark(): int {
+    log = log + "V"
+    return 2
+}
+fn main() {
+    let m = {}
+    m[kmark()] = vmark()
+    println(log)
+}

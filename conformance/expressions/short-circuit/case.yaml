@@ -1,0 +1,10 @@
+name: short-circuit
+category: expressions
+ruleIds:
+  - EVAL-SHORTCUT-006
+expect:
+  exitCode: 0
+  stdout: |
+    BOOM
+    false true true
+  stderr: ""

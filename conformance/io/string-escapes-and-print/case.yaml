@@ -1,0 +1,13 @@
+name: string-escapes-and-print
+category: io
+ruleIds:
+  - LEX-007
+  - RUNTIME-OUTPUT-003
+expect:
+  exitCode: 0
+  stdout: |
+    a	b
+    line1
+    line2
+    quote: "x"
+  stderr: ""

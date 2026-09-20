@@ -1,0 +1,11 @@
+name: literal-evaluation-order
+category: expressions
+ruleIds:
+  - EVAL-LITERAL-004
+expect:
+  exitCode: 0
+  stdout: |
+    one
+    two
+    2
+  stderr: ""

@@ -1,0 +1,10 @@
+name: call-argument-order
+category: expressions
+ruleIds:
+  - EVAL-CALL-002
+expect:
+  exitCode: 0
+  stdout: |
+    11
+    AB
+  stderr: ""

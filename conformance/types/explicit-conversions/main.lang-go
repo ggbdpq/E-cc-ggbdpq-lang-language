@@ -1,0 +1,5 @@
+fn main() {
+    println(int(2.9), float(3), str(42))
+    println(int("17"), float("2.5"))
+    println(1.0, 2.5)
+}

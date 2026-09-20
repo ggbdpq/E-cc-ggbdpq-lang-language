@@ -1,0 +1,9 @@
+name: unknown-field
+category: diagnostics
+mode: check
+expect:
+  diagnostics:
+    - code: E3004
+      ruleId: TYPE-MEMBER-007
+      severity: error
+      line: 6

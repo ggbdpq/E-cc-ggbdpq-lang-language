@@ -1,0 +1,7 @@
+fn main() {
+    let m = {"z": 26, "a": 1, "m": 13}
+    for k in m {
+        println(k)
+    }
+    println(keys(m))
+}

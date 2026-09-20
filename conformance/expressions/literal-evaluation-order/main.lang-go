@@ -1,0 +1,8 @@
+fn mk(s: string): int {
+    println(s)
+    return 1
+}
+fn main() {
+    let arr = [mk("one"), mk("two")]
+    println(len(arr))
+}

@@ -1,0 +1,7 @@
+fn main() {
+    print("a")
+    print("\t")
+    println("b")
+    println("line1\nline2")
+    println("quote: \"x\"")
+}

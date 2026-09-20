@@ -1,0 +1,10 @@
+fn main() {
+    let a = [1]
+    let b = a
+    push(b, 2)
+    println(a, b)
+    let m = {"k": 1}
+    let n = m
+    n["k"] = 9
+    println(m)
+}

@@ -1,0 +1,9 @@
+name: immutable-assign
+category: diagnostics
+mode: check
+expect:
+  diagnostics:
+    - code: E2005
+      ruleId: NAME-MUT-007
+      severity: error
+      line: 3

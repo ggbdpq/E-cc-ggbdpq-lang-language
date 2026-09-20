@@ -1,0 +1,14 @@
+struct P {
+    x: int
+    y: int
+}
+fn main() {
+    let a = P{x: 1, y: 2}
+    let b = a
+    b.x = 100
+    println(a.x, b.x)
+    mutate(P{x: 5, y: 5})
+}
+fn mutate(p: P) {
+    p.x = 999
+}

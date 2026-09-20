@@ -20,9 +20,9 @@ import (
 
 	"lang-go/internal/contract"
 	"lang-go/internal/gen"
-	"lang-go/internal/irinterp"
 	"lang-go/internal/genjs"
 	"lang-go/internal/interp"
+	"lang-go/internal/irinterp"
 	"lang-go/internal/load"
 	"lang-go/internal/pipeline"
 	"lang-go/internal/syntax"
@@ -30,12 +30,13 @@ import (
 
 // CaseResult 单 case 执行结果
 type CaseResult struct {
-	Name     string `json:"name"`
-	Category string `json:"category"`
-	Mode     string `json:"mode"`
-	OK       bool   `json:"ok"`
-	Skipped  bool   `json:"skipped,omitempty"` // 工具链缺失等环境性跳过（不计入通过）
-	Note     string `json:"note,omitempty"`    // 失败细节或跳过原因
+	Name     string   `json:"name"`
+	Category string   `json:"category"`
+	Mode     string   `json:"mode"`
+	RuleIDs  []string `json:"ruleIds,omitempty"`
+	OK       bool     `json:"ok"`
+	Skipped  bool     `json:"skipped,omitempty"` // 工具链缺失等环境性跳过（不计入通过）
+	Note     string   `json:"note,omitempty"`    // 失败细节或跳过原因
 }
 
 // RunCase 执行单个 case 目录（内含 case.yaml 与程序文件）
@@ -48,7 +49,7 @@ func RunCase(dir string) CaseResult {
 	if err != nil {
 		return CaseResult{Name: filepath.Base(dir), Note: err.Error()}
 	}
-	res := CaseResult{Name: c.Name, Category: c.Category, Mode: c.Mode}
+	res := CaseResult{Name: c.Name, Category: c.Category, Mode: c.Mode, RuleIDs: c.RuleIDs}
 
 	prog, _, err := load.Program(dir, false)
 	if err != nil {

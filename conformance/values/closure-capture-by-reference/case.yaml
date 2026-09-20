@@ -1,0 +1,10 @@
+name: closure-capture-by-reference
+category: values
+ruleIds:
+  - VALUE-CAPTURE-004
+expect:
+  exitCode: 0
+  stdout: |
+    10 10
+    50 50
+  stderr: ""

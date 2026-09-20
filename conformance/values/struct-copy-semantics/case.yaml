@@ -1,0 +1,9 @@
+name: struct-copy-semantics
+category: values
+ruleIds:
+  - VALUE-COPY-001
+expect:
+  exitCode: 0
+  stdout: |
+    1 100
+  stderr: ""

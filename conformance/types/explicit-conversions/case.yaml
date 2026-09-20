@@ -1,0 +1,11 @@
+name: explicit-conversions
+category: types
+ruleIds:
+  - TYPE-CONV-005
+expect:
+  exitCode: 0
+  stdout: |
+    2 3 42
+    17 2.5
+    1 2.5
+  stderr: ""

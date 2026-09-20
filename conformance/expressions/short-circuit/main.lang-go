@@ -1,0 +1,10 @@
+fn boom(): bool {
+    println("BOOM")
+    return true
+}
+fn main() {
+    let a = false && boom()
+    let b = true || boom()
+    let c = true && boom()
+    println(a, b, c)
+}

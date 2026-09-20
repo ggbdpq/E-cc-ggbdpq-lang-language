@@ -1,0 +1,10 @@
+name: nested-struct-copy
+category: values
+mode: run
+ruleIds:
+  - VALUE-COPY-001
+expect:
+  exitCode: 0
+  stdout: |
+    1 100
+  stderr: ""

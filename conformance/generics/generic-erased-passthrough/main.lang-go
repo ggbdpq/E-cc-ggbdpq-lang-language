@@ -1,0 +1,13 @@
+fn pick[T](flag: bool, a: T, b: T): T {
+    if flag {
+        return a
+    }
+    return b
+}
+fn wrap[T](v: T): Option[T] {
+    return Some(v)
+}
+fn main() {
+    println(pick(true, 1, 2), pick(false, "x", "y"))
+    println(wrap(7))
+}

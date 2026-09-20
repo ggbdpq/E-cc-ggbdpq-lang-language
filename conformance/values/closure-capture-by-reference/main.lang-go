@@ -1,0 +1,10 @@
+fn main() {
+    var x = 1
+    let f = fn(): int {
+        x = x * 10
+        return x
+    }
+    println(f(), x)
+    x = 5
+    println(f(), x)
+}

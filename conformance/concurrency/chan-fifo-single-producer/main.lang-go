@@ -1,0 +1,10 @@
+fn produce(ch: chan[int]) {
+    send(ch, 1)
+    send(ch, 2)
+}
+fn main() {
+    let ch = makeChan()
+    go produce(ch)
+    println(recv(ch))
+    println(recv(ch))
+}

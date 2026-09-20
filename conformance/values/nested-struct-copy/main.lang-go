@@ -1,0 +1,12 @@
+struct Inner {
+    v: int
+}
+struct Outer {
+    inner: Inner
+}
+fn main() {
+    let a = Outer{inner: Inner{v: 1}}
+    let b = a
+    b.inner.v = 100
+    println(a.inner.v, b.inner.v)
+}
