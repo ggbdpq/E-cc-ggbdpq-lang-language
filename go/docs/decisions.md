@@ -211,3 +211,12 @@ null、异常、宏、继承、隐式数值转换、包管理器、LSP、调试�
 |---|------|------|
 | 87 | **verify 十阶段管线**：parse→resolve→typecheck→hir→ir→effect→compile→execute→differential，任一阶段失败即停；effect 自 IR 推导（graph.Effects 唯一入口，实现序在 ir 后）；HIR/IR validate 为结构完整性（遍历覆盖/产物非空），深度不变量随 v0.9 fuzz 加固 | 语言正确性不再由 Go 实现自己宣布；差分=解释器/→Go/→JS stdout 逐字节一致 |
 | 88 | **conformance 套件即跨实现契约**：顶层 conformance/ 独立于实现；manifest 为 YAML 受限子集（超集报错）；run 模式三后端 stdout 逐字节一致+exitCode 0+stderr 空，check 模式诊断 code+severity+line 多重集（message 允许漂移）；runner contract（compile/check/run/inspect/verify）为四实现统一接口 | 共同真值；运行时错误文本与 go/chan 平台差异为文档化例外（conformance/README.md） |
+
+## v0.9 Semantic Integrity（2026-09-20 追加）
+
+| # | 决定 | 理由 |
+|---|------|------|
+| 89 | **specs/ 唯一真值源 + Rule Catalog**：11 份主题规范 + rules.md（N/D/F 三级，27 诊断码全量映射 Rule ID）；go/docs/spec.md 降为实现侧摘要 | 规则可引用：spec↔diagnostic↔conformance↔agent 四方同源；冲突由 spec+conformance 裁决 |
+| 90 | **诊断携带 ruleId**（contract.Diagnostic.RuleID，映射唯一实现 contract/rules.go）；manifest 支持 case 级 ruleIds 与诊断 ruleId 比对 | schemaVersion 1 只加不改；Agent 可从 check --json 追溯到规范条目 |
+| 91 | **IR 解释器 + 四路差分**（irinterp 复用 interp 值/Fmt/CallBuiltin）；闭包捕获经 lower 作用域继承显式保留在 IR 中 | IR 语义独立验证；宿主闭包行为不再充当规范（决策 5 的收口） |
+| 92 | **Task/Channel 宿主无关模型**（specs/concurrency.md）：同步确定子集=规范保证面，真并行=调度自由度；求值顺序成文 EVAL-*（赋值 target 地址先于右值） | go f() 语法保留不新增关键字；跨实现只锁可观察行为 |

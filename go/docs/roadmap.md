@@ -12,6 +12,7 @@
 | M4 移植 linkpull bilibili 提取器（v0.2.0） | 完成 |
 | — R1 extern / R2 http+json / R3 import / chan 阻塞语义 / bind | 完成 |
 | **v0.3 Semantic Core** | **完成**：semantic（resolver）→ types（checker）→ hir（Typed HIR）→ ir（Core IR）；check 独立前端（稳定诊断码 E1xxx–E4xxx）；后端改消费 IR；三处静默分歧收口（ADR-0001、decisions #65–#70b） |
+| **v0.9 Semantic Integrity** | **完成**：specs/ 唯一真值源（11 主题规范 + Rule Catalog ~60 条，27 诊断码全映射 ruleId）；IR 解释器 + 四路差分；Task/Channel 宿主无关模型；求值顺序/值语义/泛型/模块收口成文；fuzz/property/determinism/benchmark 基线；conformance 50 case（decisions #89–#92，ADR-0004） |
 | **v0.8 Verification** | **完成**：顶层 conformance/（14 类 33 case）+ YAML 受限子集 manifest + runner（三路差分/诊断一致性）+ `lang-go verify` 十阶段；套件落地即修 genjs match await、prelude map 键、gen 泛型擦除链三件真 bug（decisions #87–#88） |
 | **v0.7 Refactoring** | **完成**：rename symbol（SymbolId + 引用集 + 冲突拒绝）、organize imports（去重/排序/未使用删除）、safe remove（零入边证明 + 引用证据拒绝）；CLI refactor 接线（decisions #85–#86） |
 | **v0.6 Semantic Graph** | **完成**：internal/graph 内存语义图（Symbol 节点 + call/references/writes/spawn/depends_on/imports 边）；inspect callers/callees/impact/references/dependency --json（--depth、direct/transitive + evidence）；effects 推导迁入 graph（decisions #81） |

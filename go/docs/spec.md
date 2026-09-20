@@ -305,13 +305,14 @@ impact（direct + transitive + effectWatch + modules，附证据，保守估计�
 
 `lang-go verify [--json]`：对当前目录程序走全管线——parse → resolve → typecheck
 → hir（结构完整性）→ ir → effect（自 IR 推导）→ compile（→Go 可编译 + →JS 可生成）
-→ execute（三方执行）→ differential（stdout 逐字节一致）。任一阶段失败即停，
+→ execute（四路执行）→ differential（stdout 逐字节一致）。任一阶段失败即停，
 结构化输出阶段明细，退出码 1。
 
-一致性套件在仓库顶层 `conformance/`（独立于实现）：14 类 33 case，YAML 受限子集
-manifest（块标量/一层嵌套/诊断列表，超集报错），run 模式断言三后端 stdout 逐字节
-一致 + exitCode 0 + stderr 空，check 模式断言诊断 code+severity+primarySpan.line
-多重集（message 允许漂移）。runner contract（compile/check/run/inspect/verify 五动词）
+一致性套件在仓库顶层 `conformance/`（独立于实现）：v0.9 起 50 case 携带 ruleIds
+（specs/rules.md），四路差分 = AST 参考解释器 / IR 解释器（internal/irinterp，
+v0.9 新增）/ →Go / →JS；run 模式断言四方 stdout 逐字节一致 + exitCode 0 + stderr
+空，check 模式断言诊断 code+ruleId+severity+primarySpan.line 多重集（message 允许
+漂移）。语义真值源自 v0.9 起为仓库根 specs/（唯一真值，ADR-0004）。runner contract（compile/check/run/inspect/verify 五动词）
 见 specs/runner-contract.md——四套实现（Go/TS/Python/Rust）的共同验收标准：
 任何实现跑完同一套件全绿即视为行为一致。
 
