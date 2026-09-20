@@ -297,7 +297,21 @@ callers/callees（--depth BFS）/ references（按符号过滤）/ dependency（
 impact（direct + transitive + effectWatch + modules，附证据，保守估计）。
 真值源为 semantic/types/HIR/IR，禁止源码字符串搜索。
 
-## 13. 里程碑
+## 13. Verification（v0.8）
+
+`lang-go verify [--json]`：对当前目录程序走全管线——parse → resolve → typecheck
+→ hir（结构完整性）→ ir → effect（自 IR 推导）→ compile（→Go 可编译 + →JS 可生成）
+→ execute（三方执行）→ differential（stdout 逐字节一致）。任一阶段失败即停，
+结构化输出阶段明细，退出码 1。
+
+一致性套件在仓库顶层 `conformance/`（独立于实现）：14 类 33 case，YAML 受限子集
+manifest（块标量/一层嵌套/诊断列表，超集报错），run 模式断言三后端 stdout 逐字节
+一致 + exitCode 0 + stderr 空，check 模式断言诊断 code+severity+primarySpan.line
+多重集（message 允许漂移）。runner contract（compile/check/run/inspect/verify 五动词）
+见 specs/runner-contract.md——四套实现（Go/TS/Python/Rust）的共同验收标准：
+任何实现跑完同一套件全绿即视为行为一致。
+
+## 14. 里程碑
 
 - **M1** 本规范 + 决策台账（已完成）
 - **M2** Go 实现：词法器、解析器、树遍历解释器、REPL、`lang-go run`/`lang-go test`（已完成）

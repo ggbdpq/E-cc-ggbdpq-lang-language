@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"lang-go/internal/bind"
+	"lang-go/internal/conformance"
 	"lang-go/internal/contract"
 	"lang-go/internal/edit"
 	"lang-go/internal/fix"
@@ -80,6 +81,8 @@ func cliMain() int {
 		return runFix(args[1:])
 	case "refactor":
 		return runRefactor(args[1:])
+	case "verify":
+		return runVerify(args[1:])
 	case "bind":
 		// 包目录固定为当前目录的 bind.d/（安全边界：任何路径输入都不进数据流）
 		return runBind()
@@ -117,6 +120,8 @@ func usage() {
   lang-go refactor rename|organize-imports|safe-remove [--symbol N] [--to NAME]
                      [--apply] [--json]
                      语义级重构（SymbolId + 引用集，禁止 Regex）；默认只报编辑，--apply 落盘+验证闭环
+  lang-go verify [--json]
+                     全管线验证（parse→…→三路差分一致）+ conformance 套件同为 runner contract 入口
   lang-go fmt        就地格式化当前目录 .lang-go
   lang-go build      语义检查后写 out/main.go（build js 写 out/main.mjs）
   lang-go bind       生成 extern "go" 声明草案（bind.d/）
@@ -804,4 +809,44 @@ func runRefactor(args []string) int {
 		return 1
 	}
 	return report(true)
+}
+
+// runVerify 全管线验证（v0.8）：parse → resolve → typecheck → hir → ir → effect →
+// compile → execute → differential。任一阶段失败即停；--json 输出结构化阶段明细。
+func runVerify(args []string) int {
+	kind := "verify"
+	asJSON := hasFlag(args, "--json")
+	r := conformance.VerifyDir(".")
+	if asJSON {
+		printJSON(struct {
+			SchemaVersion string              `json:"schemaVersion"`
+			ToolVersion   string              `json:"toolVersion"`
+			Kind          string              `json:"kind"`
+			Success       bool                `json:"success"`
+			Stages        []conformance.Stage `json:"stages"`
+			StdoutBytes   int                 `json:"stdoutBytes,omitempty"`
+			ExitCode      int                 `json:"exitCode,omitempty"`
+		}{contract.SchemaVersion, contract.ToolVersion, kind, r.Success, r.Stages, r.StdoutBytes, r.ExitCode})
+	} else {
+		for _, st := range r.Stages {
+			mark := "ok  "
+			if !st.OK {
+				mark = "FAIL"
+			} else if st.Skipped {
+				mark = "SKIP"
+			}
+			line := fmt.Sprintf("[%s] %s", mark, st.Name)
+			if st.Note != "" {
+				line += " — " + st.Note
+			}
+			fmt.Println(line)
+		}
+		if r.Success {
+			fmt.Println("验证通过：三路执行一致")
+		}
+	}
+	if !r.Success {
+		return 1
+	}
+	return 0
 }

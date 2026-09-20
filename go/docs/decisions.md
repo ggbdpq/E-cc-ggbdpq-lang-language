@@ -204,3 +204,10 @@ null、异常、宏、继承、隐式数值转换、包管理器、LSP、调试�
 |---|------|------|
 | 85 | **rename symbol（P0）**：基于 SymbolId + resolver 引用集（Ident Span 精确定位）+ 冲突保守拒绝（合并程序内其他同名即拒）。fn/method/全局/局部/参数支持；struct/enum/ctor/字段显式拒绝列 P1 | 禁止 Regex Rename；shadowing 由 SymbolID 天然区分 |
 | 86 | **organize imports + safe remove**：import 去重/未使用删除/排序（注释随行）；safe remove 仅顶层 fn/全局变量零入边才删（有引用附证据拒绝） | Prompt 04 P0 三项全覆盖；保守拒绝优于误改 |
+
+## v0.8 Verification（2026-09-20 追加）
+
+| # | 决定 | 理由 |
+|---|------|------|
+| 87 | **verify 十阶段管线**：parse→resolve→typecheck→hir→ir→effect→compile→execute→differential，任一阶段失败即停；effect 自 IR 推导（graph.Effects 唯一入口，实现序在 ir 后）；HIR/IR validate 为结构完整性（遍历覆盖/产物非空），深度不变量随 v0.9 fuzz 加固 | 语言正确性不再由 Go 实现自己宣布；差分=解释器/→Go/→JS stdout 逐字节一致 |
+| 88 | **conformance 套件即跨实现契约**：顶层 conformance/ 独立于实现；manifest 为 YAML 受限子集（超集报错）；run 模式三后端 stdout 逐字节一致+exitCode 0+stderr 空，check 模式诊断 code+severity+line 多重集（message 允许漂移）；runner contract（compile/check/run/inspect/verify）为四实现统一接口 | 共同真值；运行时错误文本与 go/chan 平台差异为文档化例外（conformance/README.md） |
