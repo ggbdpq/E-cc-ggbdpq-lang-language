@@ -54,6 +54,8 @@ func adversarial() map[string]string {
 		"match臂注释":  "fn f(s: int): int {\n    return match s {\n        1 => 10 // 一\n        _ => 0 // 其他\n    }\n}\nfn main() {\n    println(f(1))\n}\n",
 		"结构体字段注释":   "struct P {\n    x: int // 横坐标\n    y: int\n}\nfn main() {\n    println(P{x: 1, y: 2})\n}\n",
 		"连续行尾注释同一行": "fn main() {\n    let a = 1\n    println(a) // 尾随\n}\n",
+		"CRLF 行尾":   "fn main() {\r\n    let x = 1 // CRLF 注释\r\n    println(x)\r\n}\r\n",
+		"CRLF 纯注释":  "// CRLF 注释文件\r\n// 第二行\r\n",
 	}
 }
 
