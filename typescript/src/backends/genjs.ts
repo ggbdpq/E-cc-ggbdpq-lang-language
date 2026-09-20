@@ -561,8 +561,9 @@ class JsGen {
         return this.emitCall(e);
 
       case "unary": {
-        const inner = this.expr(e.x);
-        if (e.op === "-") return `-${inner}`;
+        // 一元套一元必须括号化（--5n 是 JS 自减语法错）
+        const inner = e.x.kind === "unary" ? `(${this.expr(e.x)})` : this.expr(e.x);
+        if (e.op === "-") return `(-${inner})`; // 嵌套负号防 -- 前缀递减
         if (e.op === "!") return `!${inner}`;
         // JS 对象赋值即共享引用，与 lang-go 的 & 语义天然对齐
         return inner;

@@ -1,0 +1,9 @@
+name: unary-negation-nested
+category: syntax
+ruleIds:
+  - PARSE-004
+expect:
+  exitCode: 0
+  stdout: |
+    5 -2 true
+  stderr: ""

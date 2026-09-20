@@ -1,0 +1,9 @@
+name: multiline-call-args
+category: syntax
+ruleIds:
+  - LEX-008
+expect:
+  exitCode: 0
+  stdout: |
+    6
+  stderr: ""

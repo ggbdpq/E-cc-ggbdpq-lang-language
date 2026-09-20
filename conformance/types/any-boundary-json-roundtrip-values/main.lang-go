@@ -1,0 +1,5 @@
+fn main() {
+    let v = jsonParse("[1, \"s\", false]")
+    println(v)
+    println(len(v))
+}

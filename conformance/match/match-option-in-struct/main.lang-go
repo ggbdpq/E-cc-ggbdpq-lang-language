@@ -1,0 +1,12 @@
+struct Slot {
+    id: Option[int]
+}
+fn name(s: Slot): string {
+    return match s.id {
+        Some(v) => "filled:" + str(v)
+        None => "empty"
+    }
+}
+fn main() {
+    println(name(Slot{id: Some(3)}), name(Slot{id: None}))
+}

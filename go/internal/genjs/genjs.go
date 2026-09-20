@@ -752,7 +752,8 @@ func (g *jsgen) expr(e ir.Expr) (string, error) {
 		}
 		switch x.Op {
 		case ir.OpNeg:
-			return "-" + inner, nil
+			// 嵌套负号 -(-5) 若生成 --5 会被 JS 读作前缀递减——加括号
+			return "(-" + inner + ")", nil
 		case ir.OpNot:
 			return "!" + inner, nil
 		case ir.OpRef:

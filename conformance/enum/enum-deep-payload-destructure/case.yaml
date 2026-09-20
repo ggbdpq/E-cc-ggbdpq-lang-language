@@ -1,0 +1,9 @@
+name: enum-deep-payload-destructure
+category: enum
+ruleIds:
+  - MATCH-BIND-003
+expect:
+  exitCode: 0
+  stdout: |
+    6
+  stderr: ""

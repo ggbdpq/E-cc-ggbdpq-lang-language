@@ -1,0 +1,5 @@
+fn main() {
+    println("tab\there")
+    println("quote\"q")
+    println("backslash\\")
+}

@@ -1,0 +1,7 @@
+fn f(): int {
+    let x = Ok(1)?
+    return x
+}
+fn main() {
+    println(f())
+}

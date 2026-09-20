@@ -1,0 +1,9 @@
+name: match-match-nested-expr
+category: match
+ruleIds:
+  - MATCH-EXPR-004
+expect:
+  exitCode: 0
+  stdout: |
+    10 20 30
+  stderr: ""

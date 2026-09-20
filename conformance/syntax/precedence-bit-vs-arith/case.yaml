@@ -1,0 +1,10 @@
+name: precedence-bit-vs-arith
+category: syntax
+ruleIds:
+  - PARSE-004
+expect:
+  exitCode: 0
+  stdout: |
+    6
+    5
+  stderr: ""

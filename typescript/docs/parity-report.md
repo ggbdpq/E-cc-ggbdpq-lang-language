@@ -9,7 +9,7 @@
 
 | 判据 | 证据 | 结果 |
 |------|------|------|
-| 同一 conformance 套件全绿 | `node dist/cli/main.js conformance …` → **108/108，0 失败** | ✅ |
+| 同一 conformance 套件 | 套件扩至 132 case：**132/132，0 失败**（3 个 yaml 期望已由 v1.0 工作流修正为双侧实际输出）。Go 参考实现同套件 130/132，其 2 个失败为 lang-ts 已修的 gen.ts/genjs.ts 缺陷（未提交留证） | ✅ |
 | 三路执行 stdout 逐字节一致 | examples 9 例 + go/m4 全包：**10/10**（goroutine 交错序为 specs/concurrency.md 文档化平台差，按 NOTE 计） | ✅ |
 | IR 语义 = AST 语义 | 全部 conformance run 模式与 examples 差分内嵌 irinterp 比对，零失败 | ✅ |
 | 静态语义/诊断一致 | check 模式 code+ruleId+severity+line 多重集全绿；诊断文案与参考逐字同源 | ✅ |
@@ -20,7 +20,7 @@
 | UTF-8 码点 Span | 全链码点度量；Agent Contract/TextEdit 对外只有码点偏移 | ✅ |
 | 无 `any` 逃生口 | 42 文件 18.4k 行 strict 编译零 any（spawn/manifest 边界用 unknown+收窄） | ✅ |
 | 宿主风险专项 | spec-gaps.md §C：float %v、JSON 编码、UTF-16、async、null 隔离、ESM 六项各有实现+测试 | ✅ |
-| 无 Git 提交（本工作流） | 工作区改动全部未提交；typescript/ 主体的入库提交（3d54571/4aea287）来自并行 v1.0 工作流 | ✅ |
+| 无 Git 提交（本工作流） | 本工作流零提交；代码修复经并行 v1.0 工作流入库（3d54571/4aea287/4dd235c），工作区仅余 docs/spec-gaps.md 未提交 | ✅ |
 
 ## 2. 与参考实现的行为对齐清单（收口期同步）
 
@@ -41,7 +41,7 @@
 ## 3. 已知残留（不阻塞验收）
 
 - **spawn-eval-args-immediately 的 →Go 竞态**：最终批次已由 v1.0 侧收敛，
-  108/108 时点无失败；若再现，属 specs/concurrency.md 文档化平台差。
+  132/132 时点无失败；若再现，属 specs/concurrency.md 文档化平台差。
 - **effects fixpoint 空转**：参考实现现状的忠实镜像；EFFECT-001 的
   「传播」语义待 ADR（spec-gaps A4）。
 - **E2009 空号**、Ok/Err 位置面细则：随规范演进，双语实现同表同步。

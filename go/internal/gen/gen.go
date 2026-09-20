@@ -572,6 +572,18 @@ func (g *gen) emitLet(st *ir.Let) error {
 	g.w("_ = " + name)
 	// 函数值绑定注册参数/返回类型，调用点据此收窄
 	if fl, ok := st.Init.(*ir.FnLit); ok {
+		sig := "func("
+		for i, fp := range fl.Params {
+			if i > 0 {
+				sig += ", "
+			}
+			sig += goTypeOf(fp.Typ)
+		}
+		sig += ")"
+		if fl.Ret != nil && fl.Ret.Kind != types.KUnit && fl.Ret.Kind != types.KUnknown {
+			sig += " " + goTypeOf(fl.Ret)
+		}
+		g.localGo[st.Local] = sig
 		fi := &ir.Fn{Name: name}
 		fi.Params = fl.Params
 		fi.Ret = fl.Ret
@@ -719,6 +731,17 @@ func (g *gen) isVoidCall(e ir.Expr) bool {
 		switch call.Builtin {
 		case "println", "print", "push", "assert", "send":
 			return true
+		}
+		return false
+	case call.Callee != nil:
+		// 函数值调用：局部 Go 类型为 func(参数) 且无返回 → 语句位置不加 _ =
+		if lg, ok := call.Callee.(*ir.LocalGet); ok {
+			if t, ok2 := g.localGo[lg.Local]; ok2 && strings.HasPrefix(t, "func(") {
+				sig := t[len("func("):]
+				if !strings.Contains(sig, ") ") {
+					return true
+				}
+			}
 		}
 		return false
 	}
@@ -1236,7 +1259,11 @@ func (g *gen) expr(e ir.Expr) (string, error) {
 		sd := g.structs[name]
 		var fs []string
 		for i, f := range x.Fields {
-			v, err := g.expr(f.Val)
+			var target *types.Type
+			if sd != nil && i < len(sd.Fields) {
+				target = sd.Fields[i].Typ
+			}
+			v, err := g.exprArg(f.Val, target)
 			if err != nil {
 				return "", err
 			}
@@ -1719,13 +1746,23 @@ func (g *gen) emitArmReturn(arm *ir.Arm) error {
 }
 
 // emitFnLit 函数字面量：独立缓冲渲染后作为表达式内嵌
+// endsWithReturn 函数体末条语句是否为 return（粗判：防 Go missing return）
+func endsWithReturn(body []ir.Stmt) bool {
+	if len(body) == 0 {
+		return false
+	}
+	_, ok := body[len(body)-1].(*ir.Return)
+	return ok
+}
+
 func (g *gen) emitFnLit(x *ir.FnLit) (string, error) {
 	var ps []string
 	for _, p := range x.Params {
 		ps = append(ps, p.Name+" "+goTypeOf(p.Typ))
 	}
 	retDecl := ""
-	if x.Ret != nil {
+	hasRet := x.Ret != nil && x.Ret.Kind != types.KUnit && x.Ret.Kind != types.KUnknown // unit/Unknown = 无返回
+	if hasRet {
 		retDecl = " " + goTypeOf(x.Ret)
 	}
 	savedBuf := g.buf
@@ -1742,6 +1779,10 @@ func (g *gen) emitFnLit(x *ir.FnLit) (string, error) {
 		}
 	}
 	if bodyErr == nil {
+		// 无显式收尾 return 且声明了返回类型 → 补 unit return（fn(n: int) {} 形态）
+		if hasRet && !endsWithReturn(x.Body) {
+			g.w("return")
+		}
 		g.w("}")
 	}
 	g.curFn = savedFn

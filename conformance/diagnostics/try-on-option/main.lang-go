@@ -1,0 +1,8 @@
+fn f(): int {
+    let o = Some(1)
+    let x = o?
+    return x
+}
+fn main() {
+    println(f())
+}

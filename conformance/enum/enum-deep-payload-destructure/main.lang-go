@@ -1,0 +1,13 @@
+enum Tree {
+    Leaf(int)
+    Node(Tree, Tree)
+}
+fn sum(t: Tree): int {
+    return match t {
+        Leaf(v) => v
+        Node(l, r) => sum(l) + sum(r)
+    }
+}
+fn main() {
+    println(sum(Node(Leaf(1), Node(Leaf(2), Leaf(3)))))
+}

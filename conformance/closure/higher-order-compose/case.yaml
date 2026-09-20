@@ -1,0 +1,9 @@
+name: higher-order-compose
+category: closure
+ruleIds:
+  - CALL-CLOSURE-003
+expect:
+  exitCode: 0
+  stdout: |
+    11
+  stderr: ""

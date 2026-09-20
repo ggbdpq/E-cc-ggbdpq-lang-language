@@ -1,0 +1,9 @@
+name: annotated-var-mutate
+category: types
+ruleIds:
+  - NAME-MUT-007
+expect:
+  exitCode: 0
+  stdout: |
+    6
+  stderr: ""

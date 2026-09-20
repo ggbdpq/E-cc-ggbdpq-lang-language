@@ -1,0 +1,15 @@
+struct A {
+    v: int
+}
+struct B {
+    v: int
+}
+fn (a A).get(): int {
+    return a.v
+}
+fn (b B).get(): int {
+    return b.v * 2
+}
+fn main() {
+    println(A{v: 1}.get(), B{v: 2}.get())
+}

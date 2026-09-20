@@ -1,0 +1,10 @@
+name: any-boundary-json-roundtrip-values
+category: types
+ruleIds:
+  - TYPE-ANY-002
+expect:
+  exitCode: 0
+  stdout: |
+    [1, "s", false]
+    3
+  stderr: ""

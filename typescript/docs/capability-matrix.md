@@ -57,7 +57,8 @@
 
 ## 4. 验证现状（证据）
 
-- `node dist/cli/main.js conformance ../conformance`：**107/108**（唯一失败 `concurrency/spawn-eval-args-immediately` 为 →Go 真并发竞态，Go 参考实现同样失败，README 已文档化）
+- `node dist/cli/main.js conformance ../conformance`：套件扩容至 132 case 后 **132/132，0 失败**（Final Sync；3 个 yaml 期望已由 v1.0 工作流修正为双侧实际输出）。Go 参考实现同套件 130/132——其 2 个失败（void fnlit 缺 return、genjs `--5n`）正是 lang-ts 已修、以未提交形式留证的 gen.ts/genjs.ts 两处，见 spec-gaps §D
 - `node tools/examples-diff.ts`：examples 9 + m4 1 = **10/10** 三路 stdout 逐字节一致（goroutine 例为 spec 文档化平台差，按 NOTE 计）
 - vitest 20/20（含三路差分冒烟、float 格式、JSON 契约、irinterp）
-- 跨实现对齐：diagnostics 双侧失败集曾逐项 diff 确认同因；已知双侧共病见 docs/spec-gaps.md
+- 代码修复合并入库：v1.0 工作流 4dd235c（合并重写）吸收了 gen/genjs/hir/conformance 各项修复
+- 已知残留缺口（双侧行为一致的镜像项）见 docs/spec-gaps.md

@@ -1,0 +1,12 @@
+struct Box {
+    v: int
+}
+fn (b Box).inc(): Box {
+    return Box{v: b.v + 1}
+}
+fn (b Box).val(): int {
+    return b.v
+}
+fn main() {
+    println(Box{v: 1}.inc().inc().val())
+}

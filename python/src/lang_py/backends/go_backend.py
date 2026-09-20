@@ -348,12 +348,17 @@ class GoGen:
             fi = self.fns.get(s.fn.id) if s.fn is not None else None
             if fi is None:
                 raise self.err(f"内部错误：go 目标未注册 {s.fn.name if s.fn else '?'}")
+            # EVAL-GO-007：实参在 go 语句处就地求值并快照（临时变量），
+            # goroutine 闭包不得按引用捕获调用方可变局部
             args = []
             for i, a in enumerate(s.args):
                 arg = self.expr(a)
                 if i < len(fi.params):
                     arg = self.wrap_arg(fi.params[i].typ, a, arg)
-                args.append(arg)
+                tmp = self.new_tmp()
+                self.w(f"{tmp} := {arg}")
+                self.w(f"_ = {tmp}")
+                args.append(tmp)
             self.w(f"langGoGo(func() {{ {self.go_name(fi)}({', '.join(args)}) }})")
         elif isinstance(s, I.FnDef):
             self.emit_func(s.fn)
@@ -363,14 +368,19 @@ class GoGen:
     def is_void_call(self, e: I.Expr) -> bool:
         if not isinstance(e, I.Call):
             return False
-        if e.fn is not None:
-            fi = self.fns.get(e.fn.id)
-            return fi is not None and fi.ret is None
-        if e.method is not None:
-            fi = self.fns.get(e.method.id)
-            return fi is not None and fi.ret is None
+        if e.fn is not None or e.method is not None:
+            fi = self.fns.get((e.fn or e.method).id)
+            if fi is None:
+                return False
+            # 无注解推断为 Unknown / unit → 无返回值（与 emit_fn_lit 的 has_ret 同口径）
+            return fi.ret is None or fi.ret.kind in (TK.UNIT, TK.UNKNOWN)
         if e.builtin:
             return e.builtin in ("println", "print", "push", "assert", "send")
+        # 函数值绑定（fnlit）：callee 为 LocalGet 且注册了 void 返回
+        if e.callee is not None and isinstance(e.callee, I.LocalGet) and e.callee.local.sym is not None:
+            fi = self.fns.get(e.callee.local.sym.id)
+            if fi is not None:
+                return fi.ret is None or fi.ret.kind in (TK.UNIT, TK.UNKNOWN)
         return False
 
     def emit_let(self, st: I.Let) -> None:
@@ -742,7 +752,8 @@ class GoGen:
             sd = self.structs.get(name)
             fs = []
             for i, f in enumerate(e.fields):
-                v = self.expr(f.val)
+                target = sd.fields[i].typ if sd is not None and i < len(sd.fields) else None
+                v = self.expr_arg(f.val, target)
                 if sd is not None and i < len(sd.fields):
                     v = self.wrap_arg(sd.fields[i].typ, f.val, v)
                 fs.append(f"{f.name}: {v}")
@@ -1028,10 +1039,15 @@ class GoGen:
         self.w(f"return {expr}")
 
     # ———— 函数字面量 ————
+    @staticmethod
+    def _ends_with_return(body: list[I.Stmt]) -> bool:
+        return bool(body) and isinstance(body[-1], I.Return)
+
     def emit_fn_lit(self, x: I.FnLit) -> str:
         ps = [f"{p.name} {go_type_of(p.typ)}" for p in x.params]
         ret_decl = ""
-        if x.ret is not None:
+        has_ret = x.ret is not None and x.ret.kind not in (TK.UNIT, TK.UNKNOWN)  # unit/Unknown = 无返回
+        if has_ret:
             ret_decl = " " + go_type_of(x.ret)
         saved_fn = self.cur_fn
         self.cur_fn = I.Fn(name="匿名函数", sym=None, recv=None, type_params=[],
@@ -1044,6 +1060,9 @@ class GoGen:
             self.w(f"func({', '.join(ps)}){ret_decl} {{")
             for st in x.body:
                 self.emit_stmt(st)
+            # 无显式收尾 return 且声明了返回类型 → 补 unit return（fn(n: int) {} 形态）
+            if has_ret and not self._ends_with_return(x.body):
+                self.w("return")
             self.w("}")
             out = "".join(self.buf)
         finally:

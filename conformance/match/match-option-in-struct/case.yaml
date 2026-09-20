@@ -1,0 +1,9 @@
+name: match-option-in-struct
+category: match
+ruleIds:
+  - MATCH-KIND-001
+expect:
+  exitCode: 0
+  stdout: |
+    filled:3 empty
+  stderr: ""

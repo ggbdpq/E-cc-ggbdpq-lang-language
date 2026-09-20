@@ -1,0 +1,9 @@
+name: unknown-constructor-pattern
+category: diagnostics
+mode: check
+expect:
+  diagnostics:
+    - code: E2002
+      ruleId: NAME-UNDEF-004
+      severity: error
+      line: 3

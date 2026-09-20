@@ -1,0 +1,6 @@
+fn main() {
+    var n: int = 1
+    n += 1
+    n = n * 3
+    println(n)
+}

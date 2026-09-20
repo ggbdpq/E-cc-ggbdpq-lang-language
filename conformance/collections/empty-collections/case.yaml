@@ -1,0 +1,9 @@
+name: empty-collections
+category: collections
+ruleIds:
+  - VALUE-SHARE-002
+expect:
+  exitCode: 0
+  stdout: |
+    0 0 [] {}
+  stderr: ""

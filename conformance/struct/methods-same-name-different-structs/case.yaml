@@ -1,0 +1,9 @@
+name: methods-same-name-different-structs
+category: struct
+ruleIds:
+  - NAME-RECV-006
+expect:
+  exitCode: 0
+  stdout: |
+    1 4
+  stderr: ""

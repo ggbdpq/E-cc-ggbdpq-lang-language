@@ -1,0 +1,4 @@
+import "./deep"
+fn midVal(): int {
+    return base() * 2
+}

@@ -1,0 +1,10 @@
+name: string-iteration-codepoints
+category: collections
+ruleIds:
+  - CTRL-FORIN-003
+expect:
+  exitCode: 0
+  stdout: |
+    a
+    b
+  stderr: ""

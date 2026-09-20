@@ -1,0 +1,15 @@
+fn compose(f: fn(int): int, g: fn(int): int): fn(int): int {
+    return fn(x: int): int {
+        return f(g(x))
+    }
+}
+fn main() {
+    let inc = fn(x: int): int {
+        return x + 1
+    }
+    let dbl = fn(x: int): int {
+        return x * 2
+    }
+    let h = compose(inc, dbl)
+    println(h(5))
+}

@@ -280,7 +280,7 @@ class Machine:
             add = v
             if not isinstance(add, ArrVal):
                 raise LangRuntimeError(f"数组 += 需要数组，得到 {_type_name(v)}")
-            slot[1].items.extend(add.items)
+            self._slot_read(slot).items.extend(add.items)
             return
         old = self._slot_read(slot)
         combined = self._binary(_bin_op_of(st.op), old, v)

@@ -1,0 +1,13 @@
+name: try-outside-result-fn
+category: diagnostics
+mode: check
+expect:
+  diagnostics:
+    - code: E3005
+      ruleId: RESULT-TRY-003
+      severity: error
+      line: 2
+    - code: E3006
+      ruleId: RESULT-RETURN-004
+      severity: error
+      line: 2

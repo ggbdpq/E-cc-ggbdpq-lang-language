@@ -1,0 +1,11 @@
+name: string-escapes-full
+category: syntax
+ruleIds:
+  - LEX-007
+expect:
+  exitCode: 0
+  stdout: |
+    tab	here
+    quote"q
+    backslash\
+  stderr: ""

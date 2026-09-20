@@ -1,0 +1,5 @@
+fn main() {
+    let xs = []
+    let m = {}
+    println(len(xs), len(m), xs, m)
+}

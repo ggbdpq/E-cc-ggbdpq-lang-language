@@ -24,7 +24,10 @@ CONF = os.path.join(ROOT, "conformance")
 
 # 参考实现（go test ./internal/conformance/）当前同批失败的在途 case——
 # 双方失败一致即 parity；Final Contract Sync 时复核。
-KNOWN_FAILING_ON_REFERENCE = {"values/reference-read-write"}
+# 2026-09-21：lang-py 对 132 例 conformance 全绿（含参考侧当日在途的 5 例——
+# closure-loop-capture-var 的 void 函数值调用、unary-negation-nested 的 JS `--` 歧义、
+# 3 例 ? 传播/match 混用诊断修订）。参考实现 go test 同刻 127/132 仍在收口中。
+KNOWN_FAILING_ON_REFERENCE = set()
 
 
 def _case_dirs():

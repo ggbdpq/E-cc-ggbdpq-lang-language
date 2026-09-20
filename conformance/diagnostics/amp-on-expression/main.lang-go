@@ -1,0 +1,4 @@
+fn main() {
+    let r = &(1 + 2)
+    println(r)
+}

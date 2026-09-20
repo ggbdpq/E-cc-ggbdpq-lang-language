@@ -1,0 +1,9 @@
+name: three-level-import-chain
+category: module
+ruleIds:
+  - MODULE-MERGE-003
+expect:
+  exitCode: 0
+  stdout: |
+    20 10
+  stderr: ""

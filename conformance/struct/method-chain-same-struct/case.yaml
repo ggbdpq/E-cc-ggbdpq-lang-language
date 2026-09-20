@@ -1,0 +1,9 @@
+name: method-chain-same-struct
+category: struct
+ruleIds:
+  - CALL-RESOLVE-001
+expect:
+  exitCode: 0
+  stdout: |
+    3
+  stderr: ""

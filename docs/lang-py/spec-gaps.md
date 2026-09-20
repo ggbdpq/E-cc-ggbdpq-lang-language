@@ -31,19 +31,18 @@
 - 参考实现：Go `json.Marshal`——紧凑分隔、HTML 转义 `<>&`、指数清洁（e+09→e+9 形态按 Go 规则）。
 - 处置：lang-py 手写 JSON 序列化器复刻上述行为，io/json-roundtrip + 追加差分向量锁定。
 
-## GAP-005 v0.9 irinterp 四路差分（OPEN，跟随并行工作流）
+## GAP-005 irinterp 四路差分（RESOLVED-MATCH，v1.0 已收口）
 
-- 事实：go/internal/irinterp/ 为并行 v0.9 工作流的未提交 WIP；runner contract 仍是三路。
-- 处置：lang-py 同步实现 IR 解释器（复用 interp 值模型），供四路差分；
-  verify 呈现层仍按 runner contract 三动词面，不发明第五动词。
-- 关闭条件：v0.9 提交后做 Final Contract Sync。
+- 事实：v1.0 提交 4dd235c 将 irinterp 定为正式四路差分面，并补 deref 全链。
+- 处置：lang_py.irinterp 复用 interp 值模型实现同一机器；verify 的 execute/differential
+  阶段纳入 IR 路；AST-vs-IR 差分对全部 conformance case 逐字节一致（pytest 锁定；套件滚动扩容）。
+- 状态：已关闭。
 
-## GAP-006 ToolVersion（RESOLVED-MATCH）
+## GAP-006 ToolVersion（RESOLVED-MATCH，随 versioning.md 更新）
 
-- 事实：contract.ToolVersion = "0.6.0"（未随 v0.7–v0.9 递增）；agent-protocol 说 toolVersion 与
-  `lang-go version` 同源。
-- 处置：lang-py 使用同值 "0.6.0"，保证 inspect/check JSON 与参考工具逐字节同构；
-  schemaVersion="1"。参考实现调整版本时同步。
+- 事实：v1.0 起版本唯一版本源为 go/internal/version（1.0.0），specs/versioning.md 规定
+  第二实现 toolVersion 在同一 1.x.y 语义下独立打点，契约版本随 specs/。
+- 处置：lang-py TOOL_VERSION = "1.0.0"，schemaVersion = "1"。
 
 ## GAP-007 运行时错误文本（NOT_APPLICABLE，按既定口径）
 
@@ -60,6 +59,24 @@
 
 - 事实：E3005 已静态拒绝非顶层 `?`；静态检查通过后 IR 中 Try 仅存于 let/return/赋值顶层。
 - 处置：解释器直接按 AST 语义（Err 信号边界合成）；无额外裁决需求。
+
+## GAP-012 CTRL-IF-001 诊断码裁定（RESOLVED-MATCH）
+
+- v1.0 裁定：if/while 条件非 bool → E3011（TYPE-INDEX-008）。lang-py checker 自侦察起
+  即按 E3011 实现，与裁定一致，无需改动。
+
+## GAP-013 go 语句实参快照（RESOLVED-MATCH）
+
+- v1.0 语义收口：EVAL-GO-007 实参在 go 语句处就地求值并快照进临时变量，
+  goroutine 闭包不得按引用捕获调用方可变局部（修复 →Go 闭包时序缺陷，
+  conformance concurrency/spawn-eval-args-immediately 锁定）。
+- 处置：lang-py →Go 后端同步该发射形态；解释器本就按值传参天然满足。
+- 状态：132/132 全绿（含参考侧在途收口的 5 例，lang-py 先行实现正确语义）。
+
+## GAP-014 容器元素字段链赋值（RESOLVED-MATCH）
+
+- v1.0 语义收口（VALUE-ELEM-009）：xs[i].f = v 为读改写（容器元素按值语义整体回写）。
+- 处置：lang-py →Go 后端同步 langGoIndex 读出→字段写→langGoSetIndex 回写的发射形态。
 
 ## GAP-010 顶层脚本模式（RESOLVED-MATCH）
 

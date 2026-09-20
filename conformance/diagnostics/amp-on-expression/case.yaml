@@ -1,0 +1,9 @@
+name: amp-on-expression
+category: diagnostics
+mode: check
+expect:
+  diagnostics:
+    - code: E3012
+      ruleId: VALUE-REF-003
+      severity: error
+      line: 2

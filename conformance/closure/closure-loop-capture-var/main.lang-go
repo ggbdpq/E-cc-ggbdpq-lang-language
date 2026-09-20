@@ -1,0 +1,9 @@
+fn main() {
+    var total = 0
+    let add = fn(n: int) {
+        total += n
+    }
+    add(3)
+    add(4)
+    println(total)
+}

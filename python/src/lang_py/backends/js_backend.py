@@ -463,7 +463,8 @@ class JsGen:
         if isinstance(e, I.Unary):
             inner = self.expr(e.x)
             if e.op == I.OP_NEG:
-                return f"-{inner}"
+                # 操作数自身以 - 开头（如 -(-5)）时补空格，避免 JS 解析为 -- 递减
+                return f"- {inner}" if inner.startswith("-") else f"-{inner}"
             if e.op == I.OP_NOT:
                 return f"!{inner}"
             if e.op == I.OP_REF:

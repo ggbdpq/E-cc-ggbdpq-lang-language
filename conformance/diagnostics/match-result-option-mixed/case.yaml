@@ -1,0 +1,13 @@
+name: match-result-option-mixed
+category: diagnostics
+mode: check
+expect:
+  diagnostics:
+    - code: E3006
+      ruleId: RESULT-RETURN-004
+      severity: error
+      line: 8
+    - code: E4003
+      ruleId: MATCH-KIND-001
+      severity: error
+      line: 2

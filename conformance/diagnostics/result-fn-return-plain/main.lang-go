@@ -1,0 +1,6 @@
+fn f(): Result[int, error] {
+    return 1
+}
+fn main() {
+    println(f())
+}

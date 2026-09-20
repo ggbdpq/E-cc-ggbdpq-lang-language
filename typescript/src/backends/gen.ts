@@ -508,7 +508,7 @@ class Gen {
         recv: undefined,
         typeParams: [],
         params: st.init.params,
-        ret: st.init.ret,
+        ret: st.init.ret.kind === "unknown" ? undefined : st.init.ret,
         locals: [],
         body: [],
         extern: false,
@@ -616,6 +616,11 @@ class Gen {
         default:
           return false;
       }
+    }
+    // 函数值（fnlit 绑定）调用：按注册签名的返回类型判定
+    if (e.callee !== undefined && e.callee.kind === "local_get" && e.callee.local.sym !== undefined) {
+      const fi = this.fns.get(e.callee.local.sym);
+      if (fi !== undefined) return fi.ret === undefined;
     }
     return false;
   }
@@ -980,6 +985,7 @@ class Gen {
         const fs = e.fields.map((f, i) => {
           let v = this.expr(f.val);
           if (sd !== undefined && i < sd.fields.length) {
+            v = noneCtorFor(sd.fields[i]!.typ, e.fields[i]!.val, v);
             v = this.wrapArg(sd.fields[i]!.typ, e.fields[i]!.val, v);
           }
           return `${f.name}: ${v}`;
@@ -1353,7 +1359,9 @@ class Gen {
   /** 函数字面量：独立缓冲渲染后作为表达式内嵌 */
   private emitFnLit(x: Extract<IrExpr, { kind: "fn_lit" }>): string {
     const ps = x.params.map((p) => `${p.name} ${goTypeOf(p.typ)}`);
-    const retDecl = x.ret !== undefined ? " " + goTypeOf(x.ret) : "";
+    // 无注解（ret=Unknown）→ 无返回函数；Go 缺 return 编译错
+    const retDecl =
+      x.ret !== undefined && x.ret.kind !== "unknown" ? " " + goTypeOf(x.ret) : "";
     const savedLines = this.lines;
     const savedIndent = this.indent;
     const savedFn = this.curFn;

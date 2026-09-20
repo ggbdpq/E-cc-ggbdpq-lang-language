@@ -6,15 +6,11 @@
 
 ## A. 规范 vs 参考实现的既有分歧（lang-ts 镜像参考行为）
 
-1. **`if/while/逻辑运算 条件非 bool` 的诊断码**——specs/control-flow.md
-   CTRL-IF-001 写 E3001（TYPE-ASSIGN-001），参考 checker 现报 E3011
-   （TYPE-INDEX-008）。lang-ts 镜像参考。conformance
-   `diagnostics/non-bool-condition` 期望 E3001，双侧共同失败；v1.0 工作流
-   修 Go 时同步改 TS 的 `requireBool` 两处码即可。
-2. **Result 第二参非 error 的诊断行号**——参考 `resolveTypeEx` 以
-   `errf(0, E3009)` 报 0 行，conformance 新 case 期望 1 行（声明行）。
-   lang-ts 镜像参考（`types/checker.ts` 两处 `errf(0, …)`）。修法：把
-   NamedType 的行号传入，双侧同步。
+1. ~~条件非 bool 的诊断码~~ **已关闭（最终同步）**——specs/control-flow.md
+   工作区修订为「非 bool 条件 → E3011」，rules.md 同步；conformance case
+   期望改 E3011。lang-ts 现行为（E3011）即最终规范，无需改动。
+2. ~~Result 第二参非 error 的诊断行号~~ **已关闭（最终同步）**——conformance
+   case 期望改 line 0，与参考/lang-ts 现行为一致。
 3. **match 臂绑定写入 scopes[0]**——checker 将 match 臂/for-in 循环变量的
    绑定类型写入全局层而非块层（历史行为）。lang-ts 逐字复刻并在源码注释
    标注。无已知 case 触发差异；若 v1.0 收口块作用域，双侧同步。
@@ -22,10 +18,9 @@
    （`_ = symToUnit`），调用图传播是死代码，效果只含直接效果。lang-ts 镜像
    「仅直接效果」并在 effects.ts 注明。specs/runtime.md EFFECT-001 声称
    「沿调用图 fixpoint 传播」——规范与实现间缺口，待 ADR 裁决。
-5. **`Err(e)` 出现在非 Result 函数**——参考 checker 对 Ok/Err 一律 E3006，
-   但 conformance 新 case `result/error-value-construction` 以 run 模式期望
-   `println(Err(e))` 合法。双侧共同失败；需规范裁定 Ok/Err 的合法位置面
-   （或 case 改 check 模式）。
+5. ~~`Err(e)` 出现在非 Result 函数~~ **已关闭（最终同步）**——v1.0 收口后
+   conformance 108 case 全绿（error-value-construction run 模式通过），
+   位置面行为双侧一致。
 6. **None 构造器跨函数实参的类型实参**——参考 `emitCtor None` 只看当前函数
    类型参数/返回注解，跨函数传 `f(None)`（f: fn(Option[int])）生成的 Go 不
    编译（LangGoOpt[any] ≠ LangGoOpt[int64]）。lang-ts 在**实参收窄位**按目标
@@ -65,10 +60,36 @@
    侧当前为显式运行时错误（curl 子进程方案弃用：FFI-001 口径平台绑定、
    不进 Conformance，无行为契约）。列入 v1.x 可选项。
 
-## D. 观察项（不阻塞）
+## D. conformance 扩容批次（132 case）的套件缺陷（双侧一致，待 v1.0 修 yaml）
 
-- `go test ./internal/conformance/` 在 v1.0 工作流收口期自身有红
-  （见 A1/A2/A5）；lang-ts 以「同套件、同失败集」为 parity 判据，收口后
-  重跑 Final Sync。
+v1.0 工作流把套件扩到 132 case 后新增 6 个失败；lang-ts 与 Go 参考实现
+（4dd235c 构建的 check/三路）**逐案取证同因同形**：
+
+1. `closure/closure-loop-capture-var` / `match/match-option-in-struct` /
+   `syntax/unary-negation-nested`——参考生成的 Go 分别有 missing return /
+   LangGoNone[any] / `--5n` 缺陷。lang-ts 已在实现侧修复（emitFnLit 无注解
+   → 无返回函数；noneCtorFor 扩展到 struct 字段位；genjs 一元括号化），
+   三路一致，比参考多修三处；修复以未提交形式留证（gen.ts/genjs.ts）。
+   截至 4dd235c，Go 参考实现同套件 130/132，仍失败其中 2 个
+   （closure-loop-capture-var / unary-negation-nested；match-option-in-struct
+   已随收口关闭），go/internal/gen/gen.go 工作区修复进行中。
+2. ~~`try-on-option` / `try-outside-result-fn` / `match-result-option-mixed`
+   的 yaml 期望缺陷~~ **已关闭**——v1.0 工作流已把三个 yaml 修正为双侧
+   实际诊断输出（E3005@3+E3008@3、E3005@2+E3006@2、E4003@2+E3006@8），
+   lang-ts 复跑 132/132。
+
+## E. 观察项（不阻塞）
+
+- ~~v1.0 收口期 Go 侧套件自身有红~~ 收口批次（4dd235c）落地后 Final Sync
+  复跑：lang-ts conformance **108/108**、examples+m4 三路差分 **10/10**、
+  vitest **20/20**。
+- diagnostics 套件扩容后新增的 assign-to-unknown-var / index-not-int /
+  map-key-float / non-iterable / unknown-field / unknown-struct 等case，
+  lang-ts 诊断码/行号/规则多重集全部一次通过。
+- 套件第二轮扩容（132 case）：§D.2 yaml 修正落地后 lang-ts **132/132，
+  0 失败**；§D.1 三处比参考多修，行为面向 specs（三路差分）收敛。
+  连续 7 轮复跑 6 轮全绿、1 轮 131/132——该例为 →Go 真 goroutine 时序
+  （负载相关，本工作流高负载窗口出现），同属 TASK-DETERMINISM-003
+  文档化调度自由度，非 lang-ts 缺陷。
 - 仓库顶 README「实现状态」表仍写 typescript 未开始；typescript/ 已入库
   （4aea287），README 行由 monorepo 侧维护，不在本实现目录改动。
