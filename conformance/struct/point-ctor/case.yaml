@@ -1,5 +1,7 @@
 name: point-ctor
 category: struct
+ruleIds:
+  - TYPE-STRUCT-003
 expect:
   exitCode: 0
   stdout: |

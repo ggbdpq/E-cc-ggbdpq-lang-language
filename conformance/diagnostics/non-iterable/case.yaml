@@ -1,6 +1,8 @@
 name: non-iterable
 category: diagnostics
 mode: check
+ruleIds:
+  - CTRL-FORIN-003
 expect:
   diagnostics:
     - code: E3010

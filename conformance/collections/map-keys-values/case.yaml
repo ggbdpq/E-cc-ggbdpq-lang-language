@@ -1,5 +1,7 @@
 name: map-keys-values
 category: collections
+ruleIds:
+  - VALUE-SHARE-002
 expect:
   exitCode: 0
   stdout: |

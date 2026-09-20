@@ -1,6 +1,8 @@
 name: call-arity-mismatch
 category: diagnostics
 mode: check
+ruleIds:
+  - CALL-ARG-002
 expect:
   diagnostics:
     - code: E3003

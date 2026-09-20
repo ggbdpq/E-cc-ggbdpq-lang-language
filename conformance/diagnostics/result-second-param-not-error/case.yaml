@@ -1,6 +1,8 @@
 name: result-second-param-not-error
 category: diagnostics
 mode: check
+ruleIds:
+  - GEN-SUBST-003
 expect:
   diagnostics:
     - code: E3009

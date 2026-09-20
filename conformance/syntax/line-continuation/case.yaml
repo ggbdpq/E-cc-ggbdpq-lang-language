@@ -1,5 +1,7 @@
 name: line-continuation
 category: syntax
+ruleIds:
+  - LEX-001
 expect:
   exitCode: 0
   stdout: |

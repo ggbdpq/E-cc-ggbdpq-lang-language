@@ -1,6 +1,8 @@
 name: nested-struct-decl
 category: diagnostics
 mode: check
+ruleIds:
+  - NAME-NEST-009
 expect:
   diagnostics:
     - code: E2010

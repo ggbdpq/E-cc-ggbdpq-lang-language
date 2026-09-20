@@ -1,6 +1,8 @@
 name: try-on-option
 category: diagnostics
 mode: check
+ruleIds:
+  - RESULT-TRY-003
 expect:
   diagnostics:
     - code: E3005

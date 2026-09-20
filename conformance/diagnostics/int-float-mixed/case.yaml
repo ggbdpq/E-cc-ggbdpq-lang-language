@@ -1,6 +1,8 @@
 name: int-float-mixed
 category: diagnostics
 mode: check
+ruleIds:
+  - TYPE-ASSIGN-001
 expect:
   diagnostics:
     - code: E3002

@@ -1,5 +1,7 @@
 name: generic-option-return
 category: generics
+ruleIds:
+  - GEN-DECL-001
 expect:
   exitCode: 0
   stdout: |

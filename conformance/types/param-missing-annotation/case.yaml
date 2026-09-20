@@ -1,0 +1,11 @@
+name: param-missing-annotation
+category: types
+mode: check
+ruleIds:
+  - TYPE-ANN-006
+expect:
+  diagnostics:
+    - code: E3007
+      ruleId: TYPE-ANN-006
+      severity: error
+      line: 1

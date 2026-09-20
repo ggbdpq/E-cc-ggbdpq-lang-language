@@ -1,5 +1,7 @@
 name: counter-closure
 category: closure
+ruleIds:
+  - VALUE-CAPTURE-004
 expect:
   exitCode: 0
   stdout: |

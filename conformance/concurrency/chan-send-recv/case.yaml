@@ -1,5 +1,8 @@
 name: chan-send-recv
 category: concurrency
+ruleIds:
+  - TASK-MODEL-001
+  - TASK-SPAWN-002
 expect:
   exitCode: 0
   stdout: |

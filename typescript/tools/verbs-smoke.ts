@@ -116,7 +116,8 @@ const rRepl = spawnSync(process.execPath, [CLI], {
   encoding: "utf8",
   timeout: 60000,
 });
-check("REPL 求值回显", rRepl.stdout.includes("=> 3") && rRepl.stdout.includes('=> "ab"'), JSON.stringify(rRepl.stdout.slice(0, 200)));
+// 顶层字符串按 RUNTIME-OUTPUT-003 不带引号（fmtVal top=true）
+check("REPL 求值回显", rRepl.stdout.includes("=> 3") && rRepl.stdout.includes("=> ab"), JSON.stringify(rRepl.stdout.slice(0, 200)));
 check("REPL 横幅", rRepl.stdout.includes("lang-ts v1.0.0"));
 
 // —— 9. build：go/js 双产物 + 未知目标 ——

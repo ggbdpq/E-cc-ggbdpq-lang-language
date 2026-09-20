@@ -1,6 +1,8 @@
 name: result-fn-return-plain
 category: diagnostics
 mode: check
+ruleIds:
+  - RESULT-RETURN-004
 expect:
   diagnostics:
     - code: E3006

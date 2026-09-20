@@ -1,6 +1,8 @@
 name: unknown-method
 category: diagnostics
 mode: check
+ruleIds:
+  - TYPE-MEMBER-007
 expect:
   diagnostics:
     - code: E3004

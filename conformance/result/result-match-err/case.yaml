@@ -1,5 +1,7 @@
 name: result-match-err
 category: result
+ruleIds:
+  - RESULT-TRY-003
 expect:
   exitCode: 0
   stdout: |

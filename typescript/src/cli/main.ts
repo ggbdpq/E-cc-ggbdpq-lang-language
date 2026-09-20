@@ -820,9 +820,7 @@ async function repl(): Promise<number> {
         return;
       }
       if (t === ":quit" || t === ":q" || t === "exit") {
-        // stdout 到管道是异步写：先排空再退出，否则待写求值输出被截断
-        rl.close();
-        process.stdout.write("", () => process.exit(0));
+        rl.close(); // close 事件统一解析退出码（等 stdout 排空）
         return;
       }
       if (t === ":help") {
@@ -850,10 +848,13 @@ async function repl(): Promise<number> {
     }
     loop();
   });
-  rl.on("close", () => {
-    process.stdout.write("\n", () => process.exit(0));
+  // write 回调在待写数据全部排空后触发（管道写异步，直接 exit 会截断求值输出）
+  return new Promise<number>((resolve) => {
+    rl.on("close", () => {
+      process.stdout.write("\n", () => resolve(0));
+    });
   });
-  return 0;
 }
 
-process.exit(main());
+process.exitCode = 1;
+main().then((code) => process.exit(code));

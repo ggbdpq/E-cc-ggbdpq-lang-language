@@ -1,5 +1,7 @@
 name: literal-match
 category: match
+ruleIds:
+  - PARSE-005
 expect:
   exitCode: 0
   stdout: |

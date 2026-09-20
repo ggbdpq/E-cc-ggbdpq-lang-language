@@ -1,6 +1,8 @@
 name: index-not-int
 category: diagnostics
 mode: check
+ruleIds:
+  - TYPE-INDEX-008
 expect:
   diagnostics:
     - code: E3013

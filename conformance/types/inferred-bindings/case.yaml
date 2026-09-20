@@ -1,5 +1,7 @@
 name: inferred-bindings
 category: types
+ruleIds:
+  - TYPE-KINDS-001
 expect:
   exitCode: 0
   stdout: |

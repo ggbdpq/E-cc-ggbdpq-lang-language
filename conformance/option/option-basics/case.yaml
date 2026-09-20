@@ -1,5 +1,7 @@
 name: option-basics
 category: option
+ruleIds:
+  - RESULT-PRELUDE-001
 expect:
   exitCode: 0
   stdout: |

@@ -1,6 +1,8 @@
 name: type-mismatch
 category: diagnostics
 mode: check
+ruleIds:
+  - TYPE-ASSIGN-001
 expect:
   diagnostics:
     - code: E3001

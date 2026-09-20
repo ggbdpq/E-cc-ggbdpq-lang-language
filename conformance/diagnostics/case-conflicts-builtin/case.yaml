@@ -1,6 +1,8 @@
 name: case-conflicts-builtin
 category: diagnostics
 mode: check
+ruleIds:
+  - NAME-CTOR-005
 expect:
   diagnostics:
     - code: E2006

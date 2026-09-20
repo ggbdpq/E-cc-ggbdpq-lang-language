@@ -1,6 +1,8 @@
 name: immutable-assign
 category: diagnostics
 mode: check
+ruleIds:
+  - NAME-MUT-007
 expect:
   diagnostics:
     - code: E2005

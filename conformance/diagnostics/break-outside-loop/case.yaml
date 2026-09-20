@@ -1,6 +1,8 @@
 name: break-outside-loop
 category: diagnostics
 mode: check
+ruleIds:
+  - NAME-PLACE-008
 expect:
   diagnostics:
     - code: E2007

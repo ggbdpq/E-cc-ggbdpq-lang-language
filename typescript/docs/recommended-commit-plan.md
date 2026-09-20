@@ -22,6 +22,15 @@
 ## 建议序列（剩余部分）
 
 ```text
+0'. fix(edit): Apply 降序编辑集的拼接算法修正
+   body: 此前用顺序游标拼接，而编辑集按 StartOffset 降序应用——游标回退
+   导致高偏移编辑后的内容被重复拼接（fix --safe 在「行尾空白 + EOF 换行」
+   组合下产出损坏文件）。改为逐编辑 splice（降序下区间互不影响，与 Go
+   edit.Apply 同构）。REPL 同步 async 化：repl 返回 Promise，close 事件
+   经 stdout write 回调排空后解析退出码（此前 process.exit 在管道写排空
+   前截断求值回显）。
+   验证: tools/verbs-smoke.ts 全动词 23 断言全绿；conformance 150/150。
+
 0. fix(backends): 132-case 扩容三修复
    body: (a) emitFnLit 无注解函数字面量不再写返回类型（Go 缺 return 编译错），
    isVoidCall 补函数值路径（void 调用不得 _ =）；(b) noneCtorFor 扩展到

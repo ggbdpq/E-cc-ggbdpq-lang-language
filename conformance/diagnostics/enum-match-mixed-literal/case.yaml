@@ -1,6 +1,8 @@
 name: enum-match-mixed-literal
 category: diagnostics
 mode: check
+ruleIds:
+  - MATCH-KIND-001
 expect:
   diagnostics:
     - code: E4002

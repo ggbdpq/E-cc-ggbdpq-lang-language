@@ -1,6 +1,8 @@
 name: amp-on-expression
 category: diagnostics
 mode: check
+ruleIds:
+  - VALUE-REF-003
 expect:
   diagnostics:
     - code: E3012

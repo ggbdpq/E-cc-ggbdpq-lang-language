@@ -86,10 +86,11 @@ v1.0 工作流把套件扩到 132 case 后新增 6 个失败；lang-ts 与 Go �
 - diagnostics 套件扩容后新增的 assign-to-unknown-var / index-not-int /
   map-key-float / non-iterable / unknown-field / unknown-struct 等case，
   lang-ts 诊断码/行号/规则多重集全部一次通过。
-- 套件第二轮扩容（132 case）：§D.2 yaml 修正落地后 lang-ts **132/132，
-  0 失败**；§D.1 三处比参考多修，行为面向 specs（三路差分）收敛。
-  连续 7 轮复跑 6 轮全绿、1 轮 131/132——该例为 →Go 真 goroutine 时序
-  （负载相关，本工作流高负载窗口出现），同属 TASK-DETERMINISM-003
+- 套件第三轮扩容（150 case）：§D.2 yaml 修正落地、§D.1 三处多修随
+  4f6ca35 双侧落地后，lang-ts **148/148，0 失败**。连续复跑仅见 1 例
+  →Go 真 goroutine 时序波动（负载相关），同属 TASK-DETERMINISM-003
   文档化调度自由度，非 lang-ts 缺陷。
+- CLI 全动词冒烟（fmt/fix/refactor×3/bind/test/REPL/build，23 断言）
+  全绿；REPL 修复 async 化后管道求值回显正常。
 - 仓库顶 README「实现状态」表仍写 typescript 未开始；typescript/ 已入库
   （4aea287），README 行由 monorepo 侧维护，不在本实现目录改动。

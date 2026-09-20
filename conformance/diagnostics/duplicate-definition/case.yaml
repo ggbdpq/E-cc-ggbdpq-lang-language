@@ -1,6 +1,8 @@
 name: duplicate-definition
 category: diagnostics
 mode: check
+ruleIds:
+  - NAME-DUP-003
 expect:
   diagnostics:
     - code: E2001

@@ -1,6 +1,8 @@
 name: return-outside-fn
 category: diagnostics
 mode: check
+ruleIds:
+  - NAME-PLACE-008
 expect:
   diagnostics:
     - code: E2008

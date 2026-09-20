@@ -1,5 +1,7 @@
 name: match-as-argument
 category: match
+ruleIds:
+  - PARSE-005
 expect:
   exitCode: 0
   stdout: |

@@ -1,6 +1,8 @@
 name: method-recv-unknown-struct
 category: diagnostics
 mode: check
+ruleIds:
+  - NAME-RECV-006
 expect:
   diagnostics:
     - code: E2004

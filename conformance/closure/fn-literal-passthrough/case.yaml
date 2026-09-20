@@ -1,5 +1,7 @@
 name: fn-literal-passthrough
 category: closure
+ruleIds:
+  - VALUE-CAPTURE-004
 expect:
   exitCode: 0
   stdout: |

@@ -1,0 +1,6 @@
+fn f(a): int {
+    return a
+}
+fn main() {
+    println(f(1))
+}

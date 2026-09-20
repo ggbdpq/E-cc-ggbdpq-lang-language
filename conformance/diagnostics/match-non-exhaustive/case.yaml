@@ -1,6 +1,8 @@
 name: match-non-exhaustive
 category: diagnostics
 mode: check
+ruleIds:
+  - MATCH-EXHAUSTIVE-002
 expect:
   diagnostics:
     - code: E4001

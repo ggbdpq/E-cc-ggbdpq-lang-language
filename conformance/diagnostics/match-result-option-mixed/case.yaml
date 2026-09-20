@@ -1,6 +1,8 @@
 name: match-result-option-mixed
 category: diagnostics
 mode: check
+ruleIds:
+  - MATCH-KIND-001
 expect:
   diagnostics:
     - code: E3006

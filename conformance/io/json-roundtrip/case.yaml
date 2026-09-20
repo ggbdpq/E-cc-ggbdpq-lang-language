@@ -1,5 +1,7 @@
 name: json-roundtrip
 category: io
+ruleIds:
+  - RUNTIME-OUTPUT-003
 expect:
   exitCode: 0
   stdout: |

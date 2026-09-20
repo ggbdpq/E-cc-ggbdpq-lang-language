@@ -1,5 +1,7 @@
 name: enum-shape-area
 category: enum
+ruleIds:
+  - MATCH-EXHAUSTIVE-002
 expect:
   exitCode: 0
   stdout: |

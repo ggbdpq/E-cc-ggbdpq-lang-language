@@ -1,5 +1,7 @@
 name: arithmetic-precedence
 category: syntax
+ruleIds:
+  - LEX-001
 expect:
   exitCode: 0
   stdout: |

@@ -1,5 +1,8 @@
 name: import-nested-dir
 category: module
+ruleIds:
+  - MODULE-IMPORT-002
+  - MODULE-MERGE-003
 expect:
   exitCode: 0
   stdout: |
