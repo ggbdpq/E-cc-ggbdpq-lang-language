@@ -19,6 +19,7 @@ import (
 	"lang-go/internal/graph"
 	"lang-go/internal/hir"
 	"lang-go/internal/interp"
+	"lang-go/internal/irinterp"
 	"lang-go/internal/load"
 	"lang-go/internal/pipeline"
 )
@@ -123,10 +124,14 @@ func VerifyDir(dir string) VerifyResult {
 	}
 	ok("compile", "go+js 产物")
 
-	// 8) execute：三方执行（stderr 非空或退出码非 0 均失败）
+	// 8) execute：四方执行（AST Oracle / IR 解释器 / →Go 产物 / →JS 产物）
 	var outInterp bytes.Buffer
 	if err := interp.New(&outInterp).Run(prog); err != nil {
 		return fail("execute", "解释器: "+err.Error())
+	}
+	var outIRI bytes.Buffer
+	if err := irinterp.New(&outIRI).Run(ip); err != nil {
+		return fail("execute", "IR 解释器: "+err.Error())
 	}
 	outGo, _, err := runCapture(tmp, filepath.Join(tmp, "prog.exe"))
 	if err != nil {
@@ -134,7 +139,7 @@ func VerifyDir(dir string) VerifyResult {
 	}
 	var outJS string
 	if _, err := exec.LookPath("node"); err != nil {
-		ok("execute", "宿主缺 node，JS 路不执行（差分降级为两方）")
+		ok("execute", "宿主缺 node，JS 路不执行（差分降级为三方）")
 		outJS = outGo
 	} else {
 		if err := os.WriteFile(filepath.Join(tmp, "out.mjs"), []byte(jsSrc), 0o644); err != nil {

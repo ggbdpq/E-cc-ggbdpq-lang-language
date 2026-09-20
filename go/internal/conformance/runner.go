@@ -20,6 +20,7 @@ import (
 
 	"lang-go/internal/contract"
 	"lang-go/internal/gen"
+	"lang-go/internal/irinterp"
 	"lang-go/internal/genjs"
 	"lang-go/internal/interp"
 	"lang-go/internal/load"
@@ -79,10 +80,17 @@ func runDifferential(c *Case, prog []syntax.Stmt, res CaseResult) CaseResult {
 		return res
 	}
 
-	// 1) 解释器（进程内；writer 注入即 stdout；err 非空 = 退出码非 0 的进程内等价物）
+	// 1) AST 参考解释器（进程内；writer 注入即 stdout；err 非空 = 退出码非 0 的进程内等价物）
 	var outInterp bytes.Buffer
 	if err := interp.New(&outInterp).Run(prog); err != nil {
 		res.Note = "解释器执行失败: " + err.Error()
+		return res
+	}
+
+	// 1b) IR 解释器（进程内，无工具链依赖）：证明 IR 语义 = AST 语义
+	var outIRI bytes.Buffer
+	if err := irinterp.New(&outIRI).Run(a.Prog); err != nil {
+		res.Note = "IR 解释器执行失败: " + err.Error()
 		return res
 	}
 

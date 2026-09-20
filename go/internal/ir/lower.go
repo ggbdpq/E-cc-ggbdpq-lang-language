@@ -381,7 +381,10 @@ func (l *lowerer) lowerExpr(e hir.Expr) Expr {
 
 	case *hir.FnLit:
 		saved := l.saveFnCtx()
-		l.scopes = &scope{vars: map[string]*Local{}}
+		// 闭包作用域继承外层链（VALUE-CAPTURE-004 按引用捕获）：
+		// 捕获变量解析到外层的同一 *Local 槽位指针，捕获关系显式保留在 IR 中，
+		// 不再依赖各后端按名字重建词法作用域（v0.9 语义收口）
+		l.push()
 		l.locals = nil
 		l.inFn = true
 		n := &FnLit{Ret: x.Ret, typ: *t}

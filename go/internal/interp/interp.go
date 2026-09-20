@@ -1265,3 +1265,18 @@ func (it *Interp) runBody(cl *Closure, fenv *Env, name string) (Value, error) {
 	}
 	return UnitVal{}, err
 }
+
+// CallBuiltin 调用预载内建（IR 解释器等 IR 层执行器复用同一套内建实现——decisions #37 两端一致）。
+// found=false 表示未注册该名字。
+func (it *Interp) CallBuiltin(name string, args []Value) (v Value, found bool, err error) {
+	c, ok := it.Globals.lookup(name)
+	if !ok {
+		return nil, false, nil
+	}
+	b, ok := c.val.(*Builtin)
+	if !ok {
+		return nil, false, nil
+	}
+	v, err = b.Fn(it, args)
+	return v, true, err
+}
