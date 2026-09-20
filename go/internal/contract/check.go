@@ -30,6 +30,7 @@ func diagsJSON(diags []pipeline.Diagnostic) CheckJSON {
 	for _, d := range diags {
 		out.Diagnostics = append(out.Diagnostics, Diagnostic{
 			Code:         d.Code,
+			RuleID:       RuleOf(d.Code),
 			Severity:     "error",
 			Message:      d.Msg,
 			PrimarySpan:  lineSpan(d.Line),

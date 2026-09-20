@@ -63,9 +63,10 @@ func SpanJSON(sp syntax.Span) *Span {
 	}
 }
 
-// Diagnostic JSON 诊断（码稳定；severity v0.4 恒为 error）
+// Diagnostic JSON 诊断（码稳定；severity v0.4 恒为 error；ruleId v0.9 起携带）
 type Diagnostic struct {
 	Code         string  `json:"code"`
+	RuleID       string  `json:"ruleId,omitempty"`
 	Severity     string  `json:"severity"`
 	Message      string  `json:"message"`
 	PrimarySpan  *Span   `json:"primarySpan"`
@@ -148,6 +149,7 @@ func diagJSON(d semantic.Diagnostic) Diagnostic {
 	span := Span{File: "", Start: Position{Offset: 0, Line: d.Line, Column: 1}, End: Position{Offset: 0, Line: d.Line, Column: 1}}
 	return Diagnostic{
 		Code:         d.Code,
+		RuleID:       RuleOf(d.Code),
 		Severity:     "error",
 		Message:      d.Msg,
 		PrimarySpan:  &span,
@@ -160,6 +162,7 @@ func typesDiagJSON(d types.Diagnostic) Diagnostic {
 	span := Span{Start: Position{Offset: 0, Line: d.Line, Column: 1}, End: Position{Offset: 0, Line: d.Line, Column: 1}}
 	return Diagnostic{
 		Code:         d.Code,
+		RuleID:       RuleOf(d.Code),
 		Severity:     "error",
 		Message:      d.Msg,
 		PrimarySpan:  &span,

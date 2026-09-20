@@ -13,6 +13,7 @@ import (
 // message 与列号允许漂移——diagnostics spec 的既定口径）
 type DiagExpect struct {
 	Code     string
+	RuleID   string // 可选：声明了才比对（向后兼容 v0.8 case）
 	Severity string
 	Line     int
 }
@@ -185,6 +186,8 @@ func diagField(d *DiagExpect, key, val string, lineNo int) error {
 	switch key {
 	case "code":
 		d.Code = val
+	case "ruleId":
+		d.RuleID = val
 	case "severity":
 		d.Severity = val
 	case "line":

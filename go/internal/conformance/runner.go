@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"lang-go/internal/contract"
 	"lang-go/internal/gen"
 	"lang-go/internal/genjs"
 	"lang-go/internal/interp"
@@ -175,11 +176,16 @@ func runDiagnostic(c *Case, prog []syntax.Stmt, res CaseResult) CaseResult {
 	diags, _ := pipeline.CheckStmts(prog)
 	got := map[string]int{}
 	for _, d := range diags {
-		got[d.Code+"|error|"+fmt.Sprint(d.Line)]++
+		got[d.Code+"|"+contract.RuleOf(d.Code)+"|error|"+fmt.Sprint(d.Line)]++
 	}
+	// 期望声明了 ruleId 则精确比对；未声明（v0.8 旧 case）回填映射表值参与匹配
 	want := map[string]int{}
 	for _, d := range c.Expect.Diagnostics {
-		want[d.Code+"|"+d.Severity+"|"+fmt.Sprint(d.Line)]++
+		rule := d.RuleID
+		if rule == "" {
+			rule = contract.RuleOf(d.Code)
+		}
+		want[d.Code+"|"+rule+"|"+d.Severity+"|"+fmt.Sprint(d.Line)]++
 	}
 	var missing, extra []string
 	for k, n := range want {

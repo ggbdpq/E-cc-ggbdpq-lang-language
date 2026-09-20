@@ -49,6 +49,7 @@
       "required": ["code", "severity", "message", "primarySpan", "relatedSpans", "help"],
       "properties": {
         "code": {"type": "string", "pattern": "^E[0-9]{4}$"},
+        "ruleId": {"type": "string", "pattern": "^[A-Z]+(-[A-Z0-9]+)*$"},
         "severity": {"enum": ["error", "warning"]},
         "message": {"type": "string"},
         "primarySpan": {"$ref": "#/definitions/span"},

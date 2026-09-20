@@ -18,6 +18,7 @@
 ```json
 {
   "code": "E2002",
+  "ruleId": "NAME-UNDEF-004",
   "severity": "error",
   "message": "未定义 nope",
   "primarySpan": {"file":"","start":{"offset":0,"line":2,"column":1},"end":{...}},
@@ -27,10 +28,12 @@
 ```
 
 - v0.4 全部为 `error` 级；warning 级别位保留。
+- **v0.9 起 `ruleId` 携带 Semantic Rule ID**（specs/rules.md 的映射表，代码侧唯一实现在
+  `go/internal/contract/rules.go`）；Rule ID 与码同为契约：一经发布不可改义。
 - 定位精度：**行级**（primarySpan 的 line 正确，column 恒 1，offset 未填）——列级 primarySpan 是 v0.5 目标。
 - `relatedSpans`/`help` 字段存在但可为空（结构即契约）。
 
-## 3. 码清单（v0.4 全集）
+## 3. 码清单（全集；逐码 Rule 映射见 specs/rules.md）
 
 - E1001 解析/词法错误
 - E2001 同作用域重复定义 · E2002 未定义名 · E2003 构造器重名 · E2004 方法接收者未知 struct ·
