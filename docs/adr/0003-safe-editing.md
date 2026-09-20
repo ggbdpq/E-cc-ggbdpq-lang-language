@@ -1,7 +1,7 @@
 # ADR-0003 Safe Editing——轻量 Lossless 与机械安全修复
 
 - 状态：已接受（2026-09-20，v0.5.0）
-- 关联：docs/plans/v0.5-safe-editing-plan.md、decisions.md #77–#78
+- 关联：docs/lang-go/2026-09-20-v0.5-安全编辑计划.md、decisions.md #77–#78
 
 ## Context
 

@@ -1,7 +1,7 @@
 # ADR-0002 Agent Contract——稳定 JSON 协议与 Effect Metadata
 
 - 状态：已接受（2026-09-20，v0.4.0）
-- 关联：docs/plans/v0.4-agent-contract-plan.md、decisions.md #71–#76、specs/agent-protocol.md
+- 关联：docs/lang-go/2026-09-20-v0.4-智能体契约计划.md、decisions.md #71–#76、specs/agent-protocol.md
 
 ## Context
 

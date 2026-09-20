@@ -1,7 +1,7 @@
 # ADR-0001 v0.3 Semantic Core——独立于后端的语义层
 
 - 状态：已接受（2026-09-20，v0.3.0）
-- 关联：docs/plans/v0.3-semantic-core-plan.md、decisions.md #65–#69
+- 关联：docs/lang-go/2026-09-20-v0.3-语义核心计划.md、decisions.md #65–#69
 
 ## Context
 
