@@ -97,6 +97,9 @@ func (a *LangGoArr[T]) LangGoLen() int64 { return int64(len(a.Items)) }
 
 func (a *LangGoArr[T]) LangGoGet(i int64) any { return a.Items[i] }
 
+// LangGoSet 让 langGoSetIndex/langGoAddIndex 能经接口分派写任意元素类型的实例
+func (a *LangGoArr[T]) LangGoSet(i int64, v any) { a.Items[i] = v.(T) }
+
 func (a *LangGoArr[T]) langGoItems() []any {
 	out := make([]any, len(a.Items))
 	for i, v := range a.Items {
@@ -366,20 +369,71 @@ func langGoPushFromAny(arr, another any) any {
 
 // langGoAddIndex 映射复合赋值：读旧值按运算符改写
 func langGoAddIndex(obj, idx, v any, op string) {
-	m, ok := obj.(*LangGoMap)
-	if !ok {
-		panic("映射复合赋值需要映射")
+	if a, ok := obj.(interface {
+		LangGoGet(int64) any
+		LangGoLen() int64
+		LangGoSet(int64, any)
+	}); ok {
+		i := langGoInt(idx)
+		if i < 0 || i >= a.LangGoLen() {
+			panic(fmt.Sprintf("索引 %d 越界（长度 %d）", i, a.LangGoLen()))
+		}
+		old := a.LangGoGet(i)
+		a.LangGoSet(i, langGoArith(op, old, v))
+		return
 	}
-	ks, _ := langGoKeyString(idx)
-	old := m.m[ks]
-	var nv any
+	if m, ok := obj.(*LangGoMap); ok {
+		ks, _ := langGoKeyString(idx)
+		old := m.m[ks]
+		m.Set(idx, langGoArith(op, old, v))
+		return
+	}
+	panic("该容器不支持复合赋值")
+}
+
+// langGoArith 复合赋值读改写运算（+= -= *= /=；语义与 evalBinary 对应分支一致）
+func langGoArith(op string, a, b any) any {
 	switch op {
 	case "+=":
-		nv = langGoAdd(old, v)
-	default:
-		panic("映射仅支持 +=")
+		return langGoAdd(a, b)
+	case "-=":
+		switch x := a.(type) {
+		case int64:
+			if y, ok := b.(int64); ok {
+				return x - y
+			}
+		case float64:
+			if y, ok := b.(float64); ok {
+				return x - y
+			}
+		}
+	case "*=":
+		switch x := a.(type) {
+		case int64:
+			if y, ok := b.(int64); ok {
+				return x * y
+			}
+		case float64:
+			if y, ok := b.(float64); ok {
+				return x * y
+			}
+		}
+	case "/=":
+		switch x := a.(type) {
+		case int64:
+			if y, ok := b.(int64); ok {
+				if y == 0 {
+					panic("整数除零")
+				}
+				return x / y
+			}
+		case float64:
+			if y, ok := b.(float64); ok {
+				return x / y
+			}
+		}
 	}
-	m.Set(idx, nv)
+	panic("复合赋值类型不符")
 }
 
 // langGoAdd 数值加法（Map 复合赋值用；int64/float64/string）
@@ -615,18 +669,23 @@ func langGoIndex[T any](obj, idx any) T {
 }
 
 func langGoSetIndex(obj, idx, v any) {
-	switch c := obj.(type) {
-	case *LangGoArr[any]:
+	if a, ok := obj.(interface {
+		LangGoGet(int64) any
+		LangGoLen() int64
+		LangGoSet(int64, any)
+	}); ok {
 		i := langGoInt(idx)
-		if i < 0 || i >= int64(len(c.Items)) {
-			panic(fmt.Sprintf("索引 %d 越界（长度 %d）", i, len(c.Items)))
+		if i < 0 || i >= a.LangGoLen() {
+			panic(fmt.Sprintf("索引 %d 越界（长度 %d）", i, a.LangGoLen()))
 		}
-		c.Items[i] = v
+		a.LangGoSet(i, v)
 		return
-	case *LangGoMap:
-		c.Set(idx, v)
+	}
+	if m, ok := obj.(*LangGoMap); ok {
+		m.Set(idx, v)
 		return
-	case string:
+	}
+	if _, ok := obj.(string); ok {
 		panic("字符串不可变")
 	}
 	panic("该类型不可索引赋值")

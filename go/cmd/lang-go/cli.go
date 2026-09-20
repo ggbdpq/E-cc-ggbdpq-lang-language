@@ -842,7 +842,7 @@ func runVerify(args []string) int {
 			fmt.Println(line)
 		}
 		if r.Success {
-			fmt.Println("验证通过：三路执行一致")
+			fmt.Println("验证通过：四路执行一致（AST Oracle / IR 解释器 / →Go / →JS）")
 		}
 	}
 	if !r.Success {
