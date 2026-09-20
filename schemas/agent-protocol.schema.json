@@ -10,7 +10,9 @@
       "enum": [
         "check", "dump.ast", "dump.hir", "dump.ir",
         "inspect.symbols", "inspect.refs", "inspect.type",
-        "inspect.dependencies", "inspect.effects"
+        "inspect.dependencies", "inspect.effects",
+        "inspect.callers", "inspect.callees", "inspect.impact",
+        "inspect.references", "inspect.dependency"
       ]
     },
     "success": {"type": "boolean"},

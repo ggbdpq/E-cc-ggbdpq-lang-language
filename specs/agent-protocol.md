@@ -31,6 +31,15 @@
 | `lang-go inspect type --file <f> --line <n> --column <n> --json` | `nodes[0]`（最内层命中节点）；未命中 → error，退出码 1 |
 | `lang-go inspect dependencies --json` | `dependencies[]` |
 | `lang-go inspect effects --json` | `effects[]` |
+| `lang-go inspect callers <sym> --json [--depth N]` | `callers[]`（name/kind/module/transitive/span） |
+| `lang-go inspect callees <sym> --json [--depth N]` | `callees[]` |
+| `lang-go inspect impact <sym> --json [--depth N]` | `impact{symbol,direct[],transitive[],effectWatch[],modules[],note}` |
+| `lang-go inspect references <sym> --json` | `references[]`（按符号过滤） |
+| `lang-go inspect dependency <file> --json` | `dependency{module,imports,dependsOn}` |
+
+`<sym>` 接受 SymbolID（数字）或符号名。`--depth` 缺省不限；impact 的
+direct/transitive 分别对应直接入边与沿调用链传递的入边；effectWatch =
+效果变化需关注的传递调用方。note 字段明示：证据集为保守估计，非完整影响证明。
 
 输入约定：命令作用于**当前目录模块**（不收路径参数，与 run/test 安全边界一致）；
 `--file` 仅作归属过滤。

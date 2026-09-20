@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"lang-go/internal/graph"
 	"lang-go/internal/pipeline"
 )
 
@@ -52,6 +53,17 @@ fn main() {
 }
 `
 
+// aImpact 以 sampleSrc 的 area 为影响分析目标
+func aImpact(a *pipeline.Analyzed) graph.Impact {
+	g := graph.Build(a.AST, a.Res, a.Ty, a.HIR, a.Prog, nil)
+	for _, sym := range a.Res.Symbols {
+		if !sym.BuiltinMark && sym.Name == "dist2" {
+			return g.Impact(int(sym.ID), -1)
+		}
+	}
+	return g.Impact(-1, -1)
+}
+
 func analyze(t *testing.T, src string) *pipeline.Analyzed {
 	t.Helper()
 	a, err := pipeline.Analyze(src)
@@ -80,6 +92,7 @@ func TestGolden(t *testing.T) {
 		"refs":         ReferencesEnvelope(a.AST, a.Res, -1),
 		"effects":      EffectsEnvelope(Effects(a.Prog)),
 		"dependencies": DependenciesEnvelope(nil),
+		"impact":       ImpactEnvelope(aImpact(a)),
 	}
 	for name, payload := range cases {
 		name, payload := name, payload

@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "1",
+  "toolVersion": "0.6.0",
+  "kind": "inspect.impact",
+  "impact": {
+    "symbol": {
+      "symbolId": 32,
+      "kind": "method",
+      "name": "dist2",
+      "module": "",
+      "type": "fn(): int",
+      "effects": [
+        "PURE"
+      ],
+      "span": {
+        "file": "",
+        "start": {
+          "offset": 83,
+          "line": 11,
+          "column": 1
+        },
+        "end": {
+          "offset": 145,
+          "line": 13,
+          "column": 2
+        }
+      }
+    },
+    "direct": [
+      {
+        "symbolId": 35,
+        "name": "",
+        "kind": "call",
+        "transitive": false,
+        "span": {
+          "file": "",
+          "start": {
+            "offset": 409,
+            "line": 28,
+            "column": 27
+          },
+          "end": {
+            "offset": 411,
+            "line": 28,
+            "column": 29
+          }
+        }
+      }
+    ],
+    "transitive": [],
+    "effectWatch": [
+      35
+    ],
+    "modules": null,
+    "note": "保守证据集：列出可能受影响的符号与位置，不构成完整影响证明"
+  }
+}

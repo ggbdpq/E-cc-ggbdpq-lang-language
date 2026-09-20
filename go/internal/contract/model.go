@@ -18,7 +18,7 @@ import (
 const SchemaVersion = "1"
 
 // ToolVersion 工具版本（与 CLI version 同源）
-const ToolVersion = "0.5.0"
+const ToolVersion = "0.6.0"
 
 // Kind 输出类别
 const (
@@ -27,6 +27,10 @@ const (
 	KindInspectType         = "inspect.type"
 	KindInspectDependencies = "inspect.dependencies"
 	KindInspectEffects      = "inspect.effects"
+	KindInspectCallers      = "inspect.callers"
+	KindInspectCallees      = "inspect.callees"
+	KindInspectImpact       = "inspect.impact"
+	KindInspectDependency   = "inspect.dependency"
 	KindDumpAST             = "dump.ast"
 	KindDumpHIR             = "dump.hir"
 	KindDumpIR              = "dump.ir"
@@ -93,13 +97,6 @@ type Dependency struct {
 	Imports []string `json:"imports"`
 }
 
-// Effect 函数副作用元数据
-type Effect struct {
-	SymbolID int      `json:"symbolId"`
-	Name     string   `json:"name"`
-	Effects  []string `json:"effects"`
-}
-
 // Node dump 输出的统一节点（AST/HIR/IR 共用形态）
 type Node struct {
 	NodeID   int     `json:"nodeId"`
@@ -113,17 +110,21 @@ type Node struct {
 
 // Envelope 所有机器输出的统一顶层
 type Envelope struct {
-	SchemaVersion string       `json:"schemaVersion"`
-	ToolVersion   string       `json:"toolVersion"`
-	Kind          string       `json:"kind"`
-	Success       *bool        `json:"success,omitempty"`
-	Error         string       `json:"error,omitempty"`
-	Diagnostics   []Diagnostic `json:"diagnostics,omitempty"`
-	Symbols       []Symbol     `json:"symbols,omitempty"`
-	References    []Reference  `json:"references,omitempty"`
-	Dependencies  []Dependency `json:"dependencies,omitempty"`
-	Effects       []Effect     `json:"effects,omitempty"`
-	Nodes         []*Node      `json:"nodes,omitempty"`
+	SchemaVersion string           `json:"schemaVersion"`
+	ToolVersion   string           `json:"toolVersion"`
+	Kind          string           `json:"kind"`
+	Success       *bool            `json:"success,omitempty"`
+	Error         string           `json:"error,omitempty"`
+	Diagnostics   []Diagnostic     `json:"diagnostics,omitempty"`
+	Symbols       []Symbol         `json:"symbols,omitempty"`
+	References    []Reference      `json:"references,omitempty"`
+	Dependencies  []Dependency     `json:"dependencies,omitempty"`
+	Effects       []Effect         `json:"effects,omitempty"`
+	Nodes         []*Node          `json:"nodes,omitempty"`
+	Callers       []ImpactItemJSON `json:"callers,omitempty"`
+	Callees       []ImpactItemJSON `json:"callees,omitempty"`
+	Impact        *ImpactJSON      `json:"impact,omitempty"`
+	Dependency    *FileDepJSON     `json:"dependency,omitempty"`
 }
 
 // ErrorEnvelope 结构化错误输出

@@ -287,7 +287,17 @@ Formatter 硬契约升级为三条（测试机械锁定，语料 = 仓库全部 
 `lang-go fix --safe [--dry-run] [--json]`：重复 import 去重、未使用 import 删除
 （保守判定）、行尾空白/EOF 换行规范化，编辑事务失败即停。见 ADR-0003。
 
-## 12. 里程碑
+## 12. Semantic Graph（v0.6）
+
+内存语义图（internal/graph）：节点 = 符号（function/method/variable/parameter/
+struct/enum/constructor，附 name/module/span/type/effects/fields）；边 =
+call（HIR 已解析方法符号）/ references（read，AST+resolver）/ writes（赋值目标）/
+spawn / type（StructLit）/ depends_on·imports（文件级）。查询：
+callers/callees（--depth BFS）/ references（按符号过滤）/ dependency（文件级）/
+impact（direct + transitive + effectWatch + modules，附证据，保守估计）。
+真值源为 semantic/types/HIR/IR，禁止源码字符串搜索。
+
+## 13. 里程碑
 
 - **M1** 本规范 + 决策台账（已完成）
 - **M2** Go 实现：词法器、解析器、树遍历解释器、REPL、`lang-go run`/`lang-go test`（已完成）

@@ -21,6 +21,7 @@ import (
 	"lang-go/internal/format"
 	"lang-go/internal/gen"
 	"lang-go/internal/genjs"
+	"lang-go/internal/graph"
 	"lang-go/internal/interp"
 	"lang-go/internal/load"
 	"lang-go/internal/pipeline"
@@ -249,19 +250,22 @@ func runCheckJSON() int {
 }
 
 // runInspect inspect symbols|refs|type|dependencies|effects --json
+// runInspect inspect symbols|refs|type|dependencies|effects|callers|callees|impact|references
 func runInspect(args []string) int {
 	if len(args) == 0 {
-		printJSON(contract.ErrorEnvelope("inspect", "缺少子命令：symbols|refs|type|dependencies|effects"))
+		printJSON(contract.ErrorEnvelope("inspect", "缺少子命令：symbols|refs|type|dependencies|effects|callers|callees|impact|references"))
 		return 2
 	}
 	sub := args[0]
 	kind := "inspect." + sub
 	if !hasFlag(args, "--json") {
-		fmt.Fprintln(os.Stderr, "inspect 仅支持 --json 输出（v0.4）")
+		fmt.Fprintln(os.Stderr, "inspect 仅支持 --json 输出（v0.4+）")
 		return 2
 	}
-	// type 子命令参数
+	// 参数解析
 	file, line, col := "", 0, 0
+	depth := -1
+	target := ""
 	for i, a := range args {
 		switch a {
 		case "--file":
@@ -276,6 +280,18 @@ func runInspect(args []string) int {
 			if i+1 < len(args) {
 				col, _ = strconv.Atoi(args[i+1])
 			}
+		case "--depth":
+			if i+1 < len(args) {
+				depth, _ = strconv.Atoi(args[i+1])
+			}
+		case "--symbol":
+			if i+1 < len(args) {
+				target = args[i+1]
+			}
+		default:
+			if !strings.HasPrefix(a, "-") && a != sub && target == "" && sub != "symbols" && sub != "dependencies" && sub != "effects" {
+				target = a
+			}
 		}
 	}
 
@@ -289,17 +305,39 @@ func runInspect(args []string) int {
 		printJSON(contract.ErrorEnvelope(kind, pipeline.FormatDiags(pipeline.Diagnostics(aerr))))
 		return 1
 	}
+
+	g := graph.Build(prog, a.Res, a.Ty, a.HIR, a.Prog, files)
 	switch sub {
 	case "symbols":
 		printJSON(contract.SymbolsEnvelope(prog, a.Res, a.Ty))
-	case "refs":
+		return 0
+	case "refs", "references":
 		symID := -1
-		for i, a2 := range args {
-			if a2 == "--symbol" && i+1 < len(args) {
-				symID, _ = strconv.Atoi(args[i+1])
+		if target != "" {
+			symID = resolveSymbolArg(a, target, nil)
+			if symID < 0 {
+				printJSON(contract.ErrorEnvelope(kind, "未知符号 "+target))
+				return 1
 			}
 		}
 		printJSON(contract.ReferencesEnvelope(prog, a.Res, symID))
+		return 0
+	case "callers", "callees", "impact":
+		g := graph.Build(prog, a.Res, a.Ty, a.HIR, a.Prog, files)
+		id := resolveSymbolArg(a, target, g)
+		if id <= 0 {
+			printJSON(contract.ErrorEnvelope(kind, "未知符号 "+target))
+			return 1
+		}
+		switch sub {
+		case "callers":
+			printJSON(contract.CallersEnvelope(g, g.Callers(id, depth)))
+		case "callees":
+			printJSON(contract.CalleesEnvelope(g, g.Callees(id, depth)))
+		default:
+			printJSON(contract.ImpactEnvelope(g.Impact(id, depth)))
+		}
+		return 0
 	case "type":
 		if line == 0 {
 			printJSON(contract.ErrorEnvelope(kind, "缺少 --line/--column 参数"))
@@ -310,15 +348,55 @@ func runInspect(args []string) int {
 		if !ok {
 			return 1
 		}
+		return 0
 	case "dependencies":
 		printJSON(contract.DependenciesEnvelope(files))
+		return 0
+	case "dependency":
+		target := ""
+		for i, a := range args {
+			if a == "--file" && i+1 < len(args) {
+				target = args[i+1]
+			}
+		}
+		if target == "" {
+			target = "main.lang-go"
+		}
+		dep, ok := g.FileDep(target)
+		if !ok {
+			printJSON(contract.ErrorEnvelope(kind, "未知文件 "+target))
+			return 1
+		}
+		printJSON(contract.GraphDepJSON(dep))
+		return 0
 	case "effects":
 		printJSON(contract.EffectsEnvelope(contract.Effects(a.Prog)))
-	default:
-		printJSON(contract.ErrorEnvelope(kind, "未知子命令 "+sub))
-		return 2
+		return 0
 	}
-	return 0
+	printJSON(contract.ErrorEnvelope(kind, "未知子命令 "+sub))
+	return 2
+}
+
+// resolveSymbolArg 解析符号参数：数字 → SymbolID；名字 → 首个同名用户符号；未找到 → -1
+func resolveSymbolArg(a *pipeline.Analyzed, arg string, g *graph.Graph) int {
+	if arg == "" {
+		return -1
+	}
+	if id, err := strconv.Atoi(arg); err == nil {
+		if _, ok := g.Nodes[id]; ok {
+			return id
+		}
+		return -1
+	}
+	for _, sym := range a.Res.Symbols {
+		if sym.BuiltinMark {
+			continue
+		}
+		if sym.Name == arg {
+			return int(sym.ID)
+		}
+	}
+	return -1
 }
 
 // runDump dump ast|hir|ir --json
