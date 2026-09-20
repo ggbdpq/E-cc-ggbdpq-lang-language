@@ -314,3 +314,32 @@ fn main() {
 		t.Fatalf("unused 应被删除:\n%s", next)
 	}
 }
+
+func TestRename往返语义保持(t *testing.T) {
+	// Agent Property（总纲 §15.5）：rename → rename 回来，源码语义与解释器输出保持
+	src := `fn area(): int { return 1 }
+fn main() {
+    println(area())
+    println(area())
+}`
+	c := analyzeSrc(t, src)
+	target := c.symByName("area")
+	edits, err := c.rename(target, "surface")
+	if err != nil {
+		t.Fatal(err)
+	}
+	renamed := applyToSrc(src, edits)
+	c2 := analyzeSrc(t, renamed)
+	t2 := c2.symByName("surface")
+	if t2 == nil {
+		t.Fatal("rename 后新名符号应存在")
+	}
+	back, err := c2.rename(t2, "area")
+	if err != nil {
+		t.Fatal(err)
+	}
+	restored := applyToSrc(renamed, back)
+	if restored != src {
+		t.Fatalf("往返后源码应还原:\n%s", restored)
+	}
+}
