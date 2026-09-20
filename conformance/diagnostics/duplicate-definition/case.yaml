@@ -1,0 +1,9 @@
+name: duplicate-definition
+category: diagnostics
+mode: check
+expect:
+  diagnostics:
+    - code: E2001
+      ruleId: NAME-DUP-003
+      severity: error
+      line: 3

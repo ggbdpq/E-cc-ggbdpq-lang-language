@@ -499,6 +499,8 @@ func (g *gen) emitStmt(s ir.Stmt) error {
 		if fi == nil {
 			return g.errf(0, "内部错误：go 目标未注册 %s", st.Fn.Name)
 		}
+		// EVAL-GO-007：实参在 go 语句处就地求值并快照（临时变量），
+		// goroutine 闭包不得按引用捕获调用方可变局部
 		var args []string
 		for i, a := range st.Args {
 			arg, err := g.expr(a)
@@ -508,7 +510,10 @@ func (g *gen) emitStmt(s ir.Stmt) error {
 			if i < len(fi.Params) {
 				arg = g.wrapArg(fi.Params[i].Typ, a, arg)
 			}
-			args = append(args, arg)
+			tmp := g.newTmp()
+			g.w(tmp + " := " + arg)
+			g.w("_ = " + tmp)
+			args = append(args, tmp)
 		}
 		g.w("langGoGo(func() { " + g.goName(fi) + "(" + strings.Join(args, ", ") + ") })")
 		return nil
@@ -563,6 +568,8 @@ func (g *gen) emitLet(st *ir.Let) error {
 	}
 	g.localGo[st.Local] = bindGo
 	g.w(name + " := " + expr)
+	// lang-go 无“局部绑定必须使用”规则，Go 有——统一消 unused 编译错
+	g.w("_ = " + name)
 	// 函数值绑定注册参数/返回类型，调用点据此收窄
 	if fl, ok := st.Init.(*ir.FnLit); ok {
 		fi := &ir.Fn{Name: name}
@@ -604,6 +611,23 @@ func (g *gen) emitAssign(st *ir.Assign) error {
 		expr, err := g.expr(st.Val)
 		if err != nil {
 			return err
+		}
+		if idx, ok := tgt.Obj.(*ir.Index); ok {
+			// 容器元素字段链 xs[i].f = v：读改写（VALUE-ELEM-009）
+			cobj, err := g.expr(idx.Obj)
+			if err != nil {
+				return err
+			}
+			cidx, err := g.expr(idx.Idx)
+			if err != nil {
+				return err
+			}
+			elemT := goTypeOf(idx.Typ())
+			tmp := g.newTmp()
+			g.w(tmp + " := langGoIndex[" + elemT + "](" + cobj + ", " + cidx + ")")
+			g.w(tmp + "." + tgt.Name + " = " + expr)
+			g.w("langGoSetIndex(" + cobj + ", " + cidx + ", " + tmp + ")")
+			return nil
 		}
 		g.w(obj + "." + tgt.Name + " = " + expr)
 		return nil
@@ -792,17 +816,31 @@ func (g *gen) emitBlock(stmts []ir.Stmt) error {
 
 func (g *gen) emitForIn(st *ir.ForIn) error {
 	if st.Kind == ir.IterRange {
-		rg := st.Iter.(*ir.Range)
-		lo, err := g.expr(rg.Lo)
-		if err != nil {
-			return err
-		}
-		hi, err := g.expr(rg.Hi)
-		if err != nil {
-			return err
-		}
 		g.localGo[st.Var] = "int64"
-		g.w("for " + st.Var.Name + " := " + lo + "; " + st.Var.Name + " < " + hi + "; " + st.Var.Name + "++ {")
+		// 区间经绑定（let r = a..b; for i in r）与字面量两条路径
+		if rg, ok := st.Iter.(*ir.Range); ok {
+			lo, err := g.expr(rg.Lo)
+			if err != nil {
+				return err
+			}
+			hi, err := g.expr(rg.Hi)
+			if err != nil {
+				return err
+			}
+			g.w("for " + st.Var.Name + " := " + lo + "; " + st.Var.Name + " < " + hi + "; " + st.Var.Name + "++ {")
+			if err := g.emitBlockTyped(st.Body, st.Var); err != nil {
+				return err
+			}
+			g.w("}")
+			return nil
+		}
+		rv, err := g.expr(st.Iter)
+		if err != nil {
+			return err
+		}
+		tmp := g.newTmp()
+		g.w(tmp + " := " + rv)
+		g.w("for " + st.Var.Name + " := " + tmp + ".Lo; " + st.Var.Name + " < " + tmp + ".Hi; " + st.Var.Name + "++ {")
 		if err := g.emitBlockTyped(st.Body, st.Var); err != nil {
 			return err
 		}
@@ -1254,14 +1292,27 @@ func (g *gen) expr(e ir.Expr) (string, error) {
 	return "", g.errf(0, "→Go 暂不支持该表达式")
 }
 
+// exprArg 实参生成：None 无载荷无法推断，按调用方期望的 Option 元素类型特化
+func (g *gen) exprArg(e ir.Expr, target *types.Type) (string, error) {
+	if c, ok := e.(*ir.Ctor); ok && c.Sym.Name == "None" && target != nil && target.Kind == types.KOption && target.Elem != nil && !isAny(target.Elem) {
+		return "LangGoNone[" + goTypeOf(target.Elem) + "]()", nil
+	}
+	return g.expr(e)
+}
+
 // emitCtor 构造器：预载 Option/Result 与用户 enum
 func (g *gen) emitCtor(x *ir.Ctor) (string, error) {
 	switch x.Sym.Name {
 	case "None":
-		// 泛型函数内用类型参数（返回 LangGoOpt[T] 与签名一致）；否则 any
+		// None 无载荷无法靠推断：类型实参取当前函数返回类型的元素
+		// （泛型函数=类型参数 T；非泛型 Option[int] → int64），与签名一致
 		tp := "any"
-		if g.curFn != nil && len(g.curFn.TypeParams) == 1 {
-			tp = g.curFn.TypeParams[0]
+		if g.curFn != nil {
+			if len(g.curFn.TypeParams) == 1 {
+				tp = g.curFn.TypeParams[0]
+			} else if g.curFn.Ret != nil && g.curFn.Ret.Kind == types.KOption && g.curFn.Ret.Elem != nil && !isAny(g.curFn.Ret.Elem) {
+				tp = goTypeOf(g.curFn.Ret.Elem)
+			}
 		}
 		return "LangGoNone[" + tp + "]()", nil
 	case "Some":
@@ -1371,7 +1422,11 @@ func (g *gen) emitCall(x *ir.Call) (string, error) {
 		}
 		var args []string
 		for i, a := range x.Args {
-			arg, err := g.expr(a)
+			var target *types.Type
+			if i < len(fi.Params) {
+				target = fi.Params[i].Typ
+			}
+			arg, err := g.exprArg(a, target)
 			if err != nil {
 				return "", err
 			}

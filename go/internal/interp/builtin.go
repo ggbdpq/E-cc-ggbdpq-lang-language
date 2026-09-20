@@ -5,20 +5,30 @@ import (
 	"io"
 	"strconv"
 	"strings"
+
+	"lang-go/internal/prelude"
 )
 
 // prelude 预载代数类型（Option/Result/error，spec §3.6）与内建函数（spec §4）
 func (it *Interp) prelude() {
-	optDef := &EnumDef{Name: "Option", Cases: []string{"Some", "None"}}
-	resDef := &EnumDef{Name: "Result", Cases: []string{"Ok", "Err"}}
-	it.enums["Option"] = optDef
-	it.enums["Result"] = resDef
-	it.ctors["Some"] = &ctor{def: optDef, idx: 0, arity: 1}
-	it.ctors["None"] = &ctor{def: optDef, idx: 1, arity: 0}
-	it.ctors["Ok"] = &ctor{def: resDef, idx: 0, arity: 1}
-	it.ctors["Err"] = &ctor{def: resDef, idx: 1, arity: 1}
-
-	it.structs["error"] = &StructDef{Name: "error", Fields: []string{"msg"}, Methods: map[string]*Closure{}}
+	// 预载定义来自 prelude 单一来源（v1.0 Gate D1）
+	for name, ci := range prelude.Ctors() {
+		ed := it.enums[ci.Enum]
+		if ed == nil {
+			for _, pd := range prelude.Enums() {
+				if pd.Name == ci.Enum {
+					ed = &EnumDef{Name: pd.Name, Cases: append([]string(nil), pd.Cases...)}
+					it.enums[ed.Name] = ed
+					break
+				}
+			}
+		}
+		it.ctors[name] = &ctor{def: ed, idx: ci.Index, arity: ci.Arity}
+	}
+	it.structs[prelude.ErrorStruct] = func() *StructDef {
+		sd := prelude.ErrorDef()
+		return &StructDef{Name: sd.Name, Fields: append([]string(nil), sd.Fields...), Methods: map[string]*Closure{}}
+	}()
 
 	reg := func(name string, fn func(it *Interp, args []Value) (Value, error)) {
 		it.Globals.redefine(name, &Builtin{Name: name, Fn: fn})

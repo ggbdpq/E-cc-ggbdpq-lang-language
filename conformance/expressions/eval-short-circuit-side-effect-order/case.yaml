@@ -1,0 +1,9 @@
+name: eval-short-circuit-side-effect-order
+category: expressions
+ruleIds:
+  - EVAL-SHORTCUT-006
+expect:
+  exitCode: 0
+  stdout: |
+    false true 13
+  stderr: ""

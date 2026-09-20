@@ -1,0 +1,9 @@
+name: closure-counter-two-instances
+category: values
+ruleIds:
+  - VALUE-CAPTURE-004
+expect:
+  exitCode: 0
+  stdout: |
+    1 2 1
+  stderr: ""

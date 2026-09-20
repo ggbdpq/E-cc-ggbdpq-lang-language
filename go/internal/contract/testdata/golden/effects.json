@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1",
-  "toolVersion": "0.6.0",
+  "toolVersion": "1.0.0",
   "kind": "inspect.effects",
   "effects": [
     {

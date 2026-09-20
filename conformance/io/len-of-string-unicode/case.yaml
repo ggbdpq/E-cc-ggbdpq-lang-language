@@ -1,0 +1,11 @@
+name: len-of-string-unicode
+category: io
+ruleIds:
+  - VALUE-IMMUT-005
+expect:
+  exitCode: 0
+  stdout: |
+    5
+    2
+    2
+  stderr: ""

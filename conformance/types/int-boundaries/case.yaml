@@ -1,0 +1,11 @@
+name: int-boundaries
+category: types
+ruleIds:
+  - LEX-005
+expect:
+  exitCode: 0
+  stdout: |
+    9223372036854775807
+    -9223372036854775807
+    2147483647
+  stderr: ""

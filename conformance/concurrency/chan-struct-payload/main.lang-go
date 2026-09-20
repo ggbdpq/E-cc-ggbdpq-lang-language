@@ -1,0 +1,12 @@
+struct Msg {
+    n: int
+}
+fn sendIt(ch: chan[Msg]) {
+    send(ch, Msg{n: 7})
+}
+fn main() {
+    let ch = makeChan()
+    go sendIt(ch)
+    let m = recv(ch)
+    println(m)
+}

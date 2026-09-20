@@ -1,0 +1,10 @@
+name: float-exponent-print
+category: types
+ruleIds:
+  - RUNTIME-OUTPUT-003
+expect:
+  exitCode: 0
+  stdout: |
+    1234.5 0.5 100.25
+    123456
+  stderr: ""

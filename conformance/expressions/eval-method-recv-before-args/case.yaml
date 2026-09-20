@@ -1,0 +1,9 @@
+name: eval-method-recv-before-args
+category: expressions
+ruleIds:
+  - EVAL-CALL-002
+expect:
+  exitCode: 0
+  stdout: |
+    15 RA
+  stderr: ""

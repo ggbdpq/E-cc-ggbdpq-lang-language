@@ -1,0 +1,9 @@
+fn main() {
+    let r = 1..4
+    println(len(r))
+    var t = 0
+    for i in r {
+        t += i
+    }
+    println(t)
+}

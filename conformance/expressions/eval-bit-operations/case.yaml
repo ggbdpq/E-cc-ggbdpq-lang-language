@@ -1,0 +1,9 @@
+name: eval-bit-operations
+category: expressions
+ruleIds:
+  - PARSE-004
+expect:
+  exitCode: 0
+  stdout: |
+    2 7 5 16 16
+  stderr: ""

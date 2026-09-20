@@ -1,0 +1,10 @@
+name: unicode-identifiers-and-strings
+category: syntax
+ruleIds:
+  - LEX-003
+  - LEX-007
+expect:
+  exitCode: 0
+  stdout: |
+    中文测试 3
+  stderr: ""

@@ -1,0 +1,11 @@
+name: spawn-eval-args-immediately
+category: concurrency
+ruleIds:
+  - EVAL-GO-007
+  - TASK-SPAWN-002
+expect:
+  exitCode: 0
+  stdout: |
+    2
+    Ok(1)
+  stderr: ""

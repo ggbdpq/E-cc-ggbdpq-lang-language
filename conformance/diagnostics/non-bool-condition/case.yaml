@@ -1,0 +1,9 @@
+name: non-bool-condition
+category: diagnostics
+mode: check
+expect:
+  diagnostics:
+    - code: E3011
+      ruleId: TYPE-INDEX-008
+      severity: error
+      line: 2

@@ -1,0 +1,5 @@
+fn main() {
+    let m = {"arr": [1, [2, 3]], "m": {"in": true}}
+    println(m["arr"])
+    println(m["m"])
+}

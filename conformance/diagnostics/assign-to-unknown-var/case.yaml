@@ -1,0 +1,9 @@
+name: assign-to-unknown-var
+category: diagnostics
+mode: check
+expect:
+  diagnostics:
+    - code: E2002
+      ruleId: NAME-UNDEF-004
+      severity: error
+      line: 2

@@ -1,0 +1,10 @@
+fn grade(g: string): string {
+    return match g {
+        "A" => "great"
+        "B" => "good"
+        _ => "other"
+    }
+}
+fn main() {
+    println(grade("A"), grade("B"), grade("C"))
+}

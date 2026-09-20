@@ -1,0 +1,9 @@
+fn main() {
+    var s = "a"
+    s += "b"
+    s += "c"
+    println(s)
+    var xs = [1]
+    xs += [2]
+    println(xs)
+}

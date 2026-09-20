@@ -1,0 +1,12 @@
+fn find(xs: [int], k: int): Option[int] {
+    for x in xs {
+        if x == k {
+            return Some(x)
+        }
+    }
+    return None
+}
+fn main() {
+    println(find([1, 2], 2))
+    println(find([1, 2], 9))
+}

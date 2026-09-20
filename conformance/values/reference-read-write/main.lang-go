@@ -1,0 +1,9 @@
+struct P {
+    v: int
+}
+fn main() {
+    var s = P{v: 1}
+    let r = &s
+    r.v = 2
+    println(s.v, r.v)
+}

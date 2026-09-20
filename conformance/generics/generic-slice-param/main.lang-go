@@ -1,0 +1,7 @@
+fn sum[T](xs: [T]): T {
+    return xs[0]
+}
+fn main() {
+    println(sum([7, 8]))
+    println(sum(["first"]))
+}

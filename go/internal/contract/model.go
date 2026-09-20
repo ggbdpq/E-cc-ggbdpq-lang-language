@@ -12,13 +12,15 @@ import (
 	"lang-go/internal/semantic"
 	"lang-go/internal/syntax"
 	"lang-go/internal/types"
+
+	"lang-go/internal/version"
 )
 
 // SchemaVersion 契约版本（破坏性变更才升位）
 const SchemaVersion = "1"
 
 // ToolVersion 工具版本（与 CLI version 同源）
-const ToolVersion = "0.6.0"
+const ToolVersion = version.Version // 唯一版本源（specs/versioning.md §1）
 
 // Kind 输出类别
 const (

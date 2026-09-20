@@ -1,0 +1,13 @@
+enum E {
+    Pair(int, int)
+    Single(int)
+}
+fn describe(e: E): string {
+    return match e {
+        Pair(a, b) => "pair:" + str(a + b)
+        Single(v) => "single:" + str(v)
+    }
+}
+fn main() {
+    println(describe(Pair(1, 2)), describe(Single(5)))
+}

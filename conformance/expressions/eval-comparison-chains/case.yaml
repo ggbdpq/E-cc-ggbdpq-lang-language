@@ -1,0 +1,10 @@
+name: eval-comparison-chains
+category: expressions
+ruleIds:
+  - PARSE-004
+expect:
+  exitCode: 0
+  stdout: |
+    true true false true
+    true true
+  stderr: ""

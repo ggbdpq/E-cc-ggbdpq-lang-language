@@ -1,0 +1,5 @@
+fn main() {
+    let m = {10: "ten", 2: "two"}
+    println(m[2], m[10])
+    println(keys(m))
+}

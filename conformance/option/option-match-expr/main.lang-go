@@ -1,0 +1,9 @@
+fn name(o: Option[int]): string {
+    return match o {
+        Some(v) => str(v)
+        None => "empty"
+    }
+}
+fn main() {
+    println(name(Some(9)), name(None))
+}

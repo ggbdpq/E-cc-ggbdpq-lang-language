@@ -1,0 +1,10 @@
+name: map-int-keys
+category: collections
+ruleIds:
+  - VALUE-MAP-006
+expect:
+  exitCode: 0
+  stdout: |
+    two ten
+    [10, 2]
+  stderr: ""

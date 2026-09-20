@@ -1,0 +1,9 @@
+name: generic-identity-string
+category: generics
+ruleIds:
+  - GEN-DECL-001
+expect:
+  exitCode: 0
+  stdout: |
+    hello 2.5 false
+  stderr: ""

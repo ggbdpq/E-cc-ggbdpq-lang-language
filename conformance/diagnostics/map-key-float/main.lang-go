@@ -1,0 +1,4 @@
+fn main() {
+    let m = {1: "a"}
+    println(m[2.5])
+}

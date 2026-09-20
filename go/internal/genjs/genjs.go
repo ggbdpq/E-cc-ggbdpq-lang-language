@@ -477,16 +477,30 @@ func (g *jsgen) genTry(t *ir.Try) (string, error) {
 func (g *jsgen) emitForIn(st *ir.ForIn) error {
 	name := st.Var.Name
 	if st.Kind == ir.IterRange {
-		rg := st.Iter.(*ir.Range)
-		lo, err := g.expr(rg.Lo)
+		// 区间字面量与经绑定变量两条路径（VALUE：for-in 区间半开）
+		if rg, ok := st.Iter.(*ir.Range); ok {
+			lo, err := g.expr(rg.Lo)
+			if err != nil {
+				return err
+			}
+			hi, err := g.expr(rg.Hi)
+			if err != nil {
+				return err
+			}
+			g.w("for (let " + name + " = " + lo + "; " + name + " < " + hi + "; " + name + "++) {")
+			if err := g.emitBlockTyped(st.Body, name); err != nil {
+				return err
+			}
+			g.w("}")
+			return nil
+		}
+		rv, err := g.expr(st.Iter)
 		if err != nil {
 			return err
 		}
-		hi, err := g.expr(rg.Hi)
-		if err != nil {
-			return err
-		}
-		g.w("for (let " + name + " = " + lo + "; " + name + " < " + hi + "; " + name + "++) {")
+		tmp := g.newTmp()
+		g.w("const " + tmp + " = " + rv + ";")
+		g.w("for (let " + name + " = " + tmp + ".lo; " + name + " < " + tmp + ".hi; " + name + "++) {")
 		if err := g.emitBlockTyped(st.Body, name); err != nil {
 			return err
 		}

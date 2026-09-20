@@ -1,0 +1,9 @@
+name: slice-nested-arrays
+category: collections
+ruleIds:
+  - VALUE-SHARE-002
+expect:
+  exitCode: 0
+  stdout: |
+    2 [1, 2] [3]
+  stderr: ""

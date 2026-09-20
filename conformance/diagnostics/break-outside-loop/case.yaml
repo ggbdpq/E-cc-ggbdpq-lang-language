@@ -1,0 +1,9 @@
+name: break-outside-loop
+category: diagnostics
+mode: check
+expect:
+  diagnostics:
+    - code: E2007
+      ruleId: NAME-PLACE-008
+      severity: error
+      line: 2

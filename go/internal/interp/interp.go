@@ -363,12 +363,13 @@ func (it *Interp) registerEnum(name string, cases []string, line int) (*EnumDef,
 // 求值顺序（specs/expressions.md EVAL-ASSIGN-001）：目标地址组件先于右侧值求值
 // （左到右），与 →Go/→JS 后端一致。
 type assignAddr struct {
-	cell  *cell  // Ident：绑定单元格
-	vname string // Ident：绑定名（错误消息用）
-	obj   Value  // FieldEx/IndexEx：容器值（已解引用）
-	name  string // FieldEx：字段名
-	idx   Value  // IndexEx：索引值
-	line  int
+	cell      *cell  // Ident：绑定单元格
+	vname     string // Ident：绑定名（错误消息用）
+	obj       Value  // FieldEx/IndexEx：容器值（已解引用）
+	name      string // FieldEx：字段名
+	idx       Value  // IndexEx：索引值
+	line      int
+	writeBack func() // 非空：容器元素读改写后回写槽位（VALUE-ELEM-009）
 }
 
 // evalAssignAddr 求值赋值目标的地址组件（不做写入）
@@ -385,6 +386,33 @@ func (it *Interp) evalAssignAddr(tgt syntax.Expr, env *Env) (*assignAddr, error)
 		}
 		return &assignAddr{cell: c, vname: t.Name, line: line}, nil
 	case *syntax.FieldEx:
+		// 容器元素字段链 xs[i].f = v：读元素副本 → 改字段 → 回写槽位（VALUE-ELEM-009）
+		if idxEx, ok := t.Obj.(*syntax.IndexEx); ok {
+			ov, err := it.eval(idxEx.Obj, env)
+			if err != nil {
+				return nil, err
+			}
+			if p, ok := ov.(*PtrVal); ok {
+				ov = *p.Cell
+			}
+			arr, ok := ov.(*ArrVal)
+			if !ok {
+				return nil, it.errf(line, "只能对数组元素字段赋值，得到 %s", typeName(ov))
+			}
+			iv, err := it.eval(idxEx.Idx, env)
+			if err != nil {
+				return nil, err
+			}
+			i, err := it.intIndex(iv, len(arr.Items), line)
+			if err != nil {
+				return nil, err
+			}
+			elem := copyValue(arr.Items[i])
+			if _, ok := elem.(*StructVal); !ok {
+				return nil, it.errf(line, "只能给 struct 字段赋值，得到 %s", typeName(elem))
+			}
+			return &assignAddr{obj: elem, name: t.Name, line: line, writeBack: func() { arr.Items[i] = elem }}, nil
+		}
 		ov, err := it.eval(t.Obj, env)
 		if err != nil {
 			return nil, err
@@ -420,6 +448,9 @@ func (it *Interp) writeAddr(a *assignAddr, v Value) error {
 			return it.errf(a.line, "%s 由 let 绑定，不可重新赋值", a.vname)
 		}
 		a.cell.val = v
+		if a.writeBack != nil {
+			a.writeBack()
+		}
 		return nil
 	}
 	switch container := a.obj.(type) {
@@ -435,6 +466,9 @@ func (it *Interp) writeAddr(a *assignAddr, v Value) error {
 			return it.errf(a.line, "%s 没有字段 %s", container.Def.Name, a.name)
 		}
 		container.Fields[idx] = v
+		if a.writeBack != nil {
+			a.writeBack()
+		}
 		return nil
 	case *ArrVal:
 		i, err := it.intIndex(a.idx, len(container.Items), a.line)

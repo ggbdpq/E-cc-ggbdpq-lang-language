@@ -1,0 +1,9 @@
+name: map-key-float
+category: diagnostics
+mode: check
+expect:
+  diagnostics:
+    - code: E3014
+      ruleId: TYPE-INDEX-008
+      severity: error
+      line: 3

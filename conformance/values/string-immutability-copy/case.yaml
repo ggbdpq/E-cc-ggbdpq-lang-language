@@ -1,0 +1,10 @@
+name: string-immutability-copy
+category: values
+ruleIds:
+  - VALUE-IMMUT-005
+expect:
+  exitCode: 0
+  stdout: |
+    abc abc
+    abcd abc
+  stderr: ""

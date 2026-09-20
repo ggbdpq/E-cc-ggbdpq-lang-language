@@ -1,0 +1,9 @@
+name: comment-trivia-ignored
+category: syntax
+ruleIds:
+  - LEX-002
+expect:
+  exitCode: 0
+  stdout: |
+    1
+  stderr: ""

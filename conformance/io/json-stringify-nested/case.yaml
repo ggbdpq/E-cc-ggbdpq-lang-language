@@ -1,0 +1,9 @@
+name: json-stringify-nested
+category: io
+ruleIds:
+  - RUNTIME-JSON-002
+expect:
+  exitCode: 0
+  stdout: |
+    {"a":null,"z":[1,{"a":true}]}
+  stderr: ""

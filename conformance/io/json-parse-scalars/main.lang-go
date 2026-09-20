@@ -1,0 +1,7 @@
+fn main() {
+    println(jsonParse("42"))
+    println(jsonParse("2.5"))
+    println(jsonParse("true"))
+    println(jsonParse("\"s\""))
+    println(jsonParse("null"))
+}

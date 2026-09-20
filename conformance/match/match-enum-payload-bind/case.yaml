@@ -1,0 +1,9 @@
+name: match-enum-payload-bind
+category: match
+ruleIds:
+  - MATCH-BIND-003
+expect:
+  exitCode: 0
+  stdout: |
+    pair:3 single:5
+  stderr: ""

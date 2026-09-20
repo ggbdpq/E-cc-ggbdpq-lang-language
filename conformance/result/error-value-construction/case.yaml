@@ -1,0 +1,10 @@
+name: error-value-construction
+category: result
+ruleIds:
+  - RESULT-PRELUDE-001
+expect:
+  exitCode: 0
+  stdout: |
+    boom
+    Err(error{msg: "boom"})
+  stderr: ""

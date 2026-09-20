@@ -1,0 +1,7 @@
+struct P {
+    v: int
+}
+fn main() {
+    let p = P{v: 1}
+    println(p.nope())
+}

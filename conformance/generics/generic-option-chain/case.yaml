@@ -1,0 +1,10 @@
+name: generic-option-chain
+category: generics
+ruleIds:
+  - GEN-SUBST-003
+expect:
+  exitCode: 0
+  stdout: |
+    Some(2)
+    None
+  stderr: ""

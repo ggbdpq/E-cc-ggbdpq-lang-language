@@ -1,0 +1,11 @@
+name: print-mixed-floats
+category: io
+ruleIds:
+  - RUNTIME-OUTPUT-004
+  - RUNTIME-OUTPUT-003
+expect:
+  exitCode: 0
+  stdout: |
+    1.5 2 3.75
+    x12
+  stderr: ""

@@ -1,0 +1,10 @@
+name: eval-compound-string-concat
+category: expressions
+ruleIds:
+  - EVAL-ASSIGN-003
+expect:
+  exitCode: 0
+  stdout: |
+    abc
+    [1, 2]
+  stderr: ""

@@ -19,6 +19,7 @@ import (
 
 	"lang-go/internal/interp"
 	"lang-go/internal/ir"
+	"lang-go/internal/prelude"
 	"lang-go/internal/semantic"
 )
 
@@ -75,16 +76,16 @@ func New(out io.Writer) *Machine {
 		enums:       map[string]*interp.EnumDef{},
 		globalSlots: map[int64]*interp.Value{},
 	}
-	// 预载代数类型与 error（RESULT-PRELUDE-001；与 interp.prelude 同名同序）
-	opt := &interp.EnumDef{Name: "Option", Cases: []string{"Some", "None"}}
-	res := &interp.EnumDef{Name: "Result", Cases: []string{"Ok", "Err"}}
-	m.enums["Option"] = opt
-	m.enums["Result"] = res
-	m.ctors["Some"] = &ctorInfo{def: opt, idx: 0}
-	m.ctors["None"] = &ctorInfo{def: opt, idx: 1}
-	m.ctors["Ok"] = &ctorInfo{def: res, idx: 0}
-	m.ctors["Err"] = &ctorInfo{def: res, idx: 1}
-	m.structs["error"] = &interp.StructDef{Name: "error", Fields: []string{"msg"}, Methods: map[string]*interp.Closure{}}
+	// 预载代数类型与 error（RESULT-PRELUDE-001）：定义来自 prelude 纯数据表（Gate D1）
+	for _, pd := range prelude.Enums() {
+		m.enums[pd.Name] = &interp.EnumDef{Name: pd.Name, Cases: append([]string(nil), pd.Cases...)}
+	}
+	for name, ci := range prelude.Ctors() {
+		m.ctors[name] = &ctorInfo{def: m.enums[ci.Enum], idx: ci.Index}
+	}
+	if es := prelude.ErrorDef(); true {
+		m.structs[es.Name] = &interp.StructDef{Name: es.Name, Fields: append([]string(nil), es.Fields...), Methods: map[string]*interp.Closure{}}
+	}
 	return m
 }
 
@@ -268,7 +269,7 @@ func (m *Machine) execForIn(x *ir.ForIn, f *frame) (step, error) {
 			items = append(items, interp.StrVal(string(r)))
 		}
 	case ir.IterRange:
-		rv := it.(interp.RangeVal)
+		rv := *it.(*interp.RangeVal)
 		for i := rv.Lo; i < rv.Hi; i++ {
 			items = append(items, interp.IntVal(i))
 		}
@@ -347,7 +348,7 @@ func (m *Machine) evalSlot(tgt ir.Expr, f *frame) (assignSlot, error) {
 		if err != nil {
 			return nil, err
 		}
-		sv, err := asStruct(ov)
+		sv, err := asStruct(derefVal(ov))
 		if err != nil {
 			return nil, err
 		}
@@ -526,7 +527,7 @@ func (m *Machine) eval(e ir.Expr, f *frame) (interp.Value, error) {
 		if err != nil {
 			return nil, err
 		}
-		return interp.RangeVal{Lo: int64(lo.(interp.IntVal)), Hi: int64(hi.(interp.IntVal))}, nil
+		return &interp.RangeVal{Lo: int64(lo.(interp.IntVal)), Hi: int64(hi.(interp.IntVal))}, nil
 	case *ir.Index:
 		ov, err := m.eval(x.Obj, f)
 		if err != nil {
@@ -590,7 +591,7 @@ func (m *Machine) eval(e ir.Expr, f *frame) (interp.Value, error) {
 		if err != nil {
 			return nil, err
 		}
-		sv, err := asStruct(ov)
+		sv, err := asStruct(derefVal(ov))
 		if err != nil {
 			return nil, err
 		}
@@ -1015,6 +1016,14 @@ func (m *Machine) fmtArgs(args []interp.Value) string {
 func truthy(v interp.Value) bool {
 	b, ok := v.(interp.BoolVal)
 	return ok && bool(b)
+}
+
+// derefVal 解引用（&x 的 PtrVal 透明化——VALUE-REF-003 引用读写穿透）
+func derefVal(v interp.Value) interp.Value {
+	if p, ok := v.(*interp.PtrVal); ok {
+		return *p.Cell
+	}
+	return v
 }
 
 func asStruct(v interp.Value) (*interp.StructVal, error) {

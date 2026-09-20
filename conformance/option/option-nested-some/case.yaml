@@ -1,0 +1,10 @@
+name: option-nested-some
+category: option
+ruleIds:
+  - GEN-SUBST-003
+expect:
+  exitCode: 0
+  stdout: |
+    Some(Some(1))
+    false
+  stderr: ""

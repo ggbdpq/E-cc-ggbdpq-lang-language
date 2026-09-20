@@ -1,0 +1,6 @@
+fn always(v: int): Result[int, error] {
+    return Ok(v * 2)
+}
+fn main() {
+    println(always(21))
+}

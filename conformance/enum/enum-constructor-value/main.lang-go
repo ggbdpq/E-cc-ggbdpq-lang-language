@@ -1,0 +1,9 @@
+enum Color {
+    Red
+    Green
+}
+fn main() {
+    let c = Red
+    println(c)
+    println(c == Red, c == Green)
+}

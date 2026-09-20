@@ -1,0 +1,6 @@
+fn main() {
+    let s = "abc"
+    let t = s
+    println(s, t)
+    println(s + "d", s)
+}

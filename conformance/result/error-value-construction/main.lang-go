@@ -1,0 +1,9 @@
+fn fail(): Result[int, error] {
+    let e = err("boom")
+    return Err(e)
+}
+fn main() {
+    let e = err("boom")
+    println(e.msg)
+    println(fail())
+}

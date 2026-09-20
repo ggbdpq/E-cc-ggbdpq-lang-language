@@ -1,0 +1,10 @@
+name: result-try-chain
+category: result
+ruleIds:
+  - RESULT-TRY-003
+expect:
+  exitCode: 0
+  stdout: |
+    Ok(2)
+    Err(error{msg: "negative"})
+  stderr: ""

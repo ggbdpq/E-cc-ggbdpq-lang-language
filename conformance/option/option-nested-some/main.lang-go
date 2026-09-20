@@ -1,0 +1,5 @@
+fn main() {
+    let a = Some(Some(1))
+    println(a)
+    println(isNone(Some(None)))
+}

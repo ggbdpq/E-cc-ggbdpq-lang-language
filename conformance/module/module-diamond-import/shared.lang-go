@@ -1,0 +1,4 @@
+let sharedBase = 100
+fn shared(): int {
+    return sharedBase
+}

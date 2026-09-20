@@ -1,0 +1,15 @@
+fn step(x: int): Result[int, error] {
+    if x < 0 {
+        return Err(err("negative"))
+    }
+    return Ok(x + 1)
+}
+fn run(x: int): Result[int, error] {
+    let a = step(x)?
+    let b = step(a)?
+    return Ok(b)
+}
+fn main() {
+    println(run(0))
+    println(run(-5))
+}

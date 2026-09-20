@@ -1,0 +1,9 @@
+name: result-ok-path-only
+category: result
+ruleIds:
+  - RESULT-RETURN-004
+expect:
+  exitCode: 0
+  stdout: |
+    Ok(42)
+  stderr: ""

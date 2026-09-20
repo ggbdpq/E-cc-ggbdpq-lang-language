@@ -1,0 +1,13 @@
+name: json-parse-scalars
+category: io
+ruleIds:
+  - RUNTIME-JSON-001
+expect:
+  exitCode: 0
+  stdout: |
+    42
+    2.5
+    true
+    s
+    None
+  stderr: ""

@@ -1,0 +1,9 @@
+struct Counter {
+    n: int
+}
+fn main() {
+    let c = Counter{n: 0}
+    c.n = 41
+    c.n += 1
+    println(c.n)
+}

@@ -1,0 +1,5 @@
+fn main() {
+    println(len("héllo"))
+    println(len("中文"))
+    println(len("a" + "b"))
+}

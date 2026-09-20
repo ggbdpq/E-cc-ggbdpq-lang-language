@@ -1,0 +1,6 @@
+fn main() {
+    println(1.5, 2.0, 3.75)
+    print("x")
+    print(1)
+    println(2)
+}

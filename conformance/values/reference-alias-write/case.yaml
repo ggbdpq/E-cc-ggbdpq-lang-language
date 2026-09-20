@@ -1,0 +1,9 @@
+name: reference-alias-write
+category: values
+ruleIds:
+  - VALUE-REF-003
+expect:
+  exitCode: 0
+  stdout: |
+    6
+  stderr: ""

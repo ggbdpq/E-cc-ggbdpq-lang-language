@@ -1,0 +1,15 @@
+struct In {
+    v: int
+}
+struct Mid {
+    i: In
+}
+struct Out {
+    m: Mid
+}
+fn main() {
+    let a = Out{m: Mid{i: In{v: 7}}}
+    let b = a
+    b.m.i.v = 99
+    println(a.m.i.v, b.m.i.v)
+}

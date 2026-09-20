@@ -1,0 +1,9 @@
+name: chan-struct-payload
+category: concurrency
+ruleIds:
+  - VALUE-TASKSHARE-007
+expect:
+  exitCode: 0
+  stdout: |
+    Ok(Msg{n: 7})
+  stderr: ""

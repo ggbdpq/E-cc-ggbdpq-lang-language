@@ -1,0 +1,10 @@
+name: bool-operators
+category: types
+ruleIds:
+  - TYPE-ASSIGN-001
+expect:
+  exitCode: 0
+  stdout: |
+    false true
+    false true
+  stderr: ""

@@ -1,0 +1,4 @@
+import "./shared"
+fn aVal(): int {
+    return sharedBase + 1
+}

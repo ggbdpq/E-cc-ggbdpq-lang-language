@@ -1,0 +1,9 @@
+name: eval-while-cond-order
+category: expressions
+ruleIds:
+  - CTRL-WHILE-002
+expect:
+  exitCode: 0
+  stdout: |
+    3
+  stderr: ""

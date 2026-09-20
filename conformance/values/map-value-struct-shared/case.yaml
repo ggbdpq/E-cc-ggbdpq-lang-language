@@ -1,0 +1,10 @@
+name: map-value-struct-shared
+category: values
+ruleIds:
+  - VALUE-COPY-001
+  - VALUE-SHARE-002
+expect:
+  exitCode: 0
+  stdout: |
+    1 2
+  stderr: ""

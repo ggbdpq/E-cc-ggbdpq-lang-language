@@ -2,7 +2,7 @@
 
 ## CTRL-IF-001 条件
 
-条件表达式必须为 bool（E3001）；条件位置禁止裸 struct 字面量（PARSE-006）。else if 链按序求值条件，首个 true 分支执行。
+条件表达式必须为 bool（非 bool 条件 → E3011）；条件位置禁止裸 struct 字面量（PARSE-006）。else if 链按序求值条件，首个 true 分支执行。
 
 ## CTRL-WHILE-002 while
 

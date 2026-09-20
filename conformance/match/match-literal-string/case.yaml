@@ -1,0 +1,9 @@
+name: match-literal-string
+category: match
+ruleIds:
+  - MATCH-EXHAUSTIVE-002
+expect:
+  exitCode: 0
+  stdout: |
+    great good other
+  stderr: ""

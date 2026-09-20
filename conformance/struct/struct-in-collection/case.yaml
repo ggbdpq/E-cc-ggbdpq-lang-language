@@ -1,0 +1,10 @@
+name: struct-in-collection
+category: struct
+ruleIds:
+  - VALUE-SHARE-002
+  - VALUE-COPY-001
+expect:
+  exitCode: 0
+  stdout: |
+    1 20
+  stderr: ""

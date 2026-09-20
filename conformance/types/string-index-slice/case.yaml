@@ -1,0 +1,10 @@
+name: string-index-slice
+category: types
+ruleIds:
+  - VALUE-IMMUT-005
+  - TYPE-INDEX-008
+expect:
+  exitCode: 0
+  stdout: |
+    h el 5
+  stderr: ""

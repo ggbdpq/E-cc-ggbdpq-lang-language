@@ -1,0 +1,3 @@
+fn main() {
+    println(jsonStringify({"z": [1, {"a": true}], "a": None}))
+}

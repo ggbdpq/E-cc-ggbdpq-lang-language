@@ -1,0 +1,9 @@
+name: module-diamond-import
+category: module
+ruleIds:
+  - MODULE-CYCLE-004
+expect:
+  exitCode: 0
+  stdout: |
+    100 101 102
+  stderr: ""

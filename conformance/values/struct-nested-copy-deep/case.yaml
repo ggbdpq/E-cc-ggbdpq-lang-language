@@ -1,0 +1,9 @@
+name: struct-nested-copy-deep
+category: values
+ruleIds:
+  - VALUE-COPY-001
+expect:
+  exitCode: 0
+  stdout: |
+    7 99
+  stderr: ""

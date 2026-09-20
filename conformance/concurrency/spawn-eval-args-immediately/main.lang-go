@@ -1,0 +1,11 @@
+fn worker(ch: chan[int], v: int) {
+    send(ch, v)
+}
+fn main() {
+    var x = 1
+    let ch = makeChan()
+    go worker(ch, x)
+    x = 2
+    println(x)
+    println(recv(ch))
+}

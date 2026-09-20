@@ -1,0 +1,9 @@
+name: match-wildcard-catches-all
+category: match
+ruleIds:
+  - MATCH-EXHAUSTIVE-002
+expect:
+  exitCode: 0
+  stdout: |
+    zero nonzero nonzero nonzero
+  stderr: ""

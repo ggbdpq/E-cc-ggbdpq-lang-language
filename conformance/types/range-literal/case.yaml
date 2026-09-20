@@ -1,0 +1,10 @@
+name: range-literal
+category: types
+ruleIds:
+  - PARSE-004
+expect:
+  exitCode: 0
+  stdout: |
+    3
+    6
+  stderr: ""

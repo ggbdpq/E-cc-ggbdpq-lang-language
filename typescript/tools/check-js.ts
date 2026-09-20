@@ -1,0 +1,10 @@
+import { readFileSync } from "node:fs";
+import { parseSource, analyzeStmts } from "../dist/pipeline/pipeline.js";
+import { transpileJS } from "../dist/backends/genjs.js";
+const src = readFileSync("C:/Users/ggbdpq/AppData/Local/Temp/fullsrc.txt", "utf8");
+const prog = parseSource(src, "main.lang-go");
+const ir = analyzeStmts(prog).prog;
+const js = transpileJS(ir);
+const i = js.indexOf("function langGoFmt");
+console.log(js.slice(i, i + 420));
+console.log("---- occurrences of langGoFmt definitions:", js.split("function langGoFmt").length - 1);

@@ -1,0 +1,12 @@
+enum E {
+    A
+}
+fn f(e: E): int {
+    return match e {
+        1 => 1
+        A => 2
+    }
+}
+fn main() {
+    println(f(A))
+}

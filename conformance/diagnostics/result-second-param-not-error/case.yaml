@@ -1,0 +1,9 @@
+name: result-second-param-not-error
+category: diagnostics
+mode: check
+expect:
+  diagnostics:
+    - code: E3009
+      ruleId: GEN-SUBST-003
+      severity: error
+      line: 0

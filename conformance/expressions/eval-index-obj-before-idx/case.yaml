@@ -1,0 +1,9 @@
+name: eval-index-obj-before-idx
+category: expressions
+ruleIds:
+  - EVAL-INDEX-005
+expect:
+  exitCode: 0
+  stdout: |
+    2 OI
+  stderr: ""

@@ -1,0 +1,9 @@
+name: index-not-int
+category: diagnostics
+mode: check
+expect:
+  diagnostics:
+    - code: E3013
+      ruleId: TYPE-INDEX-008
+      severity: error
+      line: 3

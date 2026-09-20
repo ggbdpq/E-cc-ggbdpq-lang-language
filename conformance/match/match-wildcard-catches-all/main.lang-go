@@ -1,0 +1,9 @@
+fn f(n: int): string {
+    return match n {
+        0 => "zero"
+        _ => "nonzero"
+    }
+}
+fn main() {
+    println(f(0), f(1), f(-1), f(100))
+}

@@ -1,0 +1,9 @@
+struct P {
+    v: int
+}
+fn main() {
+    let m = {"a": P{v: 1}}
+    let p = m["a"]
+    p.v = 2
+    println(m["a"].v, p.v)
+}

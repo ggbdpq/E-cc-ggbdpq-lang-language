@@ -1,0 +1,9 @@
+name: enum-match-mixed-literal
+category: diagnostics
+mode: check
+expect:
+  diagnostics:
+    - code: E4002
+      ruleId: MATCH-KIND-001
+      severity: error
+      line: 5

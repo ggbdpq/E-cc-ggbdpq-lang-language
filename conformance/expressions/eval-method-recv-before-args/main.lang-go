@@ -1,0 +1,16 @@
+var log = ""
+struct T {
+    v: int
+}
+fn (t T).add(k: int): int {
+    return t.v + k
+}
+fn arg(): int {
+    log += "A"
+    return 10
+}
+fn main() {
+    let t = T{v: 5}
+    log += "R"
+    println(t.add(arg()), log)
+}

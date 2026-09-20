@@ -1,0 +1,4 @@
+fn main() {
+    let 消息 = "中文测试"
+    println(消息, len("日本語"))
+}

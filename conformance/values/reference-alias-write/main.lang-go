@@ -1,0 +1,6 @@
+fn main() {
+    var n = 5
+    let r = &n
+    n = 6
+    println(n)
+}

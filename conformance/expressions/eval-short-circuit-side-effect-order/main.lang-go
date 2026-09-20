@@ -1,0 +1,14 @@
+var log = ""
+fn t(s: string): bool {
+    log += s
+    return true
+}
+fn f(s: string): bool {
+    log += s
+    return false
+}
+fn main() {
+    let a = f("1") && t("2")
+    let b = t("3") || f("4")
+    println(a, b, log)
+}

@@ -1,0 +1,10 @@
+name: nested-collections-literal
+category: syntax
+ruleIds:
+  - EVAL-LITERAL-004
+expect:
+  exitCode: 0
+  stdout: |
+    [1, [2, 3]]
+    {"in": true}
+  stderr: ""

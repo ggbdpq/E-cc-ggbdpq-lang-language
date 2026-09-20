@@ -1,0 +1,4 @@
+import "./shared"
+fn bVal(): int {
+    return sharedBase + 2
+}

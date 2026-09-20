@@ -20,6 +20,13 @@
 
 `jsonParse`：数字按整/浮分型，null → `None`，对象 → 映射（键按字母序载入），数组 → 数组。`jsonStringify`：映射键按**字母序**输出、None → null——两端逐字节确定，是跨实现硬契约。
 
+## RUNTIME-OUTPUT-004 float 输出安全区
+
+float 的文本输出在 **|x| ∈ [1e-4, 1e6) 且无精度歧义** 的区间内为跨实现契约
+（十进制无尾零）。越界值（科学计数切换阈值等）沿袭 spec §6.4 平台差异例外，
+conformance 语料不得使用。〔v1.0 实测：interp/→Go 用 Go 'g' 切换阈值，
+→JS 用 number toString 阈值，二者在 ≥1e8 处分歧〕
+
 ## RUNTIME-OUTPUT-003 输出面
 
 `println` 空格分隔 + 换行；`print` 无换行。标量格式化：int 十进制、float 无尾零（`1.0` → `1`）、bool `true/false`、字符串顶层不带引号（嵌套带引号）、enum `Tag(载荷)`/`Tag`、`Some(v)`/`None`/`Ok(v)`/`Err(e)`、`error{msg: "..."}`、struct `{field: value, ...}`、数组 `[a, b]`、映射 `{k: v}`（插入序）。格式化细节由 conformance case 逐条锁定。

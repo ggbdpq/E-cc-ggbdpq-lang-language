@@ -1,0 +1,5 @@
+fn main() {
+    println(9223372036854775807)
+    println(-9223372036854775807)
+    println(0x7fffffff)
+}

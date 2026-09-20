@@ -1,0 +1,10 @@
+name: eval-nested-call-order
+category: expressions
+ruleIds:
+  - EVAL-LITERAL-004
+  - EVAL-ASSIGN-003
+expect:
+  exitCode: 0
+  stdout: |
+    abcd
+  stderr: ""

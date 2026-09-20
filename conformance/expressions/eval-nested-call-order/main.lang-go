@@ -1,0 +1,11 @@
+var log = ""
+fn mk(s: string, v: int): int {
+    log += s
+    return v
+}
+fn main() {
+    let arr = [mk("a", 1), mk("b", 2)]
+    let m = {}
+    m[mk("c", 0)] = mk("d", 3)
+    println(log)
+}

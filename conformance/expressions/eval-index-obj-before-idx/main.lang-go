@@ -1,0 +1,12 @@
+var log = ""
+fn obj(): [int] {
+    log += "O"
+    return [1, 2]
+}
+fn idx(): int {
+    log += "I"
+    return 1
+}
+fn main() {
+    println(obj()[idx()], log)
+}

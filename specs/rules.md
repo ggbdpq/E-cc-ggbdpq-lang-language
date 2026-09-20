@@ -56,7 +56,7 @@ check --json 获取它。**Rule ID 一经发布不可改义；废弃保留编号
 | VALUE-COPY-001 / VALUE-SHARE-002 / VALUE-REF-003 / VALUE-CAPTURE-004 / VALUE-IMMUT-005 / VALUE-MAP-006 / VALUE-TASKSHARE-007 / VALUE-UNIT-008 | D | 值/引用/捕获/插入序/unit（values.md） |
 | EVAL-ORDER-001 / EVAL-CALL-002 / EVAL-ASSIGN-003 / EVAL-LITERAL-004 / EVAL-INDEX-005 / EVAL-SHORTCUT-006 / EVAL-GO-007 | D | 严格左到右；赋值 target 地址先于右值；短路；go 实参就地求值（expressions.md） |
 | CALL-RESOLVE-001 / CALL-ARG-002 / CALL-CLOSURE-003 | D | 静态解析、实参传递、闭包调用（expressions.md） |
-| CTRL-IF-001 / CTRL-WHILE-002 / CTRL-FORIN-003 / CTRL-RETURN-004 | D | 条件/循环/迭代协议/返回（control-flow.md） |
+| CTRL-IF-001 / CTRL-WHILE-002 / CTRL-FORIN-003 / CTRL-RETURN-004 | D | 条件（非 bool → E3011）/循环/迭代协议/返回（control-flow.md） |
 | MATCH-KIND-001 / MATCH-EXHAUSTIVE-002 / MATCH-BIND-003 / MATCH-EXPR-004 | D+N | match 分类/穷尽性/绑定/表达式地位（control-flow.md） |
 | RESULT-PRELUDE-001 / RESULT-NULL-002 / RESULT-TRY-003 / RESULT-RETURN-004 / RESULT-CHAN-005 / RESULT-MATCH-006 | D+N | 预载代数类型/无 null/`?` 传播（option-result.md） |
 | MODULE-ROOT-001 .. MODULE-TEST-007 | D | 模块根/import/合并/循环/初始化序/可见性（F：MODULE-VIS-006 无 pub 语法）（modules.md） |

@@ -1,0 +1,10 @@
+name: generic-slice-param
+category: generics
+ruleIds:
+  - GEN-INFER-002
+expect:
+  exitCode: 0
+  stdout: |
+    7
+    first
+  stderr: ""

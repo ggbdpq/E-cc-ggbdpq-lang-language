@@ -1,0 +1,8 @@
+struct P {
+    v: int
+}
+fn main() {
+    let xs = [P{v: 1}, P{v: 2}]
+    xs[1].v = 20
+    println(xs[0].v, xs[1].v)
+}

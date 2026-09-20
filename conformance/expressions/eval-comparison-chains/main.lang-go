@@ -1,0 +1,4 @@
+fn main() {
+    println(1 < 2, 2 <= 2, 3 > 4, 4 >= 4)
+    println("a" < "b", "b" >= "a")
+}
