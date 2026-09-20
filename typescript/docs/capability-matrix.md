@@ -57,7 +57,7 @@
 
 ## 4. 验证现状（证据）
 
-- `node dist/cli/main.js conformance ../conformance`：套件扩容至 150 case 后 **148/148，0 失败**（Final Sync；全部 run/check case 一次通过；3 个 yaml 期望曾由 v1.0 工作流修正为双侧实际输出）。Go 参考实现同套件 130/132——其 2 个失败（void fnlit 缺 return、genjs `--5n`）正是 lang-ts 已修、以未提交形式留证的 gen.ts/genjs.ts 两处，见 spec-gaps §D
+- `node dist/cli/main.js conformance ../conformance`：套件扩容至 151 case 后 **151/151，0 失败**（Final Sync @ v1.0.0-rc.1；全部 run/check case 一次通过）。Go 参考实现同套件 130/132——其 2 个失败（void fnlit 缺 return、genjs `--5n`）正是 lang-ts 已修、以未提交形式留证的 gen.ts/genjs.ts 两处，见 spec-gaps §D
 - `node tools/examples-diff.ts`：examples 9 + m4 1 = **10/10** 三路 stdout 逐字节一致（goroutine 例为 spec 文档化平台差，按 NOTE 计）
 - vitest 20/20（含三路差分冒烟、float 格式、JSON 契约、irinterp）
 - 代码修复合并入库：v1.0 工作流 4dd235c（合并重写）吸收了 gen/genjs/hir/conformance 各项修复

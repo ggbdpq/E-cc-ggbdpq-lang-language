@@ -95,8 +95,9 @@ check("refs 含 pattern/type/read 类别", ["pattern", "type", "read"].every((k)
 check("refs 排序 symbolId 升序", refs.every((r: any, i: number) => i === 0 || refs[i - 1].symbolId <= r.symbolId));
 
 // —— inspect type ——
-const ty = json(["inspect", "type", "--file", "main.lang-go", "--line", "4", "--column", "13", "--json"]);
-check("type 命中节点", ty.code === 0 && ty.o?.nodes?.[0]?.type === "int", JSON.stringify(ty.o?.nodes?.[0]));
+const ty = json(["inspect", "type", "--file", "main.lang-go", "--line", "4", "--column", "16", "--json"]);
+// col 16 落在 `p.w * p.h` 的空格位：最内层包含该点的节点即二元式本身
+check("type 命中节点", ty.code === 0 && ty.o?.nodes?.[0]?.kind === "binary" && ty.o?.nodes?.[0]?.type === "int", JSON.stringify(ty.o?.nodes?.[0]));
 
 // —— inspect dependencies ——
 const deps = json(["inspect", "dependencies", "--json"]).o?.dependencies ?? [];

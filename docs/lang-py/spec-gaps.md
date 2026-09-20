@@ -40,9 +40,10 @@
 
 ## GAP-006 ToolVersion（RESOLVED-MATCH，随 versioning.md 更新）
 
-- 事实：v1.0 起版本唯一版本源为 go/internal/version（1.0.0），specs/versioning.md 规定
+- 事实：v1.0 起版本唯一版本源为 go/internal/version，specs/versioning.md 规定
   第二实现 toolVersion 在同一 1.x.y 语义下独立打点，契约版本随 specs/。
-- 处置：lang-py TOOL_VERSION = "1.0.0"，schemaVersion = "1"。
+  参考已切 1.0.0-rc.1（v1.0.0-rc.1 发布）。
+- 处置：lang-py TOOL_VERSION 随打点 = "1.0.0-rc.1"，schemaVersion = "1"。
 
 ## GAP-007 运行时错误文本（NOT_APPLICABLE，按既定口径）
 
@@ -77,6 +78,13 @@
 
 - v1.0 语义收口（VALUE-ELEM-009）：xs[i].f = v 为读改写（容器元素按值语义整体回写）。
 - 处置：lang-py →Go 后端同步 langGoIndex 读出→字段写→langGoSetIndex 回写的发射形态。
+
+## GAP-015 测试文件 import 展开（RESOLVED-MATCH）
+
+- 事实：v1.0 dogfood 修复——`*_test.lang-go` 的 import 在装载期展开（与普通文件同等待遇），
+  langalgo 测试套件依赖此行为。
+- 处置：lang_py.loader 同步；langalgo 66 文件解析零失败、全包零诊断、6 测试全过。
+- 状态：已关闭。
 
 ## GAP-010 顶层脚本模式（RESOLVED-MATCH）
 

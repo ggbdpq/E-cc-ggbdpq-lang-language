@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1",
-  "toolVersion": "1.0.0-rc.1",
+  "toolVersion": "1.0.0",
   "kind": "dump.ast",
   "nodes": [
     {

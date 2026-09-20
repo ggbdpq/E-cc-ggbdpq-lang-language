@@ -1,6 +1,7 @@
 # lang-py Parity Report（复刻验收报告）
 
-> 生成：2026-09-21（Final Contract Sync 后，随 v1.0 提交 4dd235c 同步）。
+> 生成：2026-09-21（Final Contract Sync 后）；同日 rc.1 复核更新（v1.0.0-rc.1 发布 +
+> dogfood langalgo 1953 行入库后复验）。
 > 结论：**lang-py 已达成与 lang-go 参考实现的完整能力面对齐**——conformance 套件
 > **132/132 全绿**（run 模式三路差分 + check 模式诊断断言），语义/诊断/契约/重构/验证
 > 全链路可用。参考实现同刻 127/132（5 例在途收口中，lang-py 已先行全绿，见 §2 末与 §5.1）。
@@ -12,7 +13,8 @@
 | Conformance 套件（132 case，随在途工作流扩容） | **132/132 全绿** | `python tests/run_conformance_dev.py`；run 模式 = 解释器 + →Go 产物 + →JS 产物三路 stdout 逐字节一致；check 模式 = code+ruleId+severity+line 多重集精确匹配 |
 | AST 解释器 vs IR 解释器差分 | 全绿 | `pytest tests/conformance_test.py::test_ast_vs_ir_interpreter_differential`（全部可运行 case 逐字节一致，v0.9 四路差分面） |
 | 单元测试（语义点/诊断码/格式化/契约） | 57/57 | `pytest tests/unit/test_core.py` |
-| 与参考实现同刻比对 | lang-py 领先 | `go test ./internal/conformance/ -run TestConformanceSuite` = 127/132（参考在途收口）；lang-py 132/132 |
+| 与参考实现同刻比对 | 同基线 | `go test ./internal/conformance/` 套件扩至 151 case（v1.0.0-rc.1）；lang-py 151/151 全绿 |
+| dogfood 实战语料（langalgo 1953 行/66 文件/6 模块） | 全绿 | 66/66 语法可解析、全包 check 零诊断、6 个 test 函数全过（需 loader 测试文件 import 展开——已随参考 v1.0 dogfood 修复同步） |
 | 格式化幂等 property | 71/71 源文件 | format(format(x)) == format(x)（唯一跳过案例为字面量科学计数法缺陷，参考实现同型） |
 | float 格式化位级差分 | 2042/2042 | 2000 随机 float64（Go 位模式重建）+ 42 固定向量，`strconv.FormatFloat(f,'g',-1,64)` 逐字节一致 |
 | 字符串 quote 差分 | 13/13 | `strconv.Quote` 嵌套字符串输出逐字节一致 |
@@ -79,7 +81,7 @@ PYTHONPATH=src python -m lang_py.cli.main    # 全部动词（help 查看用法�
 
 ## 5.1 套件滚动基线声明
 
-conformance/ 由并行 v1.0 工作流持续扩容（本会话内 33 → 108 → 132 例）。
+conformance/ 由并行 v1.0 工作流持续扩容（本会话内 33 → 108 → 132 → 151 例）。
 会话前半程在途 churn 期以「失败集与参考逐例逐签名一致」为 parity 口径；
 最终 lang-py 对全部 132 例达成全绿（含参考侧尚在收口的 5 例——void 函数值
 调用、JS 负负歧义、3 例 `?` 传播/match 混用诊断，lang-py 均已实现正确语义）。

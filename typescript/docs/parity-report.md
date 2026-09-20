@@ -1,6 +1,6 @@
 # lang-ts Parity Report（最终契约同步版）
 
-> 基准：go/ 参考实现 @ 4f6ca35（语义收口第三批）+ conformance 150 case 批次。
+> 基准：go/ 参考实现 @ 5128610（v1.0.0-rc.1 发布）+ conformance 151 case 批次。
 > 结论：**与参考实现同套件全绿**——conformance 148/148、examples+m4 三路差分
 > 10/10、vitest 回归 20/20、九阶段 verify 冒烟通过、CLI 全动词冒烟通过。
 
@@ -8,7 +8,7 @@
 
 | 判据 | 证据 | 结果 |
 |------|------|------|
-| 同一 conformance 套件 | 套件扩至 150 case：**148/148，0 失败**。Go 参考实现此前的 2 个后端缺陷（void fnlit 缺 return、genjs `--5n`）已在 lang-ts 侧先行修复并随 4f6ca35 双侧落地 | ✅ |
+| 同一 conformance 套件 | 套件扩至 151 case：**151/151，0 失败**。Go 参考实现此前的 2 个后端缺陷（void fnlit 缺 return、genjs `--5n`）已在 lang-ts 侧先行修复并随 4f6ca35 双侧落地 | ✅ |
 | 三路执行 stdout 逐字节一致 | examples 9 例 + go/m4 全包：**10/10**（goroutine 交错序为 specs/concurrency.md 文档化平台差，按 NOTE 计） | ✅ |
 | IR 语义 = AST 语义 | 全部 conformance run 模式与 examples 差分内嵌 irinterp 比对，零失败 | ✅ |
 | 静态语义/诊断一致 | check 模式 code+ruleId+severity+line 多重集全绿；诊断文案与参考逐字同源 | ✅ |
