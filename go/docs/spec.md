@@ -278,7 +278,16 @@ Source
 Effect Metadata（PURE/IO/FS/NET/TIME/RANDOM/SPAWN/CHANNEL/FFI）从 IR 推导。
 协议规范：仓库根 specs/agent-protocol.md + schemas/agent-protocol.schema.json。
 
-## 11. 里程碑
+## 11. Safe Editing（v0.5）
+
+Formatter 硬契约升级为三条（测试机械锁定，语料 = 仓库全部 .lang-go + 对抗样本）：
+**注释 100% 保留**（行首/行尾/表达式内/块尾全形状；行尾两空格规范分隔、
+表达式内位置后移文本零丢失）、**幂等**、**语义等价**。
+结构化编辑：TextEdit/WorkspaceEdit（sha256 前置校验 + rune 偏移 + 重叠拒绝）。
+`lang-go fix --safe [--dry-run] [--json]`：重复 import 去重、未使用 import 删除
+（保守判定）、行尾空白/EOF 换行规范化，编辑事务失败即停。见 ADR-0003。
+
+## 12. 里程碑
 
 - **M1** 本规范 + 决策台账（已完成）
 - **M2** Go 实现：词法器、解析器、树遍历解释器、REPL、`lang-go run`/`lang-go test`（已完成）

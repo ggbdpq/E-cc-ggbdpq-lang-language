@@ -1,11 +1,17 @@
 package format
 
-// langGo 格式化器：AST 规范重排（4 空格缩进），整行注释按行号挂回最近的后续构造。
-// 限制（spec §9）：行尾注释与 match 臂内注释会丢失；块尾（最后一条语句之后）
-// 的注释会移出到块的后面——均为注释位置移动，不影响语义。
+// format.go：langGo 格式化器（v0.5 Safe Editing）。
+//
+// 渲染为行缓冲；注释按 trivia 流插回（v0.5 Lossless 层）：
+//   - 行首注释：独立行输出，保留注释间空行分组（最多一空行）；
+//   - 行尾注释：追加到语句渲染输出的最后一行（两空格间隔）；
+//   - 表达式内注释：语句边界冲刷（位置后移，文本零丢失——spec 允许）；
+//   - 块尾注释：块内最后冲刷，原位保留在 `}` 之前。
+//
+// 硬契约（测试锁定）：100% 注释保留、幂等 format(format(x))==format(x)、
+// 语义等价、确定性输出。
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -18,57 +24,114 @@ func Format(src string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	f := &fmtter{lines: strings.Split(src, "\n")}
-	f.stmts(prog, 0, 1)
-	return f.b.String(), nil
+	f := &fmtter{cm: &commentTracker{all: syntax.ScanComments(src)}}
+	f.stmts(prog, 0)
+	f.flushRemaining(0)
+	if len(f.lines) == 0 {
+		return "", nil
+	}
+	return strings.Join(f.lines, "\n") + "\n", nil
 }
 
 type fmtter struct {
-	b      strings.Builder
-	lines  []string
-	lastLn int // 已消费的源码行（1 起）
+	lines       []string        // 输出行缓冲
+	cm          *commentTracker // 共享注释流（fnlit 局部渲染共享同一流）
+	lastSrcLine int             // 最近消费的源码行（空行分组判定）
 }
 
-// comments emits the whole-line comments + blank lines between lastLn and line (exclusive), and advances lastLn
-func (f *fmtter) comments(line, indent int) {
-	if line <= f.lastLn {
-		return
+// —— 注释流 ——
+
+type commentTracker struct {
+	all []syntax.Comment
+	pos int
+}
+
+func (t *commentTracker) peek() (syntax.Comment, bool) {
+	if t.pos < len(t.all) {
+		return t.all[t.pos], true
 	}
-	sawBlank := false
-	for ln := f.lastLn + 1; ln < line; ln++ {
-		text := ""
-		if ln-1 < len(f.lines) {
-			text = f.lines[ln-1]
+	return syntax.Comment{}, false
+}
+
+// flushLeading 冲刷 start 之前的**整行**注释（行尾注释留在流里给 flushTrailing）
+func (f *fmtter) flushLeading(start int, indent int) {
+	for {
+		c, ok := f.cm.peek()
+		if !ok || c.Span.Start.Offset >= start {
+			return
 		}
-		trimmed := strings.TrimSpace(text)
-		switch {
-		case trimmed == "":
-			sawBlank = true
-		case strings.HasPrefix(trimmed, "//"):
-			if sawBlank {
-				f.b.WriteString("\n")
-				sawBlank = false
-			}
-			f.b.WriteString(strings.Repeat("    ", indent) + trimmed + "\n")
+		f.cm.pos++
+		if c.Line()-f.lastSrcLine >= 2 {
+			f.lines = append(f.lines, "")
 		}
-		// 行尾注释（代码后的 //）不处理，避免误伤字符串里的 //
+		f.lines = append(f.lines, strings.Repeat("    ", indent)+c.Text)
+		f.lastSrcLine = c.Line()
 	}
-	f.lastLn = line - 1
+}
+
+// flushTrailing 冲刷语句末行上的行尾注释（追加到最近输出行）
+func (f *fmtter) flushTrailing(endOffset, endLine int) {
+	for {
+		c, ok := f.cm.peek()
+		if !ok || c.Line() != endLine || c.Span.Start.Offset < endOffset {
+			return
+		}
+		f.cm.pos++
+		if len(f.lines) == 0 {
+			f.lines = append(f.lines, "")
+		}
+		f.lines[len(f.lines)-1] += "  " + c.Text
+		f.lastSrcLine = c.Line()
+	}
+}
+
+// flushRemaining 冲刷全部挂起注释（块尾/文件尾），整行输出
+func (f *fmtter) flushRemaining(indent int) {
+	for {
+		c, ok := f.cm.peek()
+		if !ok {
+			return
+		}
+		f.cm.pos++
+		if c.Line()-f.lastSrcLine >= 2 {
+			f.lines = append(f.lines, "")
+		}
+		f.lines = append(f.lines, strings.Repeat("    ", indent)+c.Text)
+		f.lastSrcLine = c.Line()
+	}
 }
 
 func (f *fmtter) w(indent int, s string) {
-	f.b.WriteString(strings.Repeat("    ", indent) + s + "\n")
+	parts := strings.Split(s, "\n")
+	for i, p := range parts {
+		if i == 0 {
+			f.lines = append(f.lines, strings.Repeat("    ", indent)+p)
+		} else {
+			f.lines = append(f.lines, p)
+		}
+	}
 }
 
-func (f *fmtter) stmts(list []syntax.Stmt, indent, line int) {
-	for _, s := range list {
-		f.stmt(s, indent)
+// spanned 语句节点 → Span（全部语句都实现 Spanned）
+func spanned(st syntax.Stmt) syntax.Span {
+	if sp, ok := st.(syntax.Spanned); ok {
+		return *sp.NodeSpan()
 	}
-	_ = line
+	return syntax.Span{}
+}
+
+func (f *fmtter) stmts(list []syntax.Stmt, indent int) {
+	for _, s := range list {
+		sp := spanned(s)
+		f.flushLeading(sp.Start.Offset, indent)
+		f.lastSrcLine = sp.End.Line
+		f.stmt(s, indent)
+		f.flushTrailing(sp.End.Offset, sp.End.Line)
+	}
+	f.flushRemaining(indent)
 }
 
 func (f *fmtter) stmt(s syntax.Stmt, indent int) {
-	f.comments(s.Pos(), indent)
 	switch st := s.(type) {
 	case *syntax.LetStmt:
 		kw := "let"
@@ -79,7 +142,7 @@ func (f *fmtter) stmt(s syntax.Stmt, indent int) {
 		if st.Typ != nil {
 			anno = ": " + typ(st.Typ)
 		}
-		f.w(indent, kw+" "+st.Name+anno+" = "+expr(st.Init, 0, indent))
+		f.w(indent, kw+" "+st.Name+anno+" = "+f.expr(st.Init, 0, indent))
 
 	case *syntax.AssignStmt:
 		op := "="
@@ -93,29 +156,29 @@ func (f *fmtter) stmt(s syntax.Stmt, indent int) {
 		case syntax.SlashAssign:
 			op = "/="
 		}
-		f.w(indent, expr(st.Target, 0, indent)+" "+op+" "+expr(st.Val, 0, indent))
+		f.w(indent, f.expr(st.Target, 0, indent)+" "+op+" "+f.expr(st.Val, 0, indent))
 
 	case *syntax.ExprStmt:
-		f.w(indent, expr(st.X, 0, indent))
+		f.w(indent, f.expr(st.X, 0, indent))
 
 	case *syntax.ReturnStmt:
 		if st.Val == nil {
 			f.w(indent, "return")
 		} else {
-			f.w(indent, "return "+expr(st.Val, 0, indent))
+			f.w(indent, "return "+f.expr(st.Val, 0, indent))
 		}
 
 	case *syntax.IfStmt:
 		f.ifChain(st, indent)
 
 	case *syntax.WhileStmt:
-		f.w(indent, "while "+expr(st.Cond, 0, indent)+" {")
-		f.stmts(st.Body, indent+1, 0)
+		f.w(indent, "while "+f.expr(st.Cond, 0, indent)+" {")
+		f.stmts(st.Body, indent+1)
 		f.w(indent, "}")
 
 	case *syntax.ForInStmt:
-		f.w(indent, "for "+st.Var+" in "+expr(st.Iter, 0, indent)+" {")
-		f.stmts(st.Body, indent+1, 0)
+		f.w(indent, "for "+st.Var+" in "+f.expr(st.Iter, 0, indent)+" {")
+		f.stmts(st.Body, indent+1)
 		f.w(indent, "}")
 
 	case *syntax.BreakStmt:
@@ -124,7 +187,7 @@ func (f *fmtter) stmt(s syntax.Stmt, indent int) {
 		f.w(indent, "continue")
 
 	case *syntax.GoStmt:
-		f.w(indent, "go "+expr(st.Call, 0, indent))
+		f.w(indent, "go "+f.expr(st.Call, 0, indent))
 
 	case *syntax.FnDecl:
 		f.fnDecl(st, indent)
@@ -164,43 +227,30 @@ func (f *fmtter) stmt(s syntax.Stmt, indent int) {
 		f.w(indent, "}")
 
 	default:
-		f.w(indent, fmt.Sprintf("/* 格式化器不支持该语句 */"))
+		f.w(indent, "/* 格式化器不支持该语句 */")
 	}
 }
 
 // ifChain if / else if / else 扁平化输出
 func (f *fmtter) ifChain(st *syntax.IfStmt, indent int) {
-	f.w(indent, "if "+expr(st.Cond, 0, indent)+" {")
-	f.stmts(st.Then, indent+1, 0)
-	if len(st.Else) == 1 {
-		if nested, ok := st.Else[0].(*syntax.IfStmt); ok {
-			f.b.WriteString(strings.Repeat("    ", indent) + "} else ")
-			// 复用链式输出：把嵌套 if 打在同一起始行
-			f.ifChainInline(nested, indent)
-			return
-		}
-	}
-	if len(st.Else) > 0 {
-		f.w(indent, "} else {")
-		f.stmts(st.Else, indent+1, 0)
-	}
-	f.w(indent, "}")
+	f.w(indent, "if "+f.expr(st.Cond, 0, indent)+" {")
+	f.stmts(st.Then, indent+1)
+	f.elseTail(st, indent)
 }
 
-// ifChainInline 输出已被消费了 "} else " 前缀的链式 if
-func (f *fmtter) ifChainInline(st *syntax.IfStmt, indent int) {
-	f.b.WriteString("if " + expr(st.Cond, 0, indent) + " {\n")
-	f.stmts(st.Then, indent+1, 0)
+// elseTail 输出 else 分支（else if 保持同起始行）
+func (f *fmtter) elseTail(st *syntax.IfStmt, indent int) {
 	if len(st.Else) == 1 {
 		if nested, ok := st.Else[0].(*syntax.IfStmt); ok {
-			f.b.WriteString(strings.Repeat("    ", indent) + "} else ")
-			f.ifChainInline(nested, indent)
+			f.w(indent, "} else if "+f.expr(nested.Cond, 0, indent)+" {")
+			f.stmts(nested.Then, indent+1)
+			f.elseTail(nested, indent)
 			return
 		}
 	}
 	if len(st.Else) > 0 {
 		f.w(indent, "} else {")
-		f.stmts(st.Else, indent+1, 0)
+		f.stmts(st.Else, indent+1)
 	}
 	f.w(indent, "}")
 }
@@ -248,11 +298,11 @@ func (f *fmtter) fnDecl(st *syntax.FnDecl, indent int) {
 	} else {
 		f.w(indent, fnSig(st)+" {")
 	}
-	f.stmts(st.Body, indent+1, 0)
+	f.stmts(st.Body, indent+1)
 	f.w(indent, "}")
 }
 
-// ———— 类型 ————
+// —— 类型 ——
 
 func typ(t syntax.TypeEx) string {
 	switch tt := t.(type) {
@@ -285,7 +335,7 @@ func typ(t syntax.TypeEx) string {
 	return "?"
 }
 
-// ———— 表达式（优先级感知加括号） ————
+// —— 表达式（优先级感知加括号） ——
 
 func precOf(k syntax.Kind) int {
 	switch k {
@@ -318,15 +368,15 @@ func exprPrec(e syntax.Expr) int {
 }
 
 // expr 以 minPrec 门槛输出表达式；低于门槛的子式加括号
-func expr(e syntax.Expr, minPrec, indent int) string {
-	s := exprRaw(e, indent)
+func (f *fmtter) expr(e syntax.Expr, minPrec, indent int) string {
+	s := f.exprRaw(e, indent)
 	if exprPrec(e) < minPrec {
 		return "(" + s + ")"
 	}
 	return s
 }
 
-func exprRaw(e syntax.Expr, indent int) string {
+func (f *fmtter) exprRaw(e syntax.Expr, indent int) string {
 	switch x := e.(type) {
 	case *syntax.IntLit:
 		return strconv.FormatInt(x.Val, 10)
@@ -345,7 +395,7 @@ func exprRaw(e syntax.Expr, indent int) string {
 		return x.Name
 	case *syntax.Unary:
 		op := map[syntax.Kind]string{syntax.Minus: "-", syntax.Not: "!", syntax.Amp: "&"}[x.Op]
-		return op + expr(x.X, 8, indent)
+		return op + f.expr(x.X, 8, indent)
 	case *syntax.Binary:
 		p := precOf(x.Op)
 		op := map[syntax.Kind]string{
@@ -355,46 +405,46 @@ func exprRaw(e syntax.Expr, indent int) string {
 			syntax.Or: "||", syntax.Amp: "&", syntax.BitOr: "|", syntax.Xor: "^",
 			syntax.Shl: "<<", syntax.Shr: ">>", syntax.Dot2: "..",
 		}[x.Op]
-		return expr(x.L, p, indent) + " " + op + " " + expr(x.R, p+1, indent)
+		return f.expr(x.L, p, indent) + " " + op + " " + f.expr(x.R, p+1, indent)
 	case *syntax.RangeEx:
-		return expr(x.Lo, 5, indent) + ".." + expr(x.Hi, 6, indent)
+		return f.expr(x.Lo, 5, indent) + ".." + f.expr(x.Hi, 6, indent)
 	case *syntax.CallEx:
 		var as []string
 		for _, a := range x.Args {
-			as = append(as, expr(a, 0, indent))
+			as = append(as, f.expr(a, 0, indent))
 		}
-		return expr(x.Callee, 9, indent) + "(" + strings.Join(as, ", ") + ")"
+		return f.expr(x.Callee, 9, indent) + "(" + strings.Join(as, ", ") + ")"
 	case *syntax.IndexEx:
-		return expr(x.Obj, 9, indent) + "[" + expr(x.Idx, 0, indent) + "]"
+		return f.expr(x.Obj, 9, indent) + "[" + f.expr(x.Idx, 0, indent) + "]"
 	case *syntax.SliceEx:
-		return expr(x.Obj, 9, indent) + "[" + expr(x.Lo, 0, indent) + ":" + expr(x.Hi, 0, indent) + "]"
+		return f.expr(x.Obj, 9, indent) + "[" + f.expr(x.Lo, 0, indent) + ":" + f.expr(x.Hi, 0, indent) + "]"
 	case *syntax.FieldEx:
-		return expr(x.Obj, 9, indent) + "." + x.Name
+		return f.expr(x.Obj, 9, indent) + "." + x.Name
 	case *syntax.TryEx:
-		return expr(x.X, 9, indent) + "?"
+		return f.expr(x.X, 9, indent) + "?"
 	case *syntax.StructLit:
 		var fs []string
 		for _, fl := range x.Fields {
-			fs = append(fs, fl.Name+": "+expr(fl.Val, 0, indent))
+			fs = append(fs, fl.Name+": "+f.expr(fl.Val, 0, indent))
 		}
 		return x.TypeName + "{" + strings.Join(fs, ", ") + "}"
 	case *syntax.MapLit:
 		var kvs []string
 		for _, it := range x.Items {
-			kvs = append(kvs, expr(it.Key, 0, indent)+": "+expr(it.Val, 0, indent))
+			kvs = append(kvs, f.expr(it.Key, 0, indent)+": "+f.expr(it.Val, 0, indent))
 		}
 		return "{" + strings.Join(kvs, ", ") + "}"
 	case *syntax.ArrLit:
 		var is []string
 		for _, el := range x.Items {
-			is = append(is, expr(el, 0, indent))
+			is = append(is, f.expr(el, 0, indent))
 		}
 		return "[" + strings.Join(is, ", ") + "]"
 	case *syntax.MatchEx:
 		var b strings.Builder
-		b.WriteString("match " + expr(x.Scrut, 0, indent) + " {\n")
+		b.WriteString("match " + f.expr(x.Scrut, 0, indent) + " {\n")
 		for _, arm := range x.Arms {
-			b.WriteString(strings.Repeat("    ", indent+1) + pat(arm.Pat) + " => " + expr(arm.Body, 0, indent+1) + "\n")
+			b.WriteString(strings.Repeat("    ", indent+1) + f.pat(arm.Pat) + " => " + f.expr(arm.Body, 0, indent+1) + "\n")
 		}
 		b.WriteString(strings.Repeat("    ", indent) + "}")
 		return b.String()
@@ -411,30 +461,30 @@ func exprRaw(e syntax.Expr, indent int) string {
 		if x.Ret != nil {
 			sig += ": " + typ(x.Ret)
 		}
-		f := &fmtter{lines: []string{}}
-		f.b.WriteString(sig + " {\n")
-		f.stmts(x.Body, indent+1, 0)
-		f.b.WriteString(strings.Repeat("    ", indent) + "}")
-		return f.b.String()
+		f2 := &fmtter{lines: []string{}, cm: f.cm}
+		f2.w(0, sig+" {")
+		f2.stmts(x.Body, indent+1)
+		f2.w(indent, "}")
+		return strings.Join(f2.lines, "\n")
 	}
 	return "?"
 }
 
-func pat(p syntax.Pat) string {
+func (f *fmtter) pat(p syntax.Pat) string {
 	switch pp := p.(type) {
 	case *syntax.WildPat:
 		return "_"
 	case *syntax.BindPat:
 		return pp.Name
 	case *syntax.LitPat:
-		return expr(pp.Val, 0, 0)
+		return f.expr(pp.Val, 0, 0)
 	case *syntax.CasePat:
 		if len(pp.Subs) == 0 {
 			return pp.Name
 		}
 		ss := make([]string, len(pp.Subs))
 		for i, s := range pp.Subs {
-			ss[i] = pat(s)
+			ss[i] = f.pat(s)
 		}
 		return pp.Name + "(" + strings.Join(ss, ", ") + ")"
 	}

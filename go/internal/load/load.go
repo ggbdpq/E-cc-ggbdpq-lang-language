@@ -108,6 +108,9 @@ func (l *loader) loadDir(dir string) ([]syntax.Stmt, error) {
 			return nil, err
 		}
 		l.done[ap] = true
+		// import 解析键不含扩展名（resolve 产出 "./x" -> <dir>/x）：
+		// 同目录文件既被根装载又被 import 引用时不得双载
+		l.done[strings.TrimSuffix(ap, ".lang-go")] = true
 		raw = append(raw, stmts...)
 	}
 	return l.expand(raw, dir)

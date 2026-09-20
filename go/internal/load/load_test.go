@@ -71,13 +71,32 @@ fn bFn(): int {
 }
 
 func Test循环导入报错(t *testing.T) {
+	// 循环环在装载链内（子目录文件互引）——根目录文件自动装载，
+	// 根文件间冗余互引属无害去重（v0.5 done 键归一化后静默跳过）
 	dir := t.TempDir()
-	write(t, dir, "main.lang-go", "import \"./a\"")
-	write(t, dir, "a.lang-go", "import \"./b\"")
-	write(t, dir, "b.lang-go", "import \"./a\"")
+	if err := os.MkdirAll(filepath.Join(dir, "sub"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	write(t, dir, "main.lang-go", "import \"./sub/x\"")
+	write(t, filepath.Join(dir, "sub"), "x.lang-go", "import \"./y\"")
+	write(t, filepath.Join(dir, "sub"), "y.lang-go", "import \"./x\"")
 	_, _, err := Program(dir, false)
 	if err == nil || !strings.Contains(err.Error(), "循环") {
-		t.Fatalf("循环导入应报错，得到: %v", err)
+		t.Fatalf("装载链内循环导入应报错，得到: %v", err)
+	}
+}
+
+// Test根文件冗余互引去重 根目录文件互相 import：自动装载各一次，冗余声明静默去重
+func Test根文件冗余互引去重(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "main.lang-go", "import \"./a\"\nfn main() {\n    println(1)\n}")
+	write(t, dir, "a.lang-go", "import \"./main\"\nfn fa(): int {\n    return 1\n}")
+	prog, _, err := Program(dir, false)
+	if err != nil {
+		t.Fatalf("根文件冗余互引应去重而非报错: %v", err)
+	}
+	if len(prog) == 0 {
+		t.Fatal("程序为空")
 	}
 }
 

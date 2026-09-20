@@ -18,7 +18,7 @@ import (
 const SchemaVersion = "1"
 
 // ToolVersion 工具版本（与 CLI version 同源）
-const ToolVersion = "0.4.0"
+const ToolVersion = "0.5.0"
 
 // Kind 输出类别
 const (

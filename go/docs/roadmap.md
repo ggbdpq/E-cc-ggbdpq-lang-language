@@ -12,6 +12,7 @@
 | M4 移植 linkpull bilibili 提取器（v0.2.0） | 完成 |
 | — R1 extern / R2 http+json / R3 import / chan 阻塞语义 / bind | 完成 |
 | **v0.3 Semantic Core** | **完成**：semantic（resolver）→ types（checker）→ hir（Typed HIR）→ ir（Core IR）；check 独立前端（稳定诊断码 E1xxx–E4xxx）；后端改消费 IR；三处静默分歧收口（ADR-0001、decisions #65–#70b） |
+| **v0.5 Safe Editing** | **完成**：注释 trivia 流 + Formatter 注释插回（100% 保留/幂等/语义等价，corpus 级锁定）；internal/edit 结构化编辑（TextEdit/WorkspaceEdit/sha256 前置校验）；fix --safe 三修复 + 编辑事务闭环（decisions #77–#80、ADR-0003） |
 | **v0.4 Agent Contract** | **完成**：internal/contract 契约层（schemaVersion 1）；check/dump ast·hir·ir/inspect symbols·refs·type·dependencies·effects 全部 --json；列级 Span + 文件归属；Effect Metadata 从 IR 推导（decisions #71–#76、specs/agent-protocol.md、schemas/agent-protocol.schema.json） |
 
 ## 剩余候选
@@ -23,5 +24,6 @@
 
 ## 下一阶段（承接总路线）
 
-- **v0.5 Safe Editing**：Lossless Syntax（行尾注释丢失待解）+ Formatter 2.0 + 语义 rename + 诊断收紧到列级 primarySpan
+- **v0.6 Semantic Graph**：calls/callees/impact（calls 边从 IR 调用图扩展）、api snapshot
+- v0.7 Refactoring：rename（SymbolId + 引用集）、organize imports、safe remove
 - v0.6 Semantic Graph / v0.7 Refactoring / v0.8 Verification（conformance suite）/ v0.9 Hardening / v1.0 Freeze

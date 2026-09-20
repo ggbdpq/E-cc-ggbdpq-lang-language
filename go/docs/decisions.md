@@ -174,3 +174,12 @@ null、异常、宏、继承、隐式数值转换、包管理器、LSP、调试�
 | 74 | **dump ir 不含 span**（span 见 dump.hir）：IR 保持精简执行视图；nodeId 由契约层分配 | 避免 IR 元数据膨胀；协议在 v0.4.x 内可加字段 |
 | 75 | **诊断定位 v0.4 为行级**（primarySpan.column 恒 1）：列级 span 基础已落地（#72），诊断收紧到列是 v0.5 目标 | 结构即契约（字段已冻结），精度提升为兼容变更 |
 | 76 | **版本单一源**：CLI version 复用 contract.ToolVersion | 消除 version 三处漂移（v0.3 漂移 #2 的根治） |
+
+## v0.5 Safe Editing（2026-09-20 追加）
+
+| # | 决定 | 理由 |
+|---|------|------|
+| 77 | **轻量 Lossless 模型**：syntax.ScanComments（注释 trivia 流）+ 节点 Span（v0.4）+ 源码文本 = 可复原信息全集；不引入 red-green tree | Prompt 02 许可轻量方案；当前规模下完整 lossless tree 成本无对应收益；ADR-0003 |
+| 78 | **Formatter 注释插回**：行缓冲渲染；行首注释独立行（保留空行分组）、行尾注释两空格规范分隔追加语句末行、表达式内注释语句边界冲刷（位置后移文本零丢失）、块尾注释原位保留；100% 保留 + 幂等 + 语义等价三契约由 corpus 级测试机械锁定 | 行尾/表达式内/块尾注释丢失是 v0.3 自认限制（spec §9）；Agent 高频修改要求零丢失 |
+| 79 | **结构化编辑与 fix --safe**：internal/edit（TextEdit/WorkspaceEdit/sha256 前置校验/重叠拒绝/rune 偏移）+ fix --safe 三修复（重复 import 去重、未使用 import 删除——import 行不计入引用的保守判定、行尾空白/EOF 换行）+ 事务闭环（analyze→plan→precondition→apply→parse→resolve→typecheck，失败即 STOP） | Agent 编辑的唯一载体是结构化编辑；哈希前置防源码漂移误写；三修复均有机械安全性论证 |
+| 80 | **装载器 done 键归一化**：根目录文件登记 done 时同时登记带/不带扩展名两键；根文件间冗余互引转为静默去重，装载链内真循环仍报错 | 修复「根文件 + 同目录 import」双载导致的 E2001 误报（fix E2E 暴露的潜在 bug）；根文件自动装载语义下该冗余本无害 |

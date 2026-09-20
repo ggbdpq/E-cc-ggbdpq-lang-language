@@ -84,3 +84,16 @@ makeChan/send/recv→CHANNEL、extern→FFI、go 语句→SPAWN），沿调用�
 - 输出按结构体序/显式排序，`encoding/json` 稳定序列化。
 - 文本子命令输出不受本协议影响。
 - 本协议按公共 API 管理：变更须更新 schemas/ 与本文件，并走 golden 再生流程。
+
+## 6. 编辑事务（v0.5 Safe Editing）
+
+```text
+inspect → plan → precondition check → edit → format → parse → resolve → typecheck → test → verify
+```
+
+- 编辑载体：`TextEdit{file, startOffset, endOffset, replacement}`（rune 偏移，与 SourceSpan 同度量）；
+  事务为 `WorkspaceEdit{edits[], preconditions[]}`，precondition 含 `fileHash`（sha256 hex）。
+- 前置校验失败（源码已变化）→ 拒绝写入；重叠区间 → 拒绝；缺前置校验 → 拒绝。
+- `lang-go fix --safe` 内置闭环：analyze → plan → precondition → apply → parse →
+  resolve → typecheck；任一步失败输出结构化 error（`stage: apply|verify`）并退出码 1。
+  `--dry-run` 只输出 WorkspaceEdit 不落盘。

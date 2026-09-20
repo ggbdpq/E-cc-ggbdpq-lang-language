@@ -16,6 +16,8 @@ import (
 
 	"lang-go/internal/bind"
 	"lang-go/internal/contract"
+	"lang-go/internal/edit"
+	"lang-go/internal/fix"
 	"lang-go/internal/format"
 	"lang-go/internal/gen"
 	"lang-go/internal/genjs"
@@ -71,6 +73,8 @@ func cliMain() int {
 		return runInspect(args[1:])
 	case "dump":
 		return runDump(args[1:])
+	case "fix":
+		return runFix(args[1:])
 	case "bind":
 		// 包目录固定为当前目录的 bind.d/（安全边界：任何路径输入都不进数据流）
 		return runBind()
@@ -101,6 +105,10 @@ func usage() {
   lang-go run        运行当前目录的 main.lang-go
   lang-go test       运行当前目录 *_test.lang-go 里的 test* 函数
   lang-go check      语义检查（resolver + 类型检查，稳定诊断码）
+  lang-go inspect    symbols|refs|type|dependencies|effects --json 语义查询
+  lang-go dump       ast|hir|ir --json 输出编译器内部树
+  lang-go fix --safe [--dry-run] [--json]
+                     机械安全修复（重复/未使用 import、行尾空白、EOF 换行）+ 验证闭环
   lang-go fmt        就地格式化当前目录 .lang-go
   lang-go build      语义检查后写 out/main.go（build js 写 out/main.mjs）
   lang-go bind       生成 extern "go" 声明草案（bind.d/）
@@ -455,5 +463,86 @@ func repl() int {
 		}
 		buf.Reset()
 		prompt = "lang-go> "
+	}
+}
+
+// runFix fix --safe [--dry-run] [--json]：机械安全修复 + 编辑事务闭环。
+// 事务：analyze → plan → precondition → apply → parse → resolve → typecheck；
+// 任一步失败即 STOP 并输出结构化原因。
+func runFix(args []string) int {
+	kind := "fix"
+	if !hasFlag(args, "--safe") {
+		printJSON(contract.ErrorEnvelope(kind, "v0.5 仅支持 --safe（机械可证明安全修复）"))
+		return 2
+	}
+	dry := hasFlag(args, "--dry-run")
+	asJSON := hasFlag(args, "--json")
+
+	ws, err := fix.PlanDir(".")
+	if err != nil {
+		printJSON(contract.ErrorEnvelope(kind, err.Error()))
+		return 1
+	}
+	if asJSON || dry {
+		printJSON(struct {
+			SchemaVersion string             `json:"schemaVersion"`
+			ToolVersion   string             `json:"toolVersion"`
+			Kind          string             `json:"kind"`
+			DryRun        bool               `json:"dryRun"`
+			Applied       bool               `json:"applied"`
+			WorkspaceEdit edit.WorkspaceEdit `json:"workspaceEdit"`
+		}{contract.SchemaVersion, contract.ToolVersion, kind, dry, false, ws})
+		if dry {
+			return 0
+		}
+	}
+
+	if err := edit.Apply(ws, "."); err != nil {
+		msg := "apply: " + err.Error()
+		printJSON(fixStop(contract.ToolVersion, kind, "apply", msg))
+		fmt.Fprintln(os.Stderr, "STOP——应用编辑失败:", err)
+		return 1
+	}
+
+	// 验证闭环：parse → resolve → typecheck
+	prog, _, _, derr := load.ProgramEx(".", false)
+	if derr != nil {
+		msg := "parse/resolve: " + derr.Error()
+		printJSON(fixStop(contract.ToolVersion, kind, "verify", msg))
+		fmt.Fprintln(os.Stderr, "STOP——编辑后验证失败:", msg)
+		return 1
+	}
+	diags, _ := pipeline.CheckStmts(prog)
+	if len(diags) > 0 {
+		msg := "typecheck: " + pipeline.FormatDiags(diags)
+		printJSON(fixStop(contract.ToolVersion, kind, "verify", msg))
+		fmt.Fprintln(os.Stderr, "STOP——编辑后验证失败:", msg)
+		return 1
+	}
+
+	if asJSON {
+		printJSON(struct {
+			SchemaVersion string `json:"schemaVersion"`
+			ToolVersion   string `json:"toolVersion"`
+			Kind          string `json:"kind"`
+			Success       bool   `json:"success"`
+			Applied       bool   `json:"applied"`
+			EditCount     int    `json:"editCount"`
+		}{contract.SchemaVersion, contract.ToolVersion, kind, true, true, len(ws.Edits)})
+	} else {
+		fmt.Printf("safe fix 完成（%d 处编辑），验证通过\n", len(ws.Edits))
+	}
+	return 0
+}
+
+// fixStop fix 失败的结构化负载
+func fixStop(toolVersion, kind, stage, msg string) map[string]any {
+	return map[string]any{
+		"schemaVersion": contract.SchemaVersion,
+		"toolVersion":   toolVersion,
+		"kind":          kind,
+		"success":       false,
+		"stage":         stage,
+		"error":         msg,
 	}
 }
