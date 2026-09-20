@@ -135,7 +135,8 @@ def load_program(directory: str, include_tests: bool) -> Program:
     if include_tests:
         for f in l.list_lang_go(l.root, tests=True):
             stmts_ = l.load_file(os.path.join(l.root, f))
-            stmts.extend(stmts_)
+            # 测试文件与普通文件同等待遇：import 在装载期展开（v1.0 dogfood 修复）
+            stmts.extend(l.expand(stmts_, l.root))
             for s in stmts_:
                 if isinstance(s, A.FnDecl) and s.recv is None and not s.params and s.name.startswith("test"):
                     tests.append(s.name)

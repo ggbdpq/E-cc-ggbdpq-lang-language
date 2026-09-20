@@ -1,36 +1,77 @@
-# language
+# lang-go v1.0
 
-lang-go 语言的 monorepo：一门覆盖前端、后端与日常工具开发的个人语言，源码可转译到 Go 与 JS 执行。
+一门确定性、类型化、Agent 可操作的编程语言：源码可转译到 Go 与 JS 执行，
+拥有规范化的静态与动态语义、独立第二实现验证、151 个跨实现 Conformance Case。
 
-## 结构
+```
+Human 写起来自然 → Compiler 裁决严格 → Agent 精确操作 → 实现由 Conformance 裁决
+```
 
-| 目录 | 用途 | 状态 |
-|------|------|------|
-| `go/` | Go 参考实现（语义前端 + 解释器 + →Go/→JS 双转译后端 + 契约层 + CLI + REPL） | **可用**：`cd go && go build -o lang-go.exe ./cmd/lang-go`；`v0.9.0`（历史经 subtree 并入本仓库） |
-| `specs/` | 语言无关规范（词法/语法/AST/解释器/类型系统/错误模型/运行时），实现共守的唯一语义真值源 | 骨架，待沉淀 |
-| `docs/` | 语言级文档：`plans/`（v0.3 实施计划）、`adr/`（架构决策） | 增长中 |
-| `examples/` | 语言级示例索引 | 骨架，实际示例在 `go/examples/` |
+## 安装
 
-## 实现状态
+### 从源码构建
 
-| 目录 | 语言 | 状态 |
-|------|------|------|
-| `go/` | Go | 三路执行（解释器 / →Go / →JS）全绿；v0.3 语义前端（resolver → checker → HIR → IR）+ 独立 `check`（稳定诊断码）；语义决策台账 70 条 |
-| `python/` | Python | 未开始（按 YAGNI，开工时再创建） |
-| `rust/` | Rust | 未开始（同上） |
-| `typescript/` | TypeScript | 未开始（同上） |
+```bash
+git clone https://github.com/ggbdpq/E-ggbdpq-gh-language.git
+cd language/go
+go build -o lang-go ./cmd/lang-go
+```
 
-## 约定
+### 运行前置
 
-- 各实现保留宿主语言原生工具链（go test / cargo test / pytest / bun test），不为目录统一引入 workspace。
-- 本仓库为唯一 git 仓库（monorepo）；`go/.git` 为 v0.3 前的历史备份（已退役，origin 改名 origin-legacy 防误推）。
-- 语义变更以 `go/docs/decisions.md` 台账为准（v0.3 起 #65–#70b）；架构决策见 `docs/adr/`；跨实现规范沉淀进 `specs/`；任何新决策必须追加留痕。
-- 验收判据：同一 lang-go 程序，各实现三路（解释器 / →Go / →JS）stdout 逐字节一致（examples + m4 全量差分测试机械化此判定）。
-- v0.3 起 `lang-go check` 为独立语义前端（稳定码 E1xxx/E2xxx/E3xxx/E4xxx），`build` 先检查后转译；后端只做平台映射。
-- v0.4 起 Agent 通过稳定 JSON 协议理解程序：`check/inspect/dump --json`（specs/agent-protocol.md、schemas/agent-protocol.schema.json；schemaVersion 1）。
-- v0.5 起 `lang-go fix --safe` 提供机械安全修复（结构化 TextEdit/WorkspaceEdit + sha256 前置校验 + 编辑事务闭环），Formatter 注释 100% 保留且幂等（ADR-0003）。
-- v0.6 起 `lang-go inspect callers/callees/impact/references/dependency --json` 提供语义图查询（decisions #81）。
-- v0.7 起 `lang-go refactor rename/organize-imports/safe-remove --json` 提供语义级重构（基于 SymbolId + 引用集，禁止 Regex；decisions #85–#86）。
-- v0.8 起 `lang-go verify` 走全管线+多路差分；顶层 `conformance/` 是四实现共同真值（specs/runner-contract.md）。
-- v0.9 起 `specs/` 是唯一语义真值源（Rule Catalog 稳定 Rule ID，诊断带 ruleId）；verify 四路差分（AST Oracle / IR 解释器 / →Go / →JS）。
-- v0.7 起 `lang-go refactor rename/organize-imports/safe-remove --json` 提供语义级重构（基于 SymbolId + 引用集，禁止 Regex；decisions #82–#84）。
+| 后端 | 需要 |
+|------|------|
+| 解释器 / →Go | Go ≥ 1.21 |
+| →JS | Node ≥ 18 |
+| conformance | 两者都要 |
+
+## 10 分钟快速上手
+
+```bash
+mkdir hello && cd hello
+cat > main.lang-go <<'EOF'
+fn main() {
+    println("hello, lang-go")
+}
+EOF
+lang-go run          # hello, lang-go
+lang-go check        # 静态检查通过
+lang-go build        # 生成 out/main.go（Go）
+lang-go build js     # 生成 out/main.mjs（JS）
+lang-go fmt          # 格式化
+lang-go verify       # 全管线 + 四路差分验证
+```
+
+## 仓库结构
+
+| 目录 | 用途 |
+|------|------|
+| `specs/` | **唯一语义真值源**（11 主题规范 + Rule Catalog + versioning + performance） |
+| `conformance/` | **跨实现契约**（151 case，YAML manifest，四路差分） |
+| `schemas/` | Agent Protocol JSON Schema |
+| `go/` | Go 参考实现（resolver → checker → HIR → IR + interp/gen/genjs/irinterp + contract/refactor） |
+| `typescript/` | TypeScript 独立实现（同套件 151/151 全绿） |
+| `python/` | Python 独立实现（骨架期，列 v1.x） |
+| `docs/` | 开发文档（计划 / ADR / 发布报告） |
+| `dogfood/` | 真实项目验证（langalgo 算法库 1953 行） |
+| `examples/` | 示例程序 |
+
+## CLI 命令
+
+| 命令 | 用途 |
+|------|------|
+| `lang-go run` | 运行当前目录 main.lang-go |
+| `lang-go test` | 运行 test* 函数 |
+| `lang-go check --json` | 静态检查（稳定码 + ruleId） |
+| `lang-go fmt` | 格式化（幂等 + 注释 100% 保留） |
+| `lang-go build [js]` | 转译到 Go / JS |
+| `lang-go fix --safe` | 机械安全修复（事务闭环） |
+| `lang-go verify [--json]` | 全管线 + 四路差分验证 |
+| `lang-go inspect ... --json` | 语义图查询（symbols/callers/impact/effects…） |
+| `lang-go refactor ... --json` | 语义重构（rename / organize imports / safe remove） |
+| `lang-go dump ... --json` | AST / HIR / IR 输出 |
+
+## 版本
+
+v1.0.0（稳定版）。兼容策略见 specs/versioning.md。
+Rule ID 与诊断码为跨实现契约：一经发布不可改名、不可复用、不可改义。

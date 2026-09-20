@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lang-py"
-version = "1.0.0"
+version = "1.0.0-rc.1"
 description = "lang-go 语言的 Python 独立实现（同一门语言，同一契约）"
 requires-python = ">=3.12"
 license = { text = "MIT" }
