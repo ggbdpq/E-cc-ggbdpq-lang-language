@@ -1,0 +1,8 @@
+fn apply(f: fn(int): int, x: int): int {
+    return f(x)
+}
+fn main() {
+    println(apply(fn(x: int): int {
+        return x * 10
+    }, 4))
+}

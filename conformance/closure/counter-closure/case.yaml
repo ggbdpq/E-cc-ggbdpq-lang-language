@@ -1,0 +1,7 @@
+name: counter-closure
+category: closure
+expect:
+  exitCode: 0
+  stdout: |
+    1 2 3
+  stderr: ""

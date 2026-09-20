@@ -1,0 +1,7 @@
+name: hello-world
+category: syntax
+expect:
+  exitCode: 0
+  stdout: |
+    hello, conformance
+  stderr: ""

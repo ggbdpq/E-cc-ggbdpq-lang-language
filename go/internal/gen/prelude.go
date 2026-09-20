@@ -578,7 +578,10 @@ func langGoTruthy(v any) bool {
 	return b
 }
 
-func langGoIndex(obj, idx any) any {
+// langGoIndex 泛型化：调用点带显式类型实参（emitIndex 按元素类型特化），
+// 泛型函数内的类型参数（langGoIndex[T]）据此把元素以 T 交还调用侧，
+// 使 LangGoSome/LangGoNone 与泛型签名 LangGoOpt[T] 全链一致
+func langGoIndex[T any](obj, idx any) T {
 	switch c := obj.(type) {
 	case *LangGoMap:
 		ks, ok := langGoKeyString(idx)
@@ -589,14 +592,14 @@ func langGoIndex(obj, idx any) any {
 		if !found {
 			panic("映射无键 " + langGoFmt(idx, true) + "（用 has() 探测）")
 		}
-		return v
+		return any(v).(T)
 	case string:
 		runes := []rune(c)
 		i := langGoInt(idx)
 		if i < 0 || i >= int64(len(runes)) {
 			panic(fmt.Sprintf("索引 %d 越界（长度 %d）", i, len(runes)))
 		}
-		return string(runes[i])
+		return any(string(runes[i])).(T)
 	}
 	if arr, ok := obj.(interface {
 		LangGoGet(int64) any
@@ -606,7 +609,7 @@ func langGoIndex(obj, idx any) any {
 		if i < 0 || i >= arr.LangGoLen() {
 			panic(fmt.Sprintf("索引 %d 越界（长度 %d）", i, arr.LangGoLen()))
 		}
-		return arr.LangGoGet(i)
+		return any(arr.LangGoGet(i)).(T)
 	}
 	panic("该类型不可索引")
 }

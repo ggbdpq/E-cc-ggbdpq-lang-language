@@ -1,0 +1,7 @@
+name: arithmetic-precedence
+category: syntax
+expect:
+  exitCode: 0
+  stdout: |
+    14 20 3 1 5
+  stderr: ""

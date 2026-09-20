@@ -1,0 +1,6 @@
+fn main() {
+    let m = {"b": 2, "a": 1}
+    println(jsonStringify(m))
+    println(jsonStringify([1, "x", true, None]))
+    println(jsonParse("{\"k\": [1, 2.5, null]}"))
+}

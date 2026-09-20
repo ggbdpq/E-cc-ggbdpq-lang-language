@@ -1,0 +1,7 @@
+name: result-match-err
+category: result
+expect:
+  exitCode: 0
+  stdout: |
+    div by zero
+  stderr: ""

@@ -1,0 +1,7 @@
+name: struct-methods
+category: struct
+expect:
+  exitCode: 0
+  stdout: |
+    7 14
+  stderr: ""

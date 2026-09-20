@@ -1,0 +1,7 @@
+name: slice-iteration
+category: collections
+expect:
+  exitCode: 0
+  stdout: |
+    6
+  stderr: ""

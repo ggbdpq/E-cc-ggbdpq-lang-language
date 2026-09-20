@@ -1,0 +1,10 @@
+fn first[T](xs: [T]): Option[T] {
+    if len(xs) == 0 {
+        return None
+    }
+    return Some(xs[0])
+}
+fn main() {
+    println(first([1, 2]))
+    println(first([]))
+}

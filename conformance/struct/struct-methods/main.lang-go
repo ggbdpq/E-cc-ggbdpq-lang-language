@@ -1,0 +1,15 @@
+struct Point {
+    x: int
+    y: int
+}
+fn (p Point).sum(): int {
+    return p.x + p.y
+}
+fn (p Point).scaled(k: int): Point {
+    return Point{x: p.x * k, y: p.y * k}
+}
+fn main() {
+    let p = Point{x: 3, y: 4}
+    let q = p.scaled(2)
+    println(p.sum(), q.sum())
+}

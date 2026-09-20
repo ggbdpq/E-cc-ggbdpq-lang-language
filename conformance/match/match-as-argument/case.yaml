@@ -1,0 +1,7 @@
+name: match-as-argument
+category: match
+expect:
+  exitCode: 0
+  stdout: |
+    five
+  stderr: ""

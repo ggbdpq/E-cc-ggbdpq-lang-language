@@ -1,0 +1,7 @@
+fn main() {
+    let m = {"b": 2, "a": 1}
+    println(m)
+    println(keys(m))
+    println(values(m))
+    println(has(m, "a"), has(m, "z"))
+}

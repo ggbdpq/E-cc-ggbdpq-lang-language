@@ -1,0 +1,7 @@
+name: fn-literal-passthrough
+category: closure
+expect:
+  exitCode: 0
+  stdout: |
+    40
+  stderr: ""

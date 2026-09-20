@@ -1,0 +1,6 @@
+fn main() {
+    let xs = [10, 20, 30]
+    push(xs, 40)
+    println(len(xs), xs[0], xs[3])
+    println(xs)
+}

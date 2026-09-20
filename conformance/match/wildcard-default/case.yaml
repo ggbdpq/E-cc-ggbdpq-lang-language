@@ -1,0 +1,7 @@
+name: wildcard-default
+category: match
+expect:
+  exitCode: 0
+  stdout: |
+    one many
+  stderr: ""

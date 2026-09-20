@@ -1,0 +1,7 @@
+fn main() {
+    let n = 42
+    let s = "str"
+    let f = 2.5
+    let b = true
+    println(n, s, f, b)
+}

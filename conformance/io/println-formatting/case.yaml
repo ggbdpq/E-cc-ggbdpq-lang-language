@@ -1,0 +1,8 @@
+name: println-formatting
+category: io
+expect:
+  exitCode: 0
+  stdout: |
+    nonewline
+    a 1 2.5 true [1, 2] {"k": 1}
+  stderr: ""

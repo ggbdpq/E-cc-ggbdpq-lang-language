@@ -1,0 +1,6 @@
+fn main() {
+    println(match 5 {
+        5 => "five"
+        _ => "other"
+    })
+}

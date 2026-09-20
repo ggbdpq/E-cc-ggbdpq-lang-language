@@ -1,0 +1,10 @@
+fn classify(n: int): string {
+    return match n {
+        0 => "zero"
+        1 => "one"
+        _ => "many"
+    }
+}
+fn main() {
+    println(classify(0), classify(1), classify(9))
+}

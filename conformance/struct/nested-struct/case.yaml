@@ -1,0 +1,7 @@
+name: nested-struct
+category: struct
+expect:
+  exitCode: 0
+  stdout: |
+    2 4
+  stderr: ""

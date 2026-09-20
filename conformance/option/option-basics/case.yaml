@@ -1,0 +1,9 @@
+name: option-basics
+category: option
+expect:
+  exitCode: 0
+  stdout: |
+    Some(41)
+    false true
+    42
+  stderr: ""

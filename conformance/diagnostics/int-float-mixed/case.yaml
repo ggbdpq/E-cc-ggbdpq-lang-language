@@ -1,0 +1,8 @@
+name: int-float-mixed
+category: diagnostics
+mode: check
+expect:
+  diagnostics:
+    - code: E3002
+      severity: error
+      line: 2

@@ -1,0 +1,6 @@
+fn main() {
+    let n: int = 7
+    let s: string = "hi"
+    let f: float = 1.25
+    println(n, s, f)
+}

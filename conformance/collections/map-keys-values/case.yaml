@@ -1,0 +1,10 @@
+name: map-keys-values
+category: collections
+expect:
+  exitCode: 0
+  stdout: |
+    {"b": 2, "a": 1}
+    ["b", "a"]
+    [2, 1]
+    true false
+  stderr: ""

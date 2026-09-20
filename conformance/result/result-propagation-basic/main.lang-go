@@ -1,0 +1,14 @@
+fn divide(a: int, b: int): Result[int, error] {
+    if b == 0 {
+        return Err(err("div by zero"))
+    }
+    return Ok(a / b)
+}
+fn safeDiv(a: int, b: int): Result[int, error] {
+    let q = divide(a, b)?
+    return Ok(q)
+}
+fn main() {
+    println(safeDiv(9, 2))
+    println(safeDiv(7, 0))
+}

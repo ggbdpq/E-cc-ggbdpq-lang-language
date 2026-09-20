@@ -1,0 +1,9 @@
+fn name(n: int): string {
+    return match n {
+        1 => "one"
+        _ => "many"
+    }
+}
+fn main() {
+    println(name(1), name(-5))
+}

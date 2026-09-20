@@ -1151,7 +1151,9 @@ func (g *gen) expr(e ir.Expr) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return "langGoIndex(" + obj + ", " + idx + ")", nil
+		// 显式类型实参：langGoIndex 泛型化后调用点按元素类型特化（非泛型=具体类型，
+		// 泛型函数内=类型参数名，均在作用域）；避免依赖返回值上下文推断
+		return "langGoIndex[" + goTypeOf(x.Typ()) + "](" + obj + ", " + idx + ")", nil
 
 	case *ir.Slice:
 		obj, err := g.expr(x.Obj)
@@ -1256,7 +1258,12 @@ func (g *gen) expr(e ir.Expr) (string, error) {
 func (g *gen) emitCtor(x *ir.Ctor) (string, error) {
 	switch x.Sym.Name {
 	case "None":
-		return "LangGoNone[any]()", nil
+		// 泛型函数内用类型参数（返回 LangGoOpt[T] 与签名一致）；否则 any
+		tp := "any"
+		if g.curFn != nil && len(g.curFn.TypeParams) == 1 {
+			tp = g.curFn.TypeParams[0]
+		}
+		return "LangGoNone[" + tp + "]()", nil
 	case "Some":
 		if len(x.Args) != 1 {
 			return "", g.errf(0, "Some 需要 1 个参数")

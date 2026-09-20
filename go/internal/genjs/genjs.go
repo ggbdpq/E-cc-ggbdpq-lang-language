@@ -1106,7 +1106,10 @@ func (g *jsgen) exprMatch(m *ir.Match) (string, error) {
 	if emitErr != nil {
 		return "", emitErr
 	}
-	return out, nil
+	// 片段自带 await：match 可出现在任意嵌套表达式位置（实参/操作数），
+	// 而部分消费上下文（如调用实参拼接）不会再补 await。
+	// await 对非 thenable 值透传，已有的 langGoCopy(await …) 上下文变成 await await，语义不变。
+	return "await " + out, nil
 }
 
 func (g *jsgen) emitLiteralMatchReturn(m *ir.Match, tmp string) error {

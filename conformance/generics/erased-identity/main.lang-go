@@ -1,0 +1,6 @@
+fn id[T](x: T): T {
+    return x
+}
+fn main() {
+    println(id(7), id("s"), id(true))
+}

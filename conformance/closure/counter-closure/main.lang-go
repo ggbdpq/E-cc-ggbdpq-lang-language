@@ -1,0 +1,11 @@
+fn counter(): fn(): int {
+    var n = 0
+    return fn(): int {
+        n = n + 1
+        return n
+    }
+}
+fn main() {
+    let c = counter()
+    println(c(), c(), c())
+}

@@ -1,0 +1,7 @@
+name: import-two-files
+category: module
+expect:
+  exitCode: 0
+  stdout: |
+    42 hey!
+  stderr: ""

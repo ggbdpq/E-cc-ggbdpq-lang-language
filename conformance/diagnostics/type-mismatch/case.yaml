@@ -1,0 +1,8 @@
+name: type-mismatch
+category: diagnostics
+mode: check
+expect:
+  diagnostics:
+    - code: E3001
+      severity: error
+      line: 2

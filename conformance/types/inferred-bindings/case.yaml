@@ -1,0 +1,7 @@
+name: inferred-bindings
+category: types
+expect:
+  exitCode: 0
+  stdout: |
+    42 str 2.5 true
+  stderr: ""

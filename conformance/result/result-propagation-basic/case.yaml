@@ -1,0 +1,8 @@
+name: result-propagation-basic
+category: result
+expect:
+  exitCode: 0
+  stdout: |
+    Ok(4)
+    Err(error{msg: "div by zero"})
+  stderr: ""

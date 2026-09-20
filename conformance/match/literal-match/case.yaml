@@ -1,0 +1,7 @@
+name: literal-match
+category: match
+expect:
+  exitCode: 0
+  stdout: |
+    zero one many
+  stderr: ""

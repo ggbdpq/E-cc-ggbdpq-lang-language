@@ -1,0 +1,8 @@
+name: generic-option-return
+category: generics
+expect:
+  exitCode: 0
+  stdout: |
+    Some(1)
+    None
+  stderr: ""

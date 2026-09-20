@@ -1,0 +1,9 @@
+fn producer(ch: chan[int]) {
+    send(ch, 42)
+}
+fn main() {
+    let ch = makeChan()
+    go producer(ch)
+    let v = recv(ch)
+    println(v)
+}

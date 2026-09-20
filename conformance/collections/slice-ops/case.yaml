@@ -1,0 +1,8 @@
+name: slice-ops
+category: collections
+expect:
+  exitCode: 0
+  stdout: |
+    4 10 40
+    [10, 20, 30, 40]
+  stderr: ""

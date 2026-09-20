@@ -1,0 +1,12 @@
+fn divide(a: int, b: int): Result[int, error] {
+    if b == 0 {
+        return Err(err("div by zero"))
+    }
+    return Ok(a / b)
+}
+fn main() {
+    match divide(7, 0) {
+        Ok(v) => println(v)
+        Err(e) => println(e.msg)
+    }
+}

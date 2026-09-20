@@ -1,0 +1,7 @@
+name: string-ops
+category: syntax
+expect:
+  exitCode: 0
+  stdout: |
+    5 42 ab A
+  stderr: ""

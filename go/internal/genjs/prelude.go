@@ -47,7 +47,7 @@ function langGoFmt(v, top) {
   if (Array.isArray(v)) return "[" + v.map(x => langGoFmt(x, false)).join(", ") + "]";
   if (v instanceof Map) {
     const parts = [];
-    for (const [k, val] of v) parts.push(langGoFmt(k, false) + ": " + langGoFmt(val, false));
+    for (const k of langGoKeys(v)) parts.push(langGoFmt(k, false) + ": " + langGoFmt(langGoMapGet(v, k), false));
     return "{" + parts.join(", ") + "}";
   }
   if (v.__langGoRange !== undefined) return v.lo.toString() + ".." + v.hi.toString();
@@ -332,7 +332,8 @@ function langGoJSONTo(v) {
   if (Array.isArray(v)) return v.map(langGoJSONTo);
   if (v instanceof Map) {
     const out = {};
-    for (const k of langGoKeys(v)) out[typeof k === "string" ? k : langGoFmt(k, true)] = langGoJSONTo(langGoMapGet(v, k));
+    const keys = langGoKeys(v).slice().sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+    for (const k of keys) out[typeof k === "string" ? k : langGoFmt(k, true)] = langGoJSONTo(langGoMapGet(v, k));
     return out;
   }
   if (v.__langGoOpt && !v.has) return null;

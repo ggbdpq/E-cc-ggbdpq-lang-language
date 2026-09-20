@@ -1,0 +1,9 @@
+fn main() {
+    let o = Some(41)
+    println(o)
+    println(isNone(o), isNone(None))
+    println(match o {
+        Some(v) => v + 1
+        None => 0
+    })
+}

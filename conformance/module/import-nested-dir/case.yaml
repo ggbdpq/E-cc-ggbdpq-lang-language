@@ -1,0 +1,7 @@
+name: import-nested-dir
+category: module
+expect:
+  exitCode: 0
+  stdout: |
+    dir-import
+  stderr: ""

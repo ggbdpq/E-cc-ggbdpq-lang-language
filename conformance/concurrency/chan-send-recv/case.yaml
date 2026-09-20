@@ -1,0 +1,7 @@
+name: chan-send-recv
+category: concurrency
+expect:
+  exitCode: 0
+  stdout: |
+    Ok(42)
+  stderr: ""

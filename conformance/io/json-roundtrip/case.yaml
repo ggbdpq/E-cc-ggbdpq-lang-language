@@ -1,0 +1,9 @@
+name: json-roundtrip
+category: io
+expect:
+  exitCode: 0
+  stdout: |
+    {"a":1,"b":2}
+    [1,"x",true,null]
+    {"k": [1, 2.5, None]}
+  stderr: ""

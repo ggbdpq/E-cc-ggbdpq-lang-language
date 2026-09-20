@@ -1,0 +1,7 @@
+name: annotated-bindings
+category: types
+expect:
+  exitCode: 0
+  stdout: |
+    7 hi 1.25
+  stderr: ""
