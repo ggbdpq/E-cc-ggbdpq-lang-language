@@ -1,9 +1,6 @@
-# 构建产物与本地状态
+node_modules/
+dist/
 out/
-out_m4/
-*.exe
-.mimosa/
-finding-ledger/
-history/
-hook-state/
-.vscode/
+__pycache__/
+*.egg-info/
+.venv/
