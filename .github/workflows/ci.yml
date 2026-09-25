@@ -15,13 +15,13 @@ jobs:
         with:
           go-version: '1.22'
       - name: gofmt check
-        working-directory: go
+        working-directory: impls/go
         run: test -z "$(gofmt -l .)"
       - name: go vet
-        working-directory: go
+        working-directory: impls/go
         run: go vet ./...
       - name: go test
-        working-directory: go
+        working-directory: impls/go
         run: go test ./... -count=1
 
   typescript-test:
@@ -32,13 +32,13 @@ jobs:
         with:
           node-version: '20'
       - name: Install dependencies
-        working-directory: typescript
+        working-directory: impls/typescript
         run: npm install 2>/dev/null || true
       - name: Type check
-        working-directory: typescript
+        working-directory: impls/typescript
         run: npx tsc -p tsconfig.json --noEmit
       - name: Build
-        working-directory: typescript
+        working-directory: impls/typescript
         run: npm run build
 
   conformance-go:
@@ -53,10 +53,10 @@ jobs:
         with:
           node-version: '20'
       - name: Build CLI
-        working-directory: go
+        working-directory: impls/go
         run: go build -o lang-go ./cmd/lang-go
       - name: Run conformance suite
-        working-directory: go
+        working-directory: impls/go
         run: go test ./internal/conformance/ -count=1 -v
 
   dogfood:
@@ -68,7 +68,7 @@ jobs:
         with:
           go-version: '1.22'
       - name: Build CLI
-        working-directory: go
+        working-directory: impls/go
         run: go build -o /tmp/lang-go ./cmd/lang-go
       - name: langalgo test
         working-directory: dogfood/langalgo
@@ -85,7 +85,7 @@ jobs:
           go-version: '1.22'
       - name: Build release binaries
         run: |
-          cd go
+          cd impls/go
           GOOS=windows GOARCH=amd64 go build -o ../release/lang-go-windows-amd64.exe ./cmd/lang-go
           GOOS=linux GOARCH=amd64 go build -o ../release/lang-go-linux-amd64 ./cmd/lang-go
           GOOS=darwin GOARCH=arm64 go build -o ../release/lang-go-darwin-arm64 ./cmd/lang-go

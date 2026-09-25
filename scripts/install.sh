@@ -23,13 +23,13 @@ FAIL=0
 
 # —— Go 参考实现 ——
 echo "--- [1/3] Go 参考实现 ---"
-cd "$ROOT/go"
+cd "$ROOT/impls/go"
 if command -v go &>/dev/null; then
     echo "[go] go mod download"
     go mod download
     echo "[go] go build"
     go build -o lang-go.exe ./cmd/lang-go
-    echo "[go] 构建成功: go/lang-go.exe"
+    echo "[go] 构建成功: impls/go/lang-go.exe"
     echo "[go] 运行测试..."
     go test ./... -count=1 2>&1 | grep -cE "^ok" | xargs -I{} echo "[go] {} 个包测试绿"
 else
@@ -43,7 +43,7 @@ if $SKIP_TS; then
     echo "--- [2/3] TypeScript（跳过） ---"
 else
     echo "--- [2/3] TypeScript 独立实现 ---"
-    cd "$ROOT/typescript"
+    cd "$ROOT/impls/typescript"
     if command -v pnpm &>/dev/null; then
         echo "[ts] pnpm install"
         pnpm install
@@ -54,7 +54,7 @@ else
         echo "[ts] 错误: pnpm/npm 均不可用"
         FAIL=1
         echo ""
-        cd "$ROOT/go"
+        cd "$ROOT/impls/go"
         if [ -f lang-go.exe ]; then
             echo "[go] 继续 Go 侧..."
         else
@@ -64,7 +64,7 @@ else
     if command -v npx &>/dev/null; then
         echo "[ts] tsc build"
         npx tsc -p tsconfig.json
-        echo "[ts] 构建成功: typescript/dist/cli/main.js"
+        echo "[ts] 构建成功: impls/typescript/dist/cli/main.js"
     fi
 fi
 echo ""
@@ -74,7 +74,7 @@ if $SKIP_PY; then
     echo "--- [3/3] Python（跳过） ---"
 else
     echo "--- [3/3] Python 独立实现 ---"
-    cd "$ROOT/python"
+    cd "$ROOT/impls/python"
     if command -v pip &>/dev/null; then
         echo "[py] pip install -e ."
         pip install -e . --quiet 2>&1 | tail -1 || echo "[py] pip install 失败（骨架期实现，可忽略）"
@@ -89,13 +89,13 @@ echo ""
 
 # —— 验证 ——
 echo "--- 验证 ---"
-cd "$ROOT/go"
+cd "$ROOT/impls/go"
 if [ -f lang-go.exe ]; then
     VER=$(./lang-go.exe version)
     echo "lang-go CLI: $VER"
 fi
-if [ -f "$ROOT/typescript/dist/cli/main.js" ]; then
-    echo "lang-ts CLI: typescript/dist/cli/main.js 可用"
+if [ -f "$ROOT/impls/typescript/dist/cli/main.js" ]; then
+    echo "lang-ts CLI: impls/typescript/dist/cli/main.js 可用"
 fi
 
 echo ""

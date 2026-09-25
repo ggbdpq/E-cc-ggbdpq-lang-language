@@ -6,7 +6,7 @@ lang-go 的版本承诺。**语义真值在 specs/；本文件定义「改动的
 
 SemVer：`MAJOR.MINOR.PATCH`（RC 后缀：`1.0.0-rc.1`）。
 
-**唯一版本源**：Go 参考实现 `go/internal/version/version.go` 的 `Version` 常量。
+**唯一版本源**：Go 参考实现 `impls/go/internal/version/version.go` 的 `Version` 常量。
 CLI `lang-go version`、Agent Contract 的 `toolVersion`、发布 tag 三者同源。
 其他实现（lang-ts/lang-py）的 `toolVersion` 在同一 `1.x.y` 语义下独立打点，
 其**诊断/语义契约版本**随 specs/ 而非随实现。

@@ -1,6 +1,6 @@
 # Source Span —— 源码定位契约（v0.4）
 
-> 状态：随 v0.4.0 冻结结构。实现：`go/internal/syntax`（Position/Span）、`go/internal/contract`（JSON 形态）。
+> 状态：随 v0.4.0 冻结结构。实现：`impls/go/internal/syntax`（Position/Span）、`impls/go/internal/contract`（JSON 形态）。
 
 ## 1. JSON 形态
 

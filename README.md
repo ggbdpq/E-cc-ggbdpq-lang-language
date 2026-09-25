@@ -13,7 +13,7 @@ Human 写起来自然 → Compiler 裁决严格 → Agent 精确操作 → 实�
 
 ```bash
 git clone https://github.com/ggbdpq/E-ggbdpq-gh-language.git
-cd language/go
+cd language/impls/go
 go build -o lang-go ./cmd/lang-go
 ```
 
@@ -46,12 +46,15 @@ lang-go verify       # 全管线 + 四路差分验证
 
 | 目录 | 用途 |
 |------|------|
+| **语言实现** | 三个独立实现，收在 `impls/` 下 |
+| `impls/go/` | Go 参考实现（resolver → checker → HIR → IR + interp/gen/genjs/irinterp + contract/refactor） |
+| `impls/typescript/` | TypeScript 独立实现（同套件 151/151 全绿） |
+| `impls/python/` | Python 独立实现（骨架期，列 v1.x；未来 Rust 实现落 `impls/rust/`） |
+| **语言契约** | 跨实现共同真值 |
 | `specs/` | **唯一语义真值源**（11 主题规范 + Rule Catalog + versioning + performance） |
 | `conformance/` | **跨实现契约**（151 case，YAML manifest，四路差分） |
 | `schemas/` | Agent Protocol JSON Schema |
-| `go/` | Go 参考实现（resolver → checker → HIR → IR + interp/gen/genjs/irinterp + contract/refactor） |
-| `typescript/` | TypeScript 独立实现（同套件 151/151 全绿） |
-| `python/` | Python 独立实现（骨架期，列 v1.x） |
+| **资料与基建** | |
 | `docs/` | 开发文档（计划 / ADR / 发布报告） |
 | `dogfood/` | 真实项目验证（langalgo 算法库 1953 行） |
 | `examples/` | 示例程序 |

@@ -14,34 +14,34 @@ echo "根目录: $ROOT"
 $DEEP && echo "模式: 深度清理（含工具链缓存）" || echo "模式: 标准清理"
 
 # —— TypeScript（pnpm）——
-if [ -d "$ROOT/typescript/node_modules" ]; then
+if [ -d "$ROOT/impls/typescript/node_modules" ]; then
     echo "[typescript] 删除 node_modules/"
-    rm -rf "$ROOT/typescript/node_modules"
+    rm -rf "$ROOT/impls/typescript/node_modules"
 fi
-if [ -d "$ROOT/typescript/dist" ]; then
+if [ -d "$ROOT/impls/typescript/dist" ]; then
     echo "[typescript] 删除 dist/"
-    rm -rf "$ROOT/typescript/dist"
+    rm -rf "$ROOT/impls/typescript/dist"
 fi
-find "$ROOT/typescript/src" -name "*.tsbuildinfo" -delete 2>/dev/null || true
+find "$ROOT/impls/typescript/src" -name "*.tsbuildinfo" -delete 2>/dev/null || true
 
 # —— Python（pip）——
 find "$ROOT/python" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 find "$ROOT/python" -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
-if [ -d "$ROOT/python/.venv" ]; then
+if [ -d "$ROOT/impls/python/.venv" ]; then
     echo "[python] 删除 .venv/"
-    rm -rf "$ROOT/python/.venv"
+    rm -rf "$ROOT/impls/python/.venv"
 fi
-if [ -d "$ROOT/python/.tmp-build" ]; then
+if [ -d "$ROOT/impls/python/.tmp-build" ]; then
     echo "[python] 删除 .tmp-build/"
-    rm -rf "$ROOT/python/.tmp-build"
+    rm -rf "$ROOT/impls/python/.tmp-build"
 fi
 
 # —— Go ——
-if [ -d "$ROOT/go/lang-go.exe" ]; then
-    rm -f "$ROOT/go/lang-go.exe"
+if [ -d "$ROOT/impls/go/lang-go.exe" ]; then
+    rm -f "$ROOT/impls/go/lang-go.exe"
 fi
-if [ -d "$ROOT/go/out" ]; then
-    rm -rf "$ROOT/go/out"
+if [ -d "$ROOT/impls/go/out" ]; then
+    rm -rf "$ROOT/impls/go/out"
 fi
 
 # —— langalgo / dogfood 构建产物 ——

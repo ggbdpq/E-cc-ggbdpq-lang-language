@@ -1,4 +1,0 @@
-{
-  // go/.git 是 v0.3 前的历史备份（已退役），避免 VS Code 误识别为活动仓库
-  "git.ignoredRepositories": ["go/.git"]
-}

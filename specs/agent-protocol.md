@@ -1,6 +1,6 @@
 # Agent Protocol —— 机器接口契约（v0.4）
 
-> 状态：**v1 草案**（随 v0.4.0 冻结字段）。实现：`go/internal/contract`（唯一转换边界）。
+> 状态：**v1 草案**（随 v0.4.0 冻结字段）。实现：`impls/go/internal/contract`（唯一转换边界）。
 > Agent 只允许依赖本协议，不读取编译器内部 Go struct、debug dump 或 backend 私有类型。
 
 ## 1. 顶层信封

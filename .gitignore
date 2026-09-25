@@ -4,6 +4,6 @@ out/
 __pycache__/
 *.egg-info/
 .venv/
-python/.tmp-build/
+.tmp-build/
 *.exe
 .tsbuildinfo

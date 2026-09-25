@@ -40,6 +40,6 @@ runner-contract.md、../schemas/（JSON Schema）。
 
 ## 实现侧文档
 
-`go/docs/spec.md` 自 v0.9 起为**实现侧摘要**（管线架构、后端映射、工具命令），
-语义真值以本目录为准；`go/docs/decisions.md` 是决策台账（为什么）；`docs/adr/` 是
+`impls/go/docs/spec.md` 自 v0.9 起为**实现侧摘要**（管线架构、后端映射、工具命令），
+语义真值以本目录为准；`impls/go/docs/decisions.md` 是决策台账（为什么）；`docs/adr/` 是
 重大架构决策的完整上下文。
