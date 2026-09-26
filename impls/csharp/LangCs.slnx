@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/Lang.BackendGo/Lang.BackendGo.csproj" />
     <Project Path="src/Lang.BackendJs/Lang.BackendJs.csproj" />
+    <Project Path="src/Lang.Cli/Lang.Cli.csproj" />
     <Project Path="src/Lang.Conformance/Lang.Conformance.csproj" />
     <Project Path="src/Lang.Contract/Lang.Contract.csproj" />
     <Project Path="src/Lang.Core/Lang.Core.csproj" />
@@ -22,6 +23,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/Lang.BackendGo.Tests/Lang.BackendGo.Tests.csproj" />
     <Project Path="tests/Lang.BackendJs.Tests/Lang.BackendJs.Tests.csproj" />
+    <Project Path="tests/Lang.Cli.Tests/Lang.Cli.Tests.csproj" />
     <Project Path="tests/Lang.Conformance.Tests/Lang.Conformance.Tests.csproj" />
     <Project Path="tests/Lang.Contract.Tests/Lang.Contract.Tests.csproj" />
     <Project Path="tests/Lang.Core.Tests/Lang.Core.Tests.csproj" />
