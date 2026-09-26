@@ -291,7 +291,16 @@ internal sealed class Checker : ITypeCtx
                 break;
 
             case Stmt.ExprStmt e:
-                Infer(e.Expr);
+                // ADR-0005 扩展（2026-09-27）：表达式语句位置的顶层 ? 合法，
+                // 走与 let/return/赋值相同的传播检查
+                if (e.Expr is Expr.Try tryEx)
+                {
+                    InferTry(tryEx);
+                }
+                else
+                {
+                    Infer(e.Expr);
+                }
                 break;
 
             case Stmt.Return:
@@ -663,8 +672,8 @@ internal sealed class Checker : ITypeCtx
             case Expr.FnLit: return InferFnLit(e);
             case Expr.Try t:
                 {
-                    // 非语句顶层位置（let/return/赋值已在语句层处理）
-                    Err(t.Span, DiagnosticCode.E3005, "? 只能出现在 let/return/赋值的顶层");
+                    // 非语句顶层位置（let/return/赋值/表达式语句已在语句层处理）
+                    Err(t.Span, DiagnosticCode.E3005, "? 只能出现在 let/return/赋值/表达式语句的顶层");
                     return InferTryOperand(t);
                 }
             default:

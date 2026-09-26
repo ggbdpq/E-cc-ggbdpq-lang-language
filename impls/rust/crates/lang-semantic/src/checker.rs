@@ -7,7 +7,8 @@
 //! （E4001/E4002/E4003）。
 //!
 //! 与证据的两处刻意分歧（均按 spec 修正，登记 status）：
-//! 1. 赋值顶层 `?` 走 `infer_try`（RESULT-TRY-003 允许；证据实现误报 E3005，
+//! 1. 赋值/表达式语句顶层 `?` 走 `infer_try`（RESULT-TRY-003 允许，ADR-0005 及其
+//!    2026-09-27 扩展；证据实现误报 E3005，
 //!    但 Go interp 的 `?` 是通用表达式求值，spec 与运行时一致）；
 //! 2. 块内 let/循环变量/臂绑定写入当前块作用域而非全局层
 //!    （NAME-SCOPE-001/MATCH-BIND-003 的静态作用域语义；证据写全局层属历史行为）。
@@ -381,7 +382,16 @@ impl<'a> Checker<'a> {
             Stmt::Assign { .. } => self.assign(s),
 
             Stmt::ExprStmt { expr, .. } => {
-                self.infer(expr);
+                // ADR-0005 扩展（2026-09-27）：表达式语句位置的顶层 ? 合法，
+                // 走与 let/return/赋值相同的传播检查
+                match expr {
+                    Expr::Try { .. } => {
+                        self.infer_try(expr);
+                    }
+                    _ => {
+                        self.infer(expr);
+                    }
+                }
             }
 
             Stmt::Return { .. } => self.return_stmt(s),
@@ -820,11 +830,11 @@ impl<'a> Checker<'a> {
             Expr::FnLit { .. } => self.infer_fn_lit(e),
 
             Expr::Try { span, .. } => {
-                // 非语句顶层位置（let/return/赋值已在语句层处理）
+                // 非语句顶层位置（let/return/赋值/表达式语句已在语句层处理）
                 self.err(
                     *span,
                     DiagnosticCode::E3005,
-                    "? 只能出现在 let/return/赋值的顶层",
+                    "? 只能出现在 let/return/赋值/表达式语句的顶层",
                 );
                 self.infer_try_operand(e)
             }

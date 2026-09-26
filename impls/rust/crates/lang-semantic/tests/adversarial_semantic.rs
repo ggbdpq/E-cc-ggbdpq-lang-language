@@ -349,6 +349,60 @@ fn main() {
     assert_diags(src, &[("E3005", 6), ("E3006", 6)]);
 }
 
+// ———— ADR-0005 扩展（2026-09-27）：表达式语句顶层 ? 合法———
+
+#[test]
+fn try_at_expr_stmt_top_level_is_allowed() {
+    let src = r#"
+fn mayFail(): Result[int, error] {
+    return Ok(1)
+}
+fn f(): Result[int, error] {
+    mayFail()?
+    return Ok(0)
+}
+fn main() {
+    println(f())
+}
+"#;
+    assert_diags(src, &[]);
+}
+
+#[test]
+fn try_at_expr_stmt_requires_result_anno() {
+    // 所在函数未注解 Result → E3005（与 let/return/赋值同规则）
+    let src = r#"
+fn mayFail(): Result[int, error] {
+    return Ok(1)
+}
+fn f() {
+    mayFail()?
+}
+fn main() {
+    println(f())
+}
+"#;
+    assert_diags(src, &[("E3005", 6)]);
+}
+
+#[test]
+fn try_nested_in_expr_stmt_value_rejected() {
+    // ? 混入表达式语句的子表达式 → 仍 E3005（只有语句顶层放行）
+    let src = r#"
+fn mayFail(): Result[int, error] {
+    return Ok(1)
+}
+fn f(): Result[int, error] {
+    mayFail()? + 1
+    return Ok(0)
+}
+fn main() {
+    println(f())
+}
+"#;
+    assert_diags(src, &[("E3005", 6)]);
+}
+
 // ———— spec 修正面 2：块作用域类型不外泄（NAME-SCOPE-001）———
 
 #[test]

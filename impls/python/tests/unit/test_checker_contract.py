@@ -92,6 +92,40 @@ class TestADR0005赋值顶层问号:
         assert codes_of(src) == ["E3005"]
 
 
+class TestADR0005扩展表达式语句顶层问号:
+    def test_result函数内零诊断(self):
+        src = (
+            "fn f(): Result[int, error] { return Ok(1) }\n"
+            "fn g(): Result[int, error] {\n"
+            "f()?\n"
+            "return Ok(0)\n"
+            "}\n"
+            "fn main() { }"
+        )
+        assert codes_of(src) == []
+
+    def test未注解result仍拒绝(self):
+        src = (
+            "fn f(): Result[int, error] { return Ok(1) }\n"
+            "fn g() {\n"
+            "f()?\n"
+            "}\n"
+            "fn main() { }"
+        )
+        assert codes_of(src) == ["E3005"]
+
+    def test语句内嵌套仍拒绝(self):
+        src = (
+            "fn f(): Result[int, error] { return Ok(1) }\n"
+            "fn g(): Result[int, error] {\n"
+            "f()? + 1\n"
+            "return Ok(0)\n"
+            "}\n"
+            "fn main() { }"
+        )
+        assert codes_of(src) == ["E3005"]
+
+
 class TestNameScope001块级作用域:
     def test块内let不写函数层(self):
         src = 'fn main() {\nlet a = 1\nif true {\nlet a = "s"\n}\nlet c = a\nprintln(c)\n}'

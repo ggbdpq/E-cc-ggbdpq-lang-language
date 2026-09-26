@@ -317,6 +317,63 @@ fn main() {
         Sem.AssertDiags(src, ("E3005", 5), ("E3006", 5));
     }
 
+    // ———— ADR-0005 扩展（2026-09-27）：表达式语句顶层 ? 合法———
+
+    [Fact]
+    public void TryAtExprStmtTopLevelIsAllowed()
+    {
+        var src = """
+fn mayFail(): Result[int, error] {
+    return Ok(1)
+}
+fn f(): Result[int, error] {
+    mayFail()?
+    return Ok(0)
+}
+fn main() {
+    println(f())
+}
+""";
+        Sem.AssertDiags(src);
+    }
+
+    [Fact]
+    public void TryAtExprStmtRequiresResultAnno()
+    {
+        // 所在函数未注解 Result → E3005（与 let/return/赋值同规则）
+        var src = """
+fn mayFail(): Result[int, error] {
+    return Ok(1)
+}
+fn f() {
+    mayFail()?
+}
+fn main() {
+    println(f())
+}
+""";
+        Sem.AssertDiags(src, ("E3005", 5));
+    }
+
+    [Fact]
+    public void TryNestedInExprStmtValueRejected()
+    {
+        // ? 混入表达式语句的子表达式 → 仍 E3005（只有语句顶层放行）
+        var src = """
+fn mayFail(): Result[int, error] {
+    return Ok(1)
+}
+fn f(): Result[int, error] {
+    mayFail()? + 1
+    return Ok(0)
+}
+fn main() {
+    println(f())
+}
+""";
+        Sem.AssertDiags(src, ("E3005", 5));
+    }
+
     // ———— spec 修正面 2：块作用域类型不外泄（NAME-SCOPE-001 / RS-012）———
 
     [Fact]

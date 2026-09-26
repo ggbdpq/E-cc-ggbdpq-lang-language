@@ -2,8 +2,8 @@
 // 遍历结构与 resolver 同构；名字解析结果复用 ResolveResult。
 // 本检查器收编了 →Go/→JS 转译器的全部前置约束（参数注解、? 位置与约束、
 // Result 函数 return 形态、match 分类与穷尽性），后端不再重复实现。
-// 与 Go 证据的两处刻意分歧（按裁决修正）：赋值顶层 `?` 走 inferTry（ADR-0005）；
-// 块内 let/循环变量/match 臂绑定写当前块作用域（NAME-SCOPE-001 词法作用域语义）。
+// 与 Go 证据的两处刻意分歧（按裁决修正）：赋值/表达式语句顶层 `?` 走 inferTry（ADR-0005 及其
+// 2026-09-27 扩展）；块内 let/循环变量/match 臂绑定写当前块作用域（NAME-SCOPE-001 词法作用域语义）。
 
 import type { Expr, FnDecl, MatchEx, Pat, Stmt, TryEx, TypeEx } from "../syntax/ast.js";
 import type { Diagnostic } from "../common/diagnostic.js";
@@ -261,7 +261,9 @@ class Checker {
         return;
 
       case "expr_stmt":
-        this.infer(s.x);
+        // ADR-0005 扩展：表达式语句位置的顶层 ? 合法，走与 let/return/赋值相同的传播检查
+        if (s.x.kind === "try") this.inferTry(s.x);
+        else this.infer(s.x);
         return;
 
       case "return":
@@ -641,8 +643,8 @@ class Checker {
         return this.inferFnLit(e);
 
       case "try":
-        // 非语句顶层位置（let/return/赋值已在语句层处理）
-        this.errf(e.line, E3005, "? 只能出现在 let/return/赋值的顶层");
+        // 非语句顶层位置（let/return/赋值/表达式语句已在语句层处理）
+        this.errf(e.line, E3005, "? 只能出现在 let/return/赋值/表达式语句的顶层");
         return this.inferTryOperand(e);
 
       default: {

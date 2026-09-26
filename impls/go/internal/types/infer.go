@@ -207,8 +207,8 @@ func (c *checker) compute(e syntax.Expr) *Type {
 		return c.inferFnLit(x)
 
 	case *syntax.TryEx:
-		// 非语句顶层位置（let/return/赋值已在语句层处理）
-		c.errf(x.Line, E3005, "? 只能出现在 let/return/赋值的顶层")
+		// 非语句顶层位置（let/return/赋值/表达式语句已在语句层处理）
+		c.errf(x.Line, E3005, "? 只能出现在 let/return/赋值/表达式语句的顶层")
 		return c.inferTryOperand(x)
 	}
 	return Unknown

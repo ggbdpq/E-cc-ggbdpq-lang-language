@@ -299,6 +299,22 @@ func Test赋值顶层问号放行(t *testing.T) {
 	wantDiagCodes(t, res, E3005)
 }
 
+// ———— 契约点：ADR-0005 扩展（2026-09-27）：表达式语句顶层 ? ————
+
+func Test表达式语句顶层问号放行(t *testing.T) {
+	// ADR-0005 扩展：表达式语句位置的顶层 ? 合法（所在函数注解 Result 时零诊断）
+	res, _ := checkSrc(t, "fn f(): Result[int, error] { return Ok(1) }\nfn g(): Result[int, error] {\nf()?\nreturn Ok(0)\n}\nfn main() { }")
+	wantDiagCodes(t, res)
+
+	// 所在函数未注解 Result 仍按 E3005 拒绝
+	res, _ = checkSrc(t, "fn f(): Result[int, error] { return Ok(1) }\nfn g() {\nf()?\n}\nfn main() { }")
+	wantDiagCodes(t, res, E3005)
+
+	// 语句内嵌套（非顶层）仍按位置非法拒绝
+	res, _ = checkSrc(t, "fn f(): Result[int, error] { return Ok(1) }\nfn g(): Result[int, error] {\nf()? + 1\nreturn Ok(0)\n}\nfn main() { }")
+	wantDiagCodes(t, res, E3005)
+}
+
 // findLetStmt 按 name 定位第一个 let（测试辅助）
 func findLetStmt(stmts []syntax.Stmt, name string) *syntax.LetStmt {
 	for _, s := range stmts {

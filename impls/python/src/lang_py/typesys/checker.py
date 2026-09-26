@@ -176,7 +176,11 @@ class Checker:
         elif isinstance(s, A.AssignStmt):
             self.assign(s)
         elif isinstance(s, A.ExprStmt):
-            self.infer(s.x)
+            if isinstance(s.x, A.TryEx):
+                # ADR-0005 扩展：表达式语句位置的顶层 ? 合法，走与 let/return/赋值相同的传播检查
+                self.infer_try(s.x)
+            else:
+                self.infer(s.x)
         elif isinstance(s, A.ReturnStmt):
             self.return_stmt(s)
         elif isinstance(s, A.IfStmt):
@@ -458,8 +462,8 @@ class Checker:
         if isinstance(e, A.FnLit):
             return self.infer_fn_lit(e)
         if isinstance(e, A.TryEx):
-            # 非语句顶层位置（let/return/赋值已在语句层处理）
-            self.errf(e.line, E3005, "? 只能出现在 let/return/赋值的顶层")
+            # 非语句顶层位置（let/return/赋值/表达式语句已在语句层处理）
+            self.errf(e.line, E3005, "? 只能出现在 let/return/赋值/表达式语句的顶层")
             return self.infer_try_operand(e)
         return UNKNOWN
 

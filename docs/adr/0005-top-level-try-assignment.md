@@ -27,3 +27,12 @@ checker 不得因「位于赋值语句」而额外拒绝。
 - Go/TS 上游 checker 的误报属实现 bug，是否修复由各自维护节奏决定，不阻塞第五实现。
 - 第五实现（lang-cs）checker 直接按本决定实现。
 - SPEC-GAP-RS-011 关闭为 RESOLVED_BY_SPEC。
+
+## 扩展（2026-09-27）
+
+表达式语句位置的顶层 `?`（`f()?` 单独成句）亦**合法**：求值 `f()`，`Err` 载荷从当前函数
+传播（所在函数未注解 Result 时仍按 E3005 拒绝）。语义与本裁决放行的 `let`/`return`/赋值
+三处完全一致——此前五套实现 checker 对该位置误发 E3005，属语句分派漏项而非语义分歧，
+五套 checker 已同步按 `inferTry` 路径放行。E3005 的 message 相应微调为
+「? 只能出现在 let/return/赋值/表达式语句的顶层」（specs/diagnostics.md 允许 message 微调）。
+conformance 语料继续不为此扩语料，以各实现单测锁定。

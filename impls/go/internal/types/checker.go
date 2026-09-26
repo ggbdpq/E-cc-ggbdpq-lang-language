@@ -237,7 +237,12 @@ func (c *checker) stmt(s syntax.Stmt) {
 		c.assign(st)
 
 	case *syntax.ExprStmt:
-		c.infer(st.X)
+		if t, ok := st.X.(*syntax.TryEx); ok {
+			// ADR-0005 扩展：表达式语句位置的顶层 ? 合法，走与 let/return/赋值相同的传播检查
+			c.inferTry(t)
+		} else {
+			c.infer(st.X)
+		}
 
 	case *syntax.ReturnStmt:
 		c.returnStmt(st)

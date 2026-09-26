@@ -58,6 +58,21 @@ describe("checker 契约点", () => {
     expect(checkSource(bad).map((d) => d.code)).toEqual(["E3005"]);
   });
 
+  it("ADR-0005 扩展：表达式语句位置的顶层 ? 合法", () => {
+    // 所在函数注解 Result → 零诊断
+    const ok =
+      "fn f(): Result[int, error] { return Ok(1) }\nfn g(): Result[int, error] {\nf()?\nreturn Ok(0)\n}\nfn main() { }";
+    expect(checkSource(ok).map((d) => d.code)).toEqual([]);
+    // 所在函数未注解 Result 仍按 E3005 拒绝
+    const bad =
+      "fn f(): Result[int, error] { return Ok(1) }\nfn g() {\nf()?\n}\nfn main() { }";
+    expect(checkSource(bad).map((d) => d.code)).toEqual(["E3005"]);
+    // 语句内嵌套（非顶层）仍按位置非法拒绝
+    const nested =
+      "fn f(): Result[int, error] { return Ok(1) }\nfn g(): Result[int, error] {\nf()? + 1\nreturn Ok(0)\n}\nfn main() { }";
+    expect(checkSource(nested).map((d) => d.code)).toEqual(["E3005"]);
+  });
+
   it("NAME-SCOPE-001：块内 let 不写函数层", () => {
     const src = 'fn main() {\nlet a = 1\nif true {\nlet a = "s"\n}\nlet c = a\nprintln(c)\n}';
     expect(checkSource(src).map((d) => d.code)).toEqual([]);
