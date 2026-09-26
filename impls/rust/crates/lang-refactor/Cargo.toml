@@ -1,0 +1,17 @@
+[package]
+name = "lang-refactor"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+lang-core.workspace = true
+lang-syntax.workspace = true
+lang-types.workspace = true
+lang-semantic.workspace = true
+lang-contract.workspace = true
+lang-graph.workspace = true
+lang-edit.workspace = true
+lang-formatter.workspace = true
+lang-loader.workspace = true

@@ -1,0 +1,11 @@
+[package]
+name = "lang-edit"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+lang-core.workspace = true
+lang-syntax.workspace = true
+lang-contract.workspace = true
