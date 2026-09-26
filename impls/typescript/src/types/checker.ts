@@ -2,7 +2,8 @@
 // 遍历结构与 resolver 同构；名字解析结果复用 ResolveResult。
 // 本检查器收编了 →Go/→JS 转译器的全部前置约束（参数注解、? 位置与约束、
 // Result 函数 return 形态、match 分类与穷尽性），后端不再重复实现。
-// 诊断消息与判定顺序按 Go 参考实现逐字复刻（含 match 臂绑定写入全局层等历史行为）。
+// 与 Go 证据的两处刻意分歧（按裁决修正）：赋值顶层 `?` 走 inferTry（ADR-0005）；
+// 块内 let/循环变量/match 臂绑定写当前块作用域（NAME-SCOPE-001 词法作用域语义）。
 
 import type { Expr, FnDecl, MatchEx, Pat, Stmt, TryEx, TypeEx } from "../syntax/ast.js";
 import type { Diagnostic } from "../common/diagnostic.js";
@@ -244,7 +245,7 @@ class Checker {
       ty = anno;
     }
     if (sym !== undefined) this.symTy.set(sym.id, ty);
-    this.scopes[0]!.set(d.name, ty);
+    this.defineVar(d.name, ty);
   }
 
   // ———— 语句 ————
@@ -293,8 +294,7 @@ class Checker {
         const sym = this.res.declSyms.get(s);
         if (sym !== undefined) this.symTy.set(sym.id, elem);
         this.pushScope();
-        // Go 历史：循环变量类型写入 scopes[0]（全局层）而非新推的块层；如实复刻
-        this.scopes[0]!.set(s.variable, elem);
+        this.defineVar(s.variable, elem);
         this.stmts(s.body);
         this.popScope();
         return;
@@ -335,6 +335,11 @@ class Checker {
     this.scopes.pop();
   }
 
+  /** 绑定类型写入当前（最内层）块作用域。NAME-SCOPE-001：块内 let/循环变量/match 臂绑定不得写入函数/全局层 */
+  private defineVar(name: string, t: Type): void {
+    this.scopes[this.scopes.length - 1]!.set(name, t);
+  }
+
   private lookupVar(name: string): { t: Type; ok: boolean } {
     for (let i = this.scopes.length - 1; i >= 0; i--) {
       const t = this.scopes[i]!.get(name);
@@ -354,7 +359,13 @@ class Checker {
   }
 
   private assign(st: Extract<Stmt, { kind: "assign" }>): void {
-    const valTy = this.infer(st.val);
+    let valTy: Type;
+    if (st.val.kind === "try") {
+      // ADR-0005：赋值右值位置的顶层 ? 合法，走与 let/return 相同的传播检查
+      valTy = this.inferTry(st.val);
+    } else {
+      valTy = this.infer(st.val);
+    }
     const tgt = st.target;
     if (tgt.kind === "ident") {
       const { t: tgtTy } = this.lookupVar(tgt.name);
@@ -1036,12 +1047,13 @@ class Checker {
     let body: Type | undefined;
     for (const arm of x.arms) {
       const bindTypes = this.armBindTypes(arm.pat, kind, scrut);
-      // Go 历史：臂绑定写入 scopes[0]（全局层）而非臂层；inner 先命中故语义近似臂内可见，
-      // 但残留全局。为保诊断逐字一致，如实复刻。
+      // 臂绑定写臂级作用域（NAME-SCOPE-001）：臂内可见，臂结束销毁，不残留外层
+      this.pushScope();
       for (const [name, t] of bindTypes) {
-        this.scopes[0]!.set(name, t);
+        this.defineVar(name, t);
       }
       const bt = this.infer(arm.body);
+      this.popScope();
       if (body === undefined) {
         body = bt;
       } else if (!equal(body, bt)) {
