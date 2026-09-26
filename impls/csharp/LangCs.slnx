@@ -1,8 +1,10 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Lang.Core/Lang.Core.csproj" />
+    <Project Path="src/Lang.Syntax/Lang.Syntax.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Lang.Core.Tests/Lang.Core.Tests.csproj" />
+    <Project Path="tests/Lang.Syntax.Tests/Lang.Syntax.Tests.csproj" />
   </Folder>
 </Solution>
