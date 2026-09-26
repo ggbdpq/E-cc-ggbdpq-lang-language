@@ -1,0 +1,40 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
+
+[workspace.dependencies]
+# —— 内部 crate（拓扑序）——
+lang-core = { path = "crates/lang-core" }
+lang-syntax = { path = "crates/lang-syntax" }
+lang-types = { path = "crates/lang-types" }
+lang-semantic = { path = "crates/lang-semantic" }
+lang-hir = { path = "crates/lang-hir" }
+lang-ir = { path = "crates/lang-ir" }
+lang-runtime = { path = "crates/lang-runtime" }
+lang-interp = { path = "crates/lang-interp" }
+lang-backend-go = { path = "crates/lang-backend-go" }
+lang-backend-js = { path = "crates/lang-backend-js" }
+lang-loader = { path = "crates/lang-loader" }
+lang-formatter = { path = "crates/lang-formatter" }
+lang-contract = { path = "crates/lang-contract" }
+lang-graph = { path = "crates/lang-graph" }
+lang-edit = { path = "crates/lang-edit" }
+lang-refactor = { path = "crates/lang-refactor" }
+lang-verify = { path = "crates/lang-verify" }
+lang-conformance = { path = "crates/lang-conformance" }
+lang-cli = { path = "crates/lang-cli" }
+# —— 外部依赖（统一版本源）——
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+indexmap = { version = "2", features = ["serde"] }
+proptest = "1"
+
+[profile.dev]
+debug = 1
