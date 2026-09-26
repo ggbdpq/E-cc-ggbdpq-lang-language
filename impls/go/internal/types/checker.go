@@ -223,7 +223,7 @@ func (c *checker) letStmt(d *syntax.LetStmt) {
 	if sym != nil {
 		c.out.SymTy[sym.ID] = ty
 	}
-	c.scopes[0][d.Name] = ty
+	c.defineVar(d.Name, ty)
 }
 
 // ———— 语句 ————
@@ -275,7 +275,7 @@ func (c *checker) stmt(s syntax.Stmt) {
 			c.out.SymTy[sym.ID] = elem
 		}
 		c.pushScope()
-		c.scopes[0][st.Var] = elem
+		c.defineVar(st.Var, elem)
 		c.stmts(st.Body)
 		c.popScope()
 
@@ -308,7 +308,13 @@ func (c *checker) stmts(list []syntax.Stmt) {
 }
 
 func (c *checker) assign(st *syntax.AssignStmt) {
-	valTy := c.infer(st.Val)
+	var valTy *Type
+	if t, ok := st.Val.(*syntax.TryEx); ok {
+		// ADR-0005：赋值右值位置的顶层 ? 合法，走与 let/return 相同的传播检查
+		valTy = c.inferTry(t)
+	} else {
+		valTy = c.infer(st.Val)
+	}
 	switch tgt := st.Target.(type) {
 	case *syntax.Ident:
 		tgtTy, _ := c.lookupVar(tgt.Name)

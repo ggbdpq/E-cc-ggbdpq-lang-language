@@ -18,6 +18,10 @@ func deref(t *Type) *Type {
 func (c *checker) pushScope() { c.scopes = append(c.scopes, map[string]*Type{}) }
 func (c *checker) popScope()  { c.scopes = c.scopes[:len(c.scopes)-1] }
 
+// defineVar 绑定类型写入当前（最内层）块作用域。
+// NAME-SCOPE-001：块内 let/循环变量/match 臂绑定不得写入函数/全局层。
+func (c *checker) defineVar(name string, t *Type) { c.scopes[len(c.scopes)-1][name] = t }
+
 func (c *checker) lookupVar(name string) (*Type, bool) {
 	for i := len(c.scopes) - 1; i >= 0; i-- {
 		if t, ok := c.scopes[i][name]; ok {
@@ -686,7 +690,7 @@ func (c *checker) inferMatch(x *syntax.MatchEx) *Type {
 		bindTypes := c.armBindTypes(arm.Pat, kind, scrut)
 		c.pushScope()
 		for name, t := range bindTypes {
-			c.scopes[0][name] = t
+			c.defineVar(name, t)
 		}
 		bt := c.infer(arm.Body)
 		c.popScope()
