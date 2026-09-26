@@ -41,6 +41,29 @@ jobs:
         working-directory: impls/typescript
         run: npm run build
 
+  rust-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: cargo fmt
+        working-directory: impls/rust
+        run: cargo fmt --all -- --check
+      - name: cargo clippy
+        working-directory: impls/rust
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: cargo test（含 conformance 151×4 与双后端 E2E，go/node 差分依赖上方 setup）
+        working-directory: impls/rust
+        run: cargo test --workspace
+
   conformance-go:
     runs-on: ubuntu-latest
     needs: go-test
