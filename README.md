@@ -46,11 +46,12 @@ lang-go verify       # 全管线 + 四路差分验证
 
 | 目录 | 用途 |
 |------|------|
-| **语言实现** | 四个独立实现，收在 `impls/` 下 |
+| **语言实现** | 五个独立实现，收在 `impls/` 下 |
 | `impls/go/` | Go 参考实现（resolver → checker → HIR → IR + interp/gen/genjs/irinterp + contract/refactor） |
 | `impls/typescript/` | TypeScript 独立实现（同套件 151/151 全绿） |
 | `impls/python/` | Python 独立实现（151/151 全绿） |
 | `impls/rust/` | Rust 独立实现（151×4 四路差分全绿，L6 Full Independent Parity） |
+| `impls/csharp/` | C# 独立实现（151×4 四路差分全绿，L6 Full Independent Parity；UTF-16 对抗轴） |
 | **语言契约** | 跨实现共同真值 |
 | `specs/` | **唯一语义真值源**（11 主题规范 + Rule Catalog + versioning + performance） |
 | `conformance/` | **跨实现契约**（151 case，YAML manifest，四路差分） |

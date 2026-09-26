@@ -64,6 +64,29 @@ jobs:
         working-directory: impls/rust
         run: cargo test --workspace
 
+  csharp-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: dotnet build
+        working-directory: impls/csharp
+        run: dotnet build LangCs.slnx -c Release -warnaserror
+      - name: dotnet test（含 conformance 151×4 与双后端 E2E，go/node 差分依赖上方 setup）
+        working-directory: impls/csharp
+        run: dotnet test -c Release
+      - name: dotnet format
+        working-directory: impls/csharp
+        run: dotnet format --verify-no-changes
+
   conformance-go:
     runs-on: ubuntu-latest
     needs: go-test
