@@ -1,0 +1,15 @@
+[package]
+name = "lang-semantic"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+lang-core.workspace = true
+lang-syntax.workspace = true
+lang-types.workspace = true
+
+[dev-dependencies]
+serde.workspace = true
+serde_yaml.workspace = true
