@@ -2,31 +2,37 @@
   <Folder Name="/src/">
     <Project Path="src/Lang.BackendGo/Lang.BackendGo.csproj" />
     <Project Path="src/Lang.BackendJs/Lang.BackendJs.csproj" />
+    <Project Path="src/Lang.Conformance/Lang.Conformance.csproj" />
     <Project Path="src/Lang.Contract/Lang.Contract.csproj" />
     <Project Path="src/Lang.Core/Lang.Core.csproj" />
     <Project Path="src/Lang.Formatter/Lang.Formatter.csproj" />
     <Project Path="src/Lang.Graph/Lang.Graph.csproj" />
     <Project Path="src/Lang.Hir/Lang.Hir.csproj" />
+    <Project Path="src/Lang.Interp/Lang.Interp.csproj" />
     <Project Path="src/Lang.Ir/Lang.Ir.csproj" />
     <Project Path="src/Lang.Loader/Lang.Loader.csproj" />
     <Project Path="src/Lang.Runtime/Lang.Runtime.csproj" />
     <Project Path="src/Lang.Semantic/Lang.Semantic.csproj" />
     <Project Path="src/Lang.Syntax/Lang.Syntax.csproj" />
     <Project Path="src/Lang.Types/Lang.Types.csproj" />
+    <Project Path="src/Lang.Verify/Lang.Verify.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Lang.BackendGo.Tests/Lang.BackendGo.Tests.csproj" />
     <Project Path="tests/Lang.BackendJs.Tests/Lang.BackendJs.Tests.csproj" />
+    <Project Path="tests/Lang.Conformance.Tests/Lang.Conformance.Tests.csproj" />
     <Project Path="tests/Lang.Contract.Tests/Lang.Contract.Tests.csproj" />
     <Project Path="tests/Lang.Core.Tests/Lang.Core.Tests.csproj" />
     <Project Path="tests/Lang.Formatter.Tests/Lang.Formatter.Tests.csproj" />
     <Project Path="tests/Lang.Graph.Tests/Lang.Graph.Tests.csproj" />
     <Project Path="tests/Lang.Hir.Tests/Lang.Hir.Tests.csproj" />
+    <Project Path="tests/Lang.Interp.Tests/Lang.Interp.Tests.csproj" />
     <Project Path="tests/Lang.Ir.Tests/Lang.Ir.Tests.csproj" />
     <Project Path="tests/Lang.Loader.Tests/Lang.Loader.Tests.csproj" />
     <Project Path="tests/Lang.Runtime.Tests/Lang.Runtime.Tests.csproj" />
     <Project Path="tests/Lang.Semantic.Tests/Lang.Semantic.Tests.csproj" />
     <Project Path="tests/Lang.Syntax.Tests/Lang.Syntax.Tests.csproj" />
     <Project Path="tests/Lang.Types.Tests/Lang.Types.Tests.csproj" />
+    <Project Path="tests/Lang.Verify.Tests/Lang.Verify.Tests.csproj" />
   </Folder>
 </Solution>
