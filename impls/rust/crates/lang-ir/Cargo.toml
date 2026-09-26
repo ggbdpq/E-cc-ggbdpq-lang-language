@@ -1,0 +1,21 @@
+[package]
+name = "lang-ir"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+lang-core.workspace = true
+lang-hir.workspace = true
+# lowering 消费类型表（TypeId→enum/struct 名）与符号表（ctor case/fn 身份），
+# compile 便利入口消费 Stmt + Analysis（「源码 → IR」全链）。
+lang-types.workspace = true
+lang-semantic.workspace = true
+lang-syntax.workspace = true
+# 直接效果提取消费 lang_contract 的效果枚举与内建映射（单一事实源在 lang-contract）。
+lang-contract.workspace = true
+
+[dev-dependencies]
+# 测试锁定内建对照表与 runtime 注册表一致（公共 API 读取，非复制事实）。
+lang-runtime.workspace = true
