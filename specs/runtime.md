@@ -14,11 +14,11 @@
 | RUNTIME-CHAN-002 | 同步语义下 recv 空 channel（程序死锁，CHAN-RECV-003） |
 | RUNTIME-MATCH-001 | 字面量 match 无臂匹配（MATCH-EXHAUSTIVE-002 的运行时面） |
 | RUNTIME-TYPE-005 | any 边界断言失败（收窄到与静态事实矛盾的类型） |
-| RUNTIME-JSON-001 | `jsonParse` 非法 JSON |
+| RUNTIME-JSON-001 | `jsonParse` 非法 JSON；`jsonStringify` 作用于含非字符串键的映射 |
 
 ## RUNTIME-JSON-002 JSON 确定性
 
-`jsonParse`：数字按整/浮分型，null → `None`，对象 → 映射（键按字母序载入），数组 → 数组。`jsonStringify`：映射键按**字母序**输出、None → null——两端逐字节确定，是跨实现硬契约。
+`jsonParse`：数字按整/浮分型，null → `None`，对象 → 映射（键按字母序载入），数组 → 数组。`jsonStringify`：映射键按**字母序**输出、None → null——两端逐字节确定，是跨实现硬契约。**细节裁定（v1.0.1，ADR-0006）**：float 按 JSON 惯例——|x| ∈ [1e-6, 1e21) 定点、否则 `e` 形负指数无前导零；`-0.0` → `0`；HTML 转义开启（`< > &` → `\u003c\u003e\u0026`）；含非字符串键的映射 = 运行时错误（RUNTIME-JSON-001，消息形如 `JSON 对象键须为 string，得到 int`，类型名随实型）。
 
 ## RUNTIME-OUTPUT-004 float 输出安全区
 
@@ -29,7 +29,7 @@ conformance 语料不得使用。〔v1.0 实测：interp/→Go 用 Go 'g' 切换
 
 ## RUNTIME-OUTPUT-003 输出面
 
-`println` 空格分隔 + 换行；`print` 无换行。标量格式化：int 十进制、float 无尾零（`1.0` → `1`）、bool `true/false`、字符串顶层不带引号（嵌套带引号）、enum `Tag(载荷)`/`Tag`、`Some(v)`/`None`/`Ok(v)`/`Err(e)`、`error{msg: "..."}`、struct `{field: value, ...}`、数组 `[a, b]`、映射 `{k: v}`（插入序）。格式化细节由 conformance case 逐条锁定。
+`println` 空格分隔 + 换行；`print` 无换行。标量格式化：int 十进制、float 无尾零（`1.0` → `1`）、bool `true/false`、字符串顶层不带引号（嵌套带引号）、enum `Tag(载荷)`/`Tag`、`Some(v)`/`None`/`Ok(v)`/`Err(e)`、`error{msg: "..."}`、struct `{field: value, ...}`、数组 `[a, b]`、映射 `{k: v}`（插入序）。格式化细节由 conformance case 逐条锁定。**嵌套字符串的转义细则属平台差异例外（v1.0.1，ADR-0006）**：→Go 沿 strconv.Quote 惯例、→JS 沿 JSON.stringify 惯例，解释器与 →Go 一致；conformance 语料避开分歧码点（U+2028/2029、DEL 等）。
 
 ## EFFECT-001 效果面
 

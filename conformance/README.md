@@ -11,8 +11,8 @@ conformance/<category>/<case-name>/main.lang-go  入口（目录即包）
 conformance/<category>/<case-name>/*.lang-go     可选附加文件（module 类）
 ```
 
-14 类：syntax / types / generics / struct / enum / match / option / result /
-closure / module / collections / io / concurrency / diagnostics。
+16 类：syntax / types / generics / struct / enum / match / option / result /
+closure / module / collections / io / concurrency / diagnostics / values / expressions。
 
 ## manifest（YAML 受限子集）
 

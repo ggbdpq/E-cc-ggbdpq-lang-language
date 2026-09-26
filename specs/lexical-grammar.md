@@ -17,7 +17,7 @@ Unicode 字母或 `_` 开头，后接 Unicode 字母 / 数字 / `_`。单独的 
 ## LEX-004 关键字与保留字
 
 关键字（15）：`let var fn return if else while for in match struct enum true false break continue`。
-保留字（5）：`go chan import extern interface`。前四个已启用；`interface` 使用即诊断 E1001 系（尚未启用）。
+保留字（5）：`go chan import extern interface`。前四个已启用；`interface` 使用即诊断 E1001 系（尚未启用）。**`chan` 在顶层语句位出现即诊断 E1001 系（仅类型注解位可用）**（v1.0.1 明文，ADR-0006）。
 
 ## LEX-005 整数字面量
 

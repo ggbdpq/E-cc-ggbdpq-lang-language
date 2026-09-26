@@ -30,7 +30,7 @@
 - v0.4 全部为 `error` 级；warning 级别位保留。
 - **v0.9 起 `ruleId` 携带 Semantic Rule ID**（specs/rules.md 的映射表，代码侧唯一实现在
   `impls/go/internal/contract/rules.go`）；Rule ID 与码同为契约：一经发布不可改义。
-- 定位精度：**行级**（primarySpan 的 line 正确，column 恒 1，offset 未填）——列级 primarySpan 是 v0.5 目标。
+- 定位精度：**行级**（primarySpan 的 line 正确，column 恒 1，offset 未填）——列级 primarySpan 是 v0.5 目标。**无位置诊断合法**（v1.0.1 明文，ADR-0006）：套件真值存在 line=0 的 check 期望，此时 line 恒 0、column 恒 1。
 - `relatedSpans`/`help` 字段存在但可为空（结构即契约）。
 
 ## 3. 码清单（全集；逐码 Rule 映射见 specs/rules.md）

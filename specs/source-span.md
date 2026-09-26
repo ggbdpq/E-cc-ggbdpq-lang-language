@@ -21,9 +21,9 @@
 
 | 层 | 精度 |
 |----|------|
-| AST（dump ast） | **列级**：start=首记号起点，end=末记号终点 |
+| AST（dump ast） | **列级**：start=首记号起点，end=末记号终点。**全部节点含 match 臂、enum case、参数均列级**（v1.0.1 明文，ADR-0006；早期参考实现臂级为零值属实现缺口，不构成契约豁免） |
 | HIR（dump hir） | 列级（继承自 AST 盖章） |
-| 诊断 primarySpan | **行级**（column 恒 1，offset 未填）——v0.5 收紧到列 |
+| 诊断 primarySpan | **行级**（line 正确，column 恒 1，offset 未填）——列级 primarySpan 是 v0.5 目标 |
 | IR（dump ir） | 不含 span（IR 为精简执行视图） |
 
 ## 3. 稳定性
