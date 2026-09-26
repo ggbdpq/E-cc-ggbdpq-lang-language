@@ -1,0 +1,13 @@
+[package]
+name = "lang-hir"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+lang-core.workspace = true
+lang-syntax.workspace = true
+lang-types.workspace = true
+# build_hir 消费语义产物（Analysis 查询视图 + resolve_annotation 公共入口）。
+lang-semantic.workspace = true
