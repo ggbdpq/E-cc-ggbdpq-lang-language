@@ -1,0 +1,27 @@
+[package]
+name = "lang-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+lang-core.workspace = true
+lang-syntax.workspace = true
+lang-semantic.workspace = true
+lang-hir.workspace = true
+lang-ir.workspace = true
+lang-interp.workspace = true
+lang-backend-go.workspace = true
+lang-backend-js.workspace = true
+lang-loader.workspace = true
+lang-formatter.workspace = true
+lang-contract.workspace = true
+lang-graph.workspace = true
+lang-edit.workspace = true
+lang-refactor.workspace = true
+lang-verify.workspace = true
+lang-conformance.workspace = true
+lang-runtime.workspace = true
+lang-types.workspace = true
+serde_json.workspace = true
