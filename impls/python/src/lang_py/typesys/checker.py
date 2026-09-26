@@ -167,7 +167,7 @@ class Checker:
             ty = anno
         if sym is not None:
             self.out.sym_ty[sym.id] = ty
-        self.scopes[0][d.name] = ty
+        self.define_var(d.name, ty)
 
     # ———— 语句 ————
     def stmt(self, s: A.Stmt) -> None:
@@ -206,7 +206,7 @@ class Checker:
             if sym is not None:
                 self.out.sym_ty[sym.id] = elem
             self.push_scope()
-            self.scopes[0][s.var] = elem
+            self.define_var(s.var, elem)
             for b in s.body:
                 self.stmt(b)
             self.pop_scope()
@@ -226,7 +226,11 @@ class Checker:
         self.pop_scope()
 
     def assign(self, st: A.AssignStmt) -> None:
-        val_ty = self.infer(st.val)
+        if isinstance(st.val, A.TryEx):
+            # ADR-0005：赋值右值位置的顶层 ? 合法，走与 let/return 相同的传播检查
+            val_ty = self.infer_try(st.val)
+        else:
+            val_ty = self.infer(st.val)
         if isinstance(st.target, A.Ident):
             tgt_ty = self.lookup_var(st.target.name)
             if st.op != K.ASSIGN:
@@ -315,6 +319,13 @@ class Checker:
 
     def pop_scope(self) -> None:
         self.scopes.pop()
+
+    def define_var(self, name: str, t: Type) -> None:
+        """绑定类型写入当前（最内层）块作用域。
+
+        NAME-SCOPE-001：块内 let/循环变量/match 臂绑定不得写入函数/全局层。
+        """
+        self.scopes[-1][name] = t
 
     def lookup_var(self, name: str) -> Type:
         for scope in reversed(self.scopes):
@@ -760,8 +771,9 @@ class Checker:
         for arm in x.arms:
             bind_types = self.arm_bind_types(arm.pat, kind, scrut)
             self.push_scope()
+            # 臂绑定写臂级作用域（NAME-SCOPE-001）：臂内可见，臂结束销毁，不残留外层
             for name, t in bind_types.items():
-                self.scopes[0][name] = t
+                self.define_var(name, t)
             bt = self.infer(arm.body)
             self.pop_scope()
             if body is None:
