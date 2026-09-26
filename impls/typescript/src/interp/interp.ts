@@ -806,6 +806,17 @@ export class Interp {
       case "<=":
       case ">":
       case ">=": {
+        // float 对按 IEEE 运算符直落：NaN 参与任何比较一律 false
+        // （TYPE-CONV-005 v1.0.1，ADR-0006/RS-007）。NaN 无全序，若走 compare
+        // 会被兜成 0，把 `<=`/`>=` 错判为 true。
+        if (l.k === "float" && r.k === "float") {
+          const a = l.v;
+          const b = r.v;
+          if (x.op === "<") return boolV(a < b);
+          if (x.op === "<=") return boolV(a <= b);
+          if (x.op === ">") return boolV(a > b);
+          return boolV(a >= b);
+        }
         const cmp = compare(l, r);
         if (cmp === undefined) {
           throw this.errf(x.line, `${typeName(l)} 与 ${typeName(r)} 不可比较大小（无隐式转换）`);

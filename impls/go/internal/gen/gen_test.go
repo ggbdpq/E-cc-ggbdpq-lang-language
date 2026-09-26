@@ -264,3 +264,56 @@ func main() {
 		t.Fatalf("recv 应阻塞等到延迟 send 的值，实际输出 %q（ERR=非阻塞旧实现）", got)
 	}
 }
+
+// —— ADR-0006 语义点：interp 与 →Go 产物逐字节等价（RS-006/RS-007）——
+
+func Test等价_NaN比较与int饱和(t *testing.T) {
+	if testing.Short() {
+		t.Skip("short 模式跳过 go build")
+	}
+	src := `fn main() {
+    var big = 1.0
+    for i in 0..400 {
+        big = big * 10.0
+    }
+    let nan = big - big
+    println(int(nan), int(big), int(0.0 - big))
+    println(nan == nan, nan != nan)
+    println(nan < 1.0, nan <= 1.0, nan > 1.0, nan >= 1.0)
+    println(1.0 < nan, 1.0 >= nan)
+}`
+	want := interpRun(t, src)
+	// 期望值手算（RS-006：NaN→0、±Inf 饱和；RS-007：NaN 比较全 false、!= 恒 true）
+	if want != "0 9223372036854775807 -9223372036854775808\nfalse true\nfalse false false false\nfalse false\n" {
+		t.Fatalf("解释器输出与 ADR-0006 手算口径不符，实际 %q", want)
+	}
+	got := goRun(t, transpile(t, src))
+	if got != want {
+		t.Fatalf("输出不一致\n=== 解释器 ===\n%q\n=== Go 编译执行 ===\n%q", want, got)
+	}
+}
+
+// —— →Go prelude 直测（RS-006/RS-007）：langGoInt 饱和语义与 langGoRel* NaN 行为 ——
+
+func TestPrelude_langGoInt饱和与RelNaN(t *testing.T) {
+	if testing.Short() {
+		t.Skip("short 模式跳过 go build")
+	}
+	src := prelude + `
+func main() {
+	nan := math.NaN()
+	inf := math.Inf(1)
+	one := 1.0
+	fmt.Println(langGoInt(nan), langGoInt(inf), langGoInt(-inf), langGoInt(9.3e18), langGoInt(0.5), langGoInt(2.9))
+	fmt.Println(langGoRelLt(nan, one), langGoRelLe(nan, one), langGoRelGt(nan, one), langGoRelGe(nan, one))
+	fmt.Println(langGoRelLt(one, nan), langGoRelGe(one, nan))
+	fmt.Println(langGoRelLe(one, one), langGoRelGe(one, one))
+}
+`
+	got := goRun(t, src)
+	want := "0 9223372036854775807 -9223372036854775808 9223372036854775807 0 2\n" +
+		"false false false false\nfalse false\ntrue true\n"
+	if got != want {
+		t.Fatalf("prelude 行为与 ADR-0006 口径不符\n=== 期望 ===\n%q\n=== 实际 ===\n%q", want, got)
+	}
+}

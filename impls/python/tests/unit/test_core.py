@@ -460,3 +460,57 @@ class TestContract:
         a1 = analyze("fn main() { println(1 + 2) }")
         a2 = analyze("fn main() { println(1 + 2) }")
         assert ir_json(a1.prog) == ir_json(a2.prog)
+
+
+# ———— ADR-0006 语义点（RS-006/RS-007/RS-003）————
+
+class TestAdr0006Semantics:
+    """int(float) 饱和、NaN 比较全 false、jsonStringify 非字符串键受控报错。
+
+    Inf/NaN 由浮点乘法静默溢出构造（语言无指数字面量）；期望值全部手算。
+    """
+
+    INF_SRC = (
+        "fn main() {" + NL +
+        "    var big = 1.0" + NL +
+        "    for i in 0..400 {" + NL +
+        "        big = big * 10.0" + NL +
+        "    }" + NL +
+        "    println(int(big))" + NL +
+        "    println(int(0.0 - big))" + NL +
+        "    println(int(big - big))" + NL +
+        "}"
+    )
+
+    def test_int_float_saturates_and_zeroes_nan(self):
+        # RS-006：NaN → 0；±Inf 饱和到 int64 边界；其余向零截断
+        assert run_src("fn main() { println(int(0.5), int(-0.5), int(2.9), int(-2.9)) }") == "0 0 2 -2" + NL
+        assert run_src(self.INF_SRC) == (
+            "9223372036854775807" + NL + "-9223372036854775808" + NL + "0" + NL
+        )
+
+    def test_nan_comparisons_all_false(self):
+        # RS-007：NaN 参与任何比较一律 false；!= 恒 true（含自身对自身）
+        src = (
+            "fn main() {" + NL +
+            "    var big = 1.0" + NL +
+            "    for i in 0..400 {" + NL +
+            "        big = big * 10.0" + NL +
+            "    }" + NL +
+            "    let nan = big - big" + NL +
+            "    println(nan == nan)" + NL +
+            "    println(nan != nan)" + NL +
+            "    println(nan < 1.0, nan <= 1.0, nan > 1.0, nan >= 1.0)" + NL +
+            "    println(1.0 < nan, 1.0 >= nan)" + NL +
+            "}"
+        )
+        assert run_src(src) == (
+            "false" + NL + "true" + NL + "false false false false" + NL + "false false" + NL
+        )
+
+    def test_json_stringify_non_string_key_controlled_error(self):
+        # RS-003：非字符串映射键 = 受控运行时错误（RUNTIME-JSON-001），消息冻结、类型名随实型
+        with pytest.raises(LangRuntimeError, match="JSON 对象键须为 string，得到 int"):
+            run_src('fn main() { println(jsonStringify({1: "x"})) }')
+        with pytest.raises(LangRuntimeError, match="JSON 对象键须为 string，得到 bool"):
+            run_src("fn main() { println(jsonStringify({true: 1})) }")

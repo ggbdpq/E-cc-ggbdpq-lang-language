@@ -707,8 +707,12 @@ export class Machine {
       return { k: "bool", v: applyCmp(op, cmp) };
     }
     if (lv.k === "float" && rv.k === "float") {
-      const cmp = lv.v < rv.v ? -1 : lv.v > rv.v ? 1 : 0;
-      return { k: "bool", v: applyCmp(op, cmp) };
+      // IEEE：NaN 参与任何比较一律 false（TYPE-CONV-005 v1.0.1，ADR-0006/RS-007）；
+      // 直落运算符，不经全序 cmp（NaN 被兜成 0 会把 `<=`/`>=` 错判为 true）
+      const a = lv.v;
+      const b = rv.v;
+      const v = op === "<" ? a < b : op === "<=" ? a <= b : op === ">" ? a > b : a >= b;
+      return { k: "bool", v };
     }
     if (lv.k === "str" && rv.k === "str") {
       // Go string 比较：字节序 = 码点序

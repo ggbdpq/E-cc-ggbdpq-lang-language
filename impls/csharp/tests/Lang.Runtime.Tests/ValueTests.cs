@@ -119,11 +119,18 @@ public class ValueTests
     }
 
     [Fact]
-    public void Compare_FloatNanDegradesToEqual()
+    public void Compare_FloatNanIsUnordered()
     {
-        // IEEE 无序，spec 未写死（SPEC-GAP 登记）：compare 退化 Equal；== 仍 false
-        Assert.Equal(0, Value.Compare(new Value.Float(double.NaN), new Value.Float(1.0)));
+        // IEEE 无序（TYPE-CONV-005 v1.0.1，ADR-0006/RS-007）：NaN → null，
+        // 关系运算在 Ops 层按 IEEE 直落 false；== 仍 false、!= 恒 true（含自身）
+        Assert.Null(Value.Compare(new Value.Float(double.NaN), new Value.Float(1.0)));
+        Assert.Null(Value.Compare(new Value.Float(1.0), new Value.Float(double.NaN)));
+        Assert.Null(Value.Compare(new Value.Float(double.NaN), new Value.Float(double.NaN)));
         Assert.False(T.Ok(Value.EqualsLang(new Value.Float(double.NaN), new Value.Float(double.NaN))));
+        // == 为 false（含自身对自身）；!= 恒 true（EqualsLang 是 == 面，取反即 !=）
+        Assert.False(T.Ok(Value.EqualsLang(new Value.Float(double.NaN), new Value.Float(1.0))));
+        Assert.True(!T.Ok(Value.EqualsLang(new Value.Float(double.NaN), new Value.Float(double.NaN))));
+        Assert.True(!T.Ok(Value.EqualsLang(new Value.Float(double.NaN), new Value.Float(1.0))));
     }
 
     [Fact]

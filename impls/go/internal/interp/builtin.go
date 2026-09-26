@@ -3,6 +3,7 @@ package interp
 import (
 	"fmt"
 	"io"
+	"math"
 	"strconv"
 	"strings"
 
@@ -73,7 +74,7 @@ func (it *Interp) prelude() {
 		case IntVal:
 			return x, nil
 		case FloatVal:
-			return IntVal(int64(x)), nil
+			return IntVal(floatToInt64(float64(x))), nil
 		case StrVal:
 			n, err := strconv.ParseInt(strings.TrimSpace(string(x)), 10, 64)
 			if err != nil {
@@ -220,4 +221,19 @@ func (it *Interp) arity(name string, args []Value, n int) error {
 		return fmt.Errorf("%s 需要 %d 个参数，得到 %d 个", name, n, len(args))
 	}
 	return nil
+}
+
+// floatToInt64 实现 int(float) 的裁定边界（TYPE-CONV-005 v1.0.1，ADR-0006/RS-006
+// 跨实现硬契约）：NaN → 0；正/负溢出饱和到 int64 边界；其余向零截断。
+// 不用裸 int64(f)：Go 该转换对越界/NaN 是平台定义行为（amd64 取 MinInt64）。
+func floatToInt64(f float64) int64 {
+	switch {
+	case math.IsNaN(f):
+		return 0
+	case f >= 9223372036854775808.0: // 2^63 的 f64 精确表示
+		return math.MaxInt64
+	case f <= -9223372036854775808.0: // 恰为 -2^63 时 int64(f) 本就等于 MinInt64
+		return math.MinInt64
+	}
+	return int64(f)
 }

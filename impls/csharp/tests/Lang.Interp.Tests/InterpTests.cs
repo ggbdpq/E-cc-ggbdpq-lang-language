@@ -611,6 +611,44 @@ public class InterpTests
     }
 
     [Fact]
+    public void Float_nan_comparisons_are_false()
+    {
+        // TYPE-CONV-005 v1.0.1（ADR-0006/RS-007）：NaN 参与任何比较一律 false，
+        // != 恒 true（含自身）。NaN 由 inf - inf 造出（1.0 循环 ×10 静默溢出为 +Inf）。
+        AssertBothPaths(
+            """
+            fn main() {
+                var big = 1.0
+                for i in 0..400 {
+                    big = big * 10.0
+                }
+                let nan = big - big
+                println(nan == nan)
+                println(nan != nan)
+                println(nan < 1.0, nan <= 1.0, nan > 1.0, nan >= 1.0)
+                println(1.0 < nan, 1.0 >= nan)
+                println(nan == 1.0, nan != 1.0)
+            }
+            """,
+            "false\ntrue\nfalse false false false\nfalse false\nfalse true\n");
+    }
+
+    [Fact]
+    public void Json_stringify_non_string_key_is_controlled_error()
+    {
+        // RS-003（ADR-0006）：非字符串映射键 = 受控运行时错误（RUNTIME-JSON-001），消息冻结
+        var (ok, _, error) = RunAst(
+            """
+            fn main() {
+                let m = {1: "x"}
+                println(jsonStringify(m))
+            }
+            """);
+        Assert.False(ok);
+        Assert.Contains("JSON 对象键须为 string，得到 int", error);
+    }
+
+    [Fact]
     public void Str_int_float_builtins()
     {
         AssertBothPaths(

@@ -430,13 +430,9 @@ public static class BuiltinDispatch
                 return RtResult<Value>.Ok(v);
             case Value.Float f:
                 {
-                    // Go int64(f)：向零截断；越界/非有限为平台定义——按 amd64 取 MinInt64（证据口径，SPEC-GAP 登记）
-                    const double i64AsF64 = 9223372036854775808.0;
-                    if (!double.IsFinite(f.V) || Math.Abs(f.V) >= i64AsF64)
-                    {
-                        return RtResult<Value>.Ok(new Value.Int(long.MinValue));
-                    }
-
+                    // int(f)：NaN → 0；溢出饱和到 int64 边界；其余向零截断
+                    // （TYPE-CONV-005 v1.0.1，ADR-0006/RS-006 跨实现硬契约；
+                    // C# (long)double 自 .NET Core 3.0 起即该饱和语义）
                     return RtResult<Value>.Ok(new Value.Int((long)f.V));
                 }
 

@@ -51,10 +51,16 @@ def register_builtins(reg) -> None:
         if type(v) is int:
             return v
         if type(v) is float:
-            try:
-                return i64(int(v))
-            except (ValueError, OverflowError):
-                return i64(-(2 ** 63))  # Go int64(NaN/Inf) 的 amd64 结果
+            # int(float) 边界（TYPE-CONV-005 v1.0.1，ADR-0006/RS-006 跨实现硬契约）：
+            # NaN → 0；正/负溢出饱和到 int64 边界；其余向零截断。
+            # 不依赖宿主 int(v)：Python 对 NaN 抛 ValueError、越界抛 OverflowError
+            if v != v:  # NaN（IEEE 唯一自不等值）
+                return 0
+            if v >= 2.0 ** 63:
+                return i64(2 ** 63 - 1)
+            if v <= -(2.0 ** 63):
+                return i64(-(2 ** 63))
+            return i64(int(v))
         if isinstance(v, str):
             try:
                 return i64(int(v.strip(), 10))

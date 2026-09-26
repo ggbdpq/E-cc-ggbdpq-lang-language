@@ -158,3 +158,23 @@ fn main() {
   expect(r.js).toBe(r.interp);
   if (r.go !== undefined) expect(r.go).toBe(r.interp);
 });
+
+it("three-way NaN compare + int(float) saturation (ADR-0006 RS-006/RS-007)", () => {
+  const src = `fn main() {
+    var big = 1.0
+    for i in 0..400 {
+        big = big * 10.0
+    }
+    let nan = big - big
+    println(int(nan), int(big), int(0.0 - big))
+    println(nan == nan, nan != nan)
+    println(nan < 1.0, nan <= 1.0, nan > 1.0, nan >= 1.0)
+    println(1.0 < nan, 1.0 >= nan)
+}`;
+  // 期望值手算：NaN→0、±Inf 饱和（RS-006）；NaN 比较全 false、!= 恒 true（RS-007）
+  const want = "0 9223372036854775807 -9223372036854775808\nfalse true\nfalse false false false\nfalse false\n";
+  const r = threeWay(src);
+  expect(r.interp).toBe(want);
+  expect(r.js).toBe(want);
+  if (r.go !== undefined) expect(r.go).toBe(want);
+});

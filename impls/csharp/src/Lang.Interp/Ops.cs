@@ -102,6 +102,21 @@ internal static class Ops
 
             case Op.Lt or Op.Le or Op.Gt or Op.Ge:
                 {
+                    // float 关系比较按 IEEE 运算符直落：NaN 参与任何比较一律 false
+                    // （TYPE-CONV-005 v1.0.1，ADR-0006/RS-007）。NaN 无全序，若走
+                    // Compare 会被兜成 Equal，把 `<=`/`>=` 错判为 true（lang-rs ops.rs 同构）。
+                    if (l is Value.Float xf && r is Value.Float yf)
+                    {
+                        var fb = op switch
+                        {
+                            Op.Lt => xf.V < yf.V,
+                            Op.Le => xf.V <= yf.V,
+                            Op.Gt => xf.V > yf.V,
+                            _ => xf.V >= yf.V,
+                        };
+                        return RtResult<Value>.Ok(new Value.Bool(fb));
+                    }
+
                     var cmp = Value.Compare(l, r);
                     if (cmp is null)
                     {

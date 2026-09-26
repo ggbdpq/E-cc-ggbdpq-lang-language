@@ -127,6 +127,11 @@ function langGoStr(v) { return langGoFmt(v, true); }
 function langGoInt(v) {
   if (typeof v === "bigint") return v;
   if (typeof v === "number") {
+    // int(float) 边界（TYPE-CONV-005 v1.0.1，ADR-0006/RS-006）：
+    // NaN → 0；溢出饱和到 int64 边界；其余向零截断
+    if (Number.isNaN(v)) return 0n;
+    if (v >= 9223372036854775808) return 9223372036854775807n;
+    if (v <= -9223372036854775808) return -9223372036854775808n;
     if (!Number.isInteger(v)) return BigInt(Math.trunc(v));
     return BigInt(v);
   }
@@ -333,7 +338,10 @@ function langGoJSONTo(v) {
   if (v instanceof Map) {
     const out = {};
     const keys = langGoKeys(v).slice().sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
-    for (const k of keys) out[typeof k === "string" ? k : langGoFmt(k, true)] = langGoJSONTo(langGoMapGet(v, k));
+    for (const k of keys) {
+      if (typeof k !== "string") throw new Error("JSON 对象键须为 string，得到 " + langGoTypeName(k));
+      out[k] = langGoJSONTo(langGoMapGet(v, k));
+    }
     return out;
   }
   if (v.__langGoOpt && !v.has) return null;

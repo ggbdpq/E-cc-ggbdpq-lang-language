@@ -510,6 +510,17 @@ class Interp:
                 return i64(l << r)
             return l >> r  # 算术移位（补码），i64 域内闭合
         if x.op in (K.LT, K.LE, K.GT, K.GE):
+            # float 对按 IEEE 运算符直落：NaN 参与任何比较一律 false
+            # （TYPE-CONV-005 v1.0.1，ADR-0006/RS-007）。NaN 无全序，
+            # 走 compare 会被兜成 0，把 `<=`/`>=` 错判为 true。
+            if type(l) is float and type(r) is float:
+                if x.op == K.LT:
+                    return l < r
+                if x.op == K.LE:
+                    return l <= r
+                if x.op == K.GT:
+                    return l > r
+                return l >= r
             cmp = compare(l, r)
             if cmp is None:
                 raise self.errf(x.line,

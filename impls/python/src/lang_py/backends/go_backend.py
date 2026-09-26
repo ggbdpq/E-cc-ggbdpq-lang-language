@@ -816,14 +816,15 @@ class GoGen:
         if x.op == I.OP_NEQ:
             return f"!langGoEq({l}, {r})"
         if x.op in (I.OP_LT, I.OP_LE, I.OP_GT, I.OP_GE):
-            cmp = f"langGoCompare({l}, {r})"  # 排序比较统一走 langGoCompare
+            # 关系比较走 langGoRel*：浮点对 IEEE 直落（NaN 一律 false，RS-007），
+            # 其余类型运行时分派到 langGoCompare 全序
             if x.op == I.OP_LT:
-                return f"{cmp} < 0"
+                return f"langGoRelLt({l}, {r})"
             if x.op == I.OP_LE:
-                return f"{cmp} <= 0"
+                return f"langGoRelLe({l}, {r})"
             if x.op == I.OP_GT:
-                return f"{cmp} > 0"
-            return f"{cmp} >= 0"
+                return f"langGoRelGt({l}, {r})"
+            return f"langGoRelGe({l}, {r})"
         if x.op == I.OP_PLUS:
             li, ri = self.gt(x.l), self.gt(x.r)
             if li == "any" or ri == "any":

@@ -204,3 +204,60 @@ func joinLines(lines []string) string {
 }
 
 func hasPrefix(s, p string) bool { return len(s) >= len(p) && s[:len(p)] == p }
+
+// —— ADR-0006 语义点：interp 与 →JS 产物逐字节等价（RS-006/RS-007/RS-003）——
+
+func Test等价JS_NaN比较与int饱和(t *testing.T) {
+	src := `fn main() {
+    var big = 1.0
+    for i in 0..400 {
+        big = big * 10.0
+    }
+    let nan = big - big
+    println(int(nan), int(big), int(0.0 - big))
+    println(nan == nan, nan != nan)
+    println(nan < 1.0, nan <= 1.0, nan > 1.0, nan >= 1.0)
+    println(1.0 < nan, 1.0 >= nan)
+}`
+	prog, err := syntax.Parse(src)
+	if err != nil {
+		t.Fatalf("解析失败: %v", err)
+	}
+	want := interpRunJS(t, prog)
+	// 期望值手算（RS-006：NaN→0、±Inf 饱和；RS-007：NaN 比较全 false、!= 恒 true）
+	if want != "0 9223372036854775807 -9223372036854775808\nfalse true\nfalse false false false\nfalse false\n" {
+		t.Fatalf("解释器输出与 ADR-0006 手算口径不符，实际 %q", want)
+	}
+	got := nodeRun(t, transpileJS(t, prog))
+	if got != want {
+		t.Fatalf("输出不一致\n=== 解释器 ===\n%q\n=== Node ===\n%q", want, got)
+	}
+}
+
+func Test等价JS_jsonStringify非字符串键报错(t *testing.T) {
+	// RS-003：非字符串映射键 = 受控运行时错误（不再按 String(k) 直出）
+	src := `fn main() {
+    println(jsonStringify({1: "x"}))
+}`
+	prog, err := syntax.Parse(src)
+	if err != nil {
+		t.Fatalf("解析失败: %v", err)
+	}
+	js := transpileJS(t, prog)
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "out.mjs"), []byte(js), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	run := exec.Command("node", "out.mjs")
+	run.Dir = dir
+	var out bytes.Buffer
+	run.Stdout = &out
+	run.Stderr = &out
+	err = run.Run()
+	if err == nil {
+		t.Fatalf("期望受控报错但成功退出\n输出: %s", out.String())
+	}
+	if !strings.Contains(out.String(), "JSON 对象键须为 string，得到 int") {
+		t.Fatalf("错误消息不符\n实际输出: %s", out.String())
+	}
+}

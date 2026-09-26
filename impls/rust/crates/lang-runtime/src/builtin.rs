@@ -392,14 +392,10 @@ fn builtin_len(machine: &Machine, args: Vec<Value>) -> RtResult<Value> {
 fn builtin_int(v: &Value) -> RtResult<Value> {
     match v {
         Value::Int(_) => Ok(v.clone()),
-        // Go int64(f)：向零截断；越界/非有限为平台定义——按 amd64 取 MinInt64（证据口径）
-        Value::Float(f) => {
-            const I64_AS_F64: f64 = 9_223_372_036_854_775_808.0;
-            if !f.is_finite() || f.abs() >= I64_AS_F64 {
-                return Ok(Value::Int(i64::MIN));
-            }
-            Ok(Value::Int(f.trunc() as i64))
-        }
+        // int(f)：NaN → 0；溢出饱和到 int64 边界；其余向零截断
+        // （TYPE-CONV-005 v1.0.1，ADR-0006/RS-006 跨实现硬契约；Rust `as`
+        // 浮点→整数转换自 1.45 起即该饱和语义）
+        Value::Float(f) => Ok(Value::Int(*f as i64)),
         Value::Str(s) => {
             let trimmed = s.trim();
             match trimmed.parse::<i64>() {
@@ -429,5 +425,38 @@ fn builtin_float(v: &Value) -> RtResult<Value> {
             }
         }
         other => Err(type_err("float()", "int/float/string", other)),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// int(float) 边界（TYPE-CONV-005 v1.0.1，ADR-0006/RS-006 跨实现硬契约）：
+    /// NaN → 0；正/负溢出饱和到 int64 边界；其余向零截断。期望值手算。
+    #[test]
+    fn int_of_float_saturates_and_zeroes_nan() {
+        let int_f = |v: Value| match builtin_int(&v).unwrap() {
+            Value::Int(i) => i,
+            other => panic!("期望 int，得到 {other:?}"),
+        };
+        // NaN → 0
+        assert_eq!(int_f(Value::Float(f64::NAN)), 0);
+        // 正溢出饱和到 int64 最大值
+        assert_eq!(int_f(Value::Float(9.3e18)), 9_223_372_036_854_775_807);
+        assert_eq!(int_f(Value::Float(1e300)), 9_223_372_036_854_775_807);
+        assert_eq!(int_f(Value::Float(f64::INFINITY)), 9_223_372_036_854_775_807);
+        // 负溢出饱和到 int64 最小值
+        assert_eq!(int_f(Value::Float(-9.3e18)), -9_223_372_036_854_775_808);
+        assert_eq!(int_f(Value::Float(-1e300)), -9_223_372_036_854_775_808);
+        assert_eq!(
+            int_f(Value::Float(f64::NEG_INFINITY)),
+            -9_223_372_036_854_775_808
+        );
+        // 其余向零截断
+        assert_eq!(int_f(Value::Float(0.5)), 0);
+        assert_eq!(int_f(Value::Float(-0.5)), 0);
+        assert_eq!(int_f(Value::Float(2.7)), 2);
+        assert_eq!(int_f(Value::Float(-2.7)), -2);
     }
 }

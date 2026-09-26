@@ -61,6 +61,18 @@ pub fn binary(op: Op, l: &Value, r: &Value) -> RtResult<Value> {
             Ok(Value::Bool(if op == Op::Eq { eq } else { !eq }))
         }
         Op::Lt | Op::Le | Op::Gt | Op::Ge => {
+            // float 关系比较按 IEEE 运算符直落：NaN 参与任何比较一律 false
+            // （TYPE-CONV-005 v1.0.1，ADR-0006/RS-007）。NaN 无全序，若走
+            // compare 会被兜成 Equal，把 `<=`/`>=` 错判为 true。
+            if let (Value::Float(x), Value::Float(y)) = (l, r) {
+                let b = match op {
+                    Op::Lt => x < y,
+                    Op::Le => x <= y,
+                    Op::Gt => x > y,
+                    _ => x >= y,
+                };
+                return Ok(Value::Bool(b));
+            }
             let Some(cmp) = Value::compare(l, r) else {
                 return Err(RtError::new(
                     RtErrorKind::TypeCast,
@@ -201,5 +213,48 @@ impl From<AssignOp> for CompoundOp {
             // 纯赋值不会到达运算段（两条路径都在此前分派）
             AssignOp::Assign => CompoundOp::Add,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn b(op: Op, l: &Value, r: &Value) -> bool {
+        match binary(op, l, r).unwrap() {
+            Value::Bool(x) => x,
+            other => panic!("期望 bool，得到 {other:?}"),
+        }
+    }
+
+    fn nan() -> Value {
+        Value::Float(f64::NAN)
+    }
+
+    /// NaN 参与任何比较一律 false（TYPE-CONV-005 v1.0.1，ADR-0006/RS-007）：
+    /// 关系四运算含反向与 NaN 对 NaN 全 false；`==` 为 false、`!=` 恒 true。
+    #[test]
+    fn nan_comparisons_all_false() {
+        let one = Value::Float(1.0);
+        assert!(!b(Op::Lt, &nan(), &one));
+        assert!(!b(Op::Le, &nan(), &one));
+        assert!(!b(Op::Gt, &nan(), &one));
+        assert!(!b(Op::Ge, &nan(), &one));
+        // 反向同样 false
+        assert!(!b(Op::Lt, &one, &nan()));
+        assert!(!b(Op::Ge, &one, &nan()));
+        // NaN 对 NaN
+        assert!(!b(Op::Lt, &nan(), &nan()));
+        assert!(!b(Op::Le, &nan(), &nan()));
+        assert!(!b(Op::Gt, &nan(), &nan()));
+        assert!(!b(Op::Ge, &nan(), &nan()));
+        // == 为 false / != 恒 true（含自身对自身）
+        assert!(!b(Op::Eq, &nan(), &nan()));
+        assert!(b(Op::Ne, &nan(), &nan()));
+        assert!(!b(Op::Eq, &nan(), &one));
+        assert!(b(Op::Ne, &nan(), &one));
+        // 非 NaN 关系语义不受影响
+        assert!(b(Op::Le, &one, &one));
+        assert!(b(Op::Ge, &one, &one));
     }
 }

@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"sort"
 	"strconv"
@@ -253,6 +254,17 @@ func langGoInt(v any) int64 {
 	case int64:
 		return x
 	case float64:
+		// int(float) 边界（TYPE-CONV-005 v1.0.1，ADR-0006/RS-006）：
+		// NaN → 0；溢出饱和到 int64 边界；其余向零截断。不用裸 int64(f)：
+		// Go 该转换对越界/NaN 是平台定义行为（amd64 取 MinInt64）。
+		switch {
+		case math.IsNaN(x):
+			return 0
+		case x >= 9223372036854775808.0: // 2^63 的 f64 精确表示
+			return math.MaxInt64
+		case x <= -9223372036854775808.0: // 恰为 -2^63 时 int64(x) 本就等于 MinInt64
+			return math.MinInt64
+		}
 		return int64(x)
 	case string:
 		n, err := strconv.ParseInt(strings.TrimSpace(x), 10, 64)
@@ -512,7 +524,8 @@ func langGoStrVal(v any) string {
 	return s
 }
 
-// langGoCompare 大小比较（任一侧为 any 时仍可运行时分派；镜像解释器 compare）
+// langGoCompare 大小比较（任一侧为 any 时仍可运行时分派；镜像解释器 compare）。
+// 注意 float NaN 无全序：关系运算请走 langGoRelLt/Le/Gt/Ge（IEEE，NaN 一律 false）。
 func langGoCompare(a, b any) int64 {
 	switch x := a.(type) {
 	case int64:
@@ -547,6 +560,45 @@ func langGoCompare(a, b any) int64 {
 		return int64(strings.Compare(x, y))
 	}
 	panic(langGoTypeName(a) + " 与 " + langGoTypeName(b) + " 不可比较大小")
+}
+
+// ———— 关系比较（RS-007，ADR-0006）：NaN 参与任何比较一律 false ————
+// 浮点对走 IEEE 运算符直落（NaN 时四个运算全 false）；其余走 langGoCompare 全序。
+
+func langGoRelLt(a, b any) bool {
+	if x, ok := a.(float64); ok {
+		if y, ok := b.(float64); ok {
+			return x < y
+		}
+	}
+	return langGoCompare(a, b) < 0
+}
+
+func langGoRelLe(a, b any) bool {
+	if x, ok := a.(float64); ok {
+		if y, ok := b.(float64); ok {
+			return x <= y
+		}
+	}
+	return langGoCompare(a, b) <= 0
+}
+
+func langGoRelGt(a, b any) bool {
+	if x, ok := a.(float64); ok {
+		if y, ok := b.(float64); ok {
+			return x > y
+		}
+	}
+	return langGoCompare(a, b) > 0
+}
+
+func langGoRelGe(a, b any) bool {
+	if x, ok := a.(float64); ok {
+		if y, ok := b.(float64); ok {
+			return x >= y
+		}
+	}
+	return langGoCompare(a, b) >= 0
 }
 
 // ———— 运算与索引 ————
@@ -856,7 +908,12 @@ func langGoJSONTo(v any) any {
 	case *LangGoMap:
 		out := map[string]any{}
 		for _, k := range x.keys {
-			out[k.(string)] = langGoJSONTo(x.m["s:"+k.(string)])
+			ks, ok := k.(string)
+			if !ok {
+				// 非字符串映射键 = 受控运行时错误（RUNTIME-JSON-001，RS-003/ADR-0006）
+				panic("JSON 对象键须为 string，得到 " + langGoTypeName(k))
+			}
+			out[ks] = langGoJSONTo(x.m["s:"+ks])
 		}
 		return out
 	}

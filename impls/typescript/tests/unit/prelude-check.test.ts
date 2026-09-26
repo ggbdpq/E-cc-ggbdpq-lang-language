@@ -24,3 +24,26 @@ it("prelude JSON stringify keeps bigint precision", () => {
   const map = mk(["n", 9223372036854775807n]);
   expect(str(map)).toBe('{"n":9223372036854775807}');
 });
+
+it("prelude langGoInt saturates and zeroes NaN (RS-006)", () => {
+  const int = new Function(jsPrelude + "; return langGoInt;")();
+  // 期望值手算（TYPE-CONV-005 v1.0.1）：NaN → 0；溢出饱和；向零截断
+  expect(int(Number.NaN)).toBe(0n);
+  expect(int(9.3e18)).toBe(9223372036854775807n);
+  expect(int(1e300)).toBe(9223372036854775807n);
+  expect(int(Infinity)).toBe(9223372036854775807n);
+  expect(int(-9.3e18)).toBe(-9223372036854775808n);
+  expect(int(-1e300)).toBe(-9223372036854775808n);
+  expect(int(-Infinity)).toBe(-9223372036854775808n);
+  expect(int(0.5)).toBe(0n);
+  expect(int(-0.5)).toBe(0n);
+  expect(int(2.9)).toBe(2n);
+  expect(int(9223372036854775807n)).toBe(9223372036854775807n);
+});
+
+it("prelude jsonStringify rejects non-string map keys (RS-003)", () => {
+  const mk = new Function(jsPrelude + "; return langGoNewMap;")();
+  const str = new Function(jsPrelude + "; return langGoJSONStringify;")();
+  const map = mk([1n, "x"]);
+  expect(() => str(map)).toThrow("JSON 对象键须为 string，得到 int");
+});

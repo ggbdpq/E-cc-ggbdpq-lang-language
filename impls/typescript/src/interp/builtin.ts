@@ -457,11 +457,12 @@ export const CORE_BUILTINS: readonly (readonly [string, Builtin["fn"]])[] = [
         case "int":
           return x;
         case "float": {
-          // Go int64(x)：向零截断；越界为平台定义——按 amd64 取 minint64
-          if (!Number.isFinite(x.v)) return intV(INT64_MIN);
-          const t = Math.trunc(x.v);
-          if (Math.abs(t) >= 2 ** 63) return intV(INT64_MIN);
-          return intV(BigInt(t));
+          // int(float) 边界（TYPE-CONV-005 v1.0.1，ADR-0006/RS-006 跨实现硬契约）：
+          // NaN → 0；正/负溢出饱和到 int64 边界；其余向零截断
+          if (Number.isNaN(x.v)) return intV(0n);
+          if (x.v >= 2 ** 63) return intV(INT64_MAX);
+          if (x.v <= -(2 ** 63)) return intV(INT64_MIN);
+          return intV(BigInt(Math.trunc(x.v)));
         }
         case "str": {
           const n = goParseInt(x.v.trim());

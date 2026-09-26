@@ -914,6 +914,14 @@ func (it *Interp) evalBinary(x *syntax.Binary, env *Env) (Value, error) {
 			return a >> uint(b), nil
 		}
 	case syntax.Lt, syntax.Le, syntax.Gt, syntax.Ge:
+		// float 对按 IEEE 运算符直落：NaN 参与任何比较一律 false
+		// （TYPE-CONV-005 v1.0.1，ADR-0006/RS-007）。NaN 无全序，若走 compare
+		// 会被兜成 0，把 `<=`/`>=` 错判为 true。
+		if xf, ok := l.(FloatVal); ok {
+			if yf, ok := r.(FloatVal); ok {
+				return BoolVal(floatRel(x.Op, float64(xf), float64(yf))), nil
+			}
+		}
 		cmp, ok := compare(l, r)
 		if !ok {
 			return nil, it.errf(x.Line, "%s 与 %s 不可比较大小（无隐式转换）", typeName(l), typeName(r))
@@ -990,6 +998,20 @@ func (it *Interp) arith(x *syntax.Binary, a, b int64) (Value, error) {
 }
 
 // compare 同型 int/float/str 大小比较
+// floatRel float 对的关系比较（IEEE：NaN 参与任何比较一律 false，RS-007）。
+func floatRel(op syntax.Kind, x, y float64) bool {
+	switch op {
+	case syntax.Lt:
+		return x < y
+	case syntax.Le:
+		return x <= y
+	case syntax.Gt:
+		return x > y
+	default:
+		return x >= y
+	}
+}
+
 func compare(a, b Value) (int, bool) {
 	switch x := a.(type) {
 	case IntVal:

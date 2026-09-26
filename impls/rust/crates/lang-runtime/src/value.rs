@@ -164,13 +164,15 @@ impl Value {
         }
     }
 
-    /// 同型 int/float/string 大小比较；异型或不可比类型返回 `None`
+    /// 同型 int/float/string 大小比较；异型、不可比类型或 NaN float 返回 `None`
     /// （字符串为 UTF-8 字节序 = 码点序，与 Go strings.Compare 一致）。
+    ///
+    /// NaN 无全序（IEEE）：关系运算（`< <= > >=`）在 ops 层对 float 对按
+    /// IEEE 运算符直落 false，不经本函数（ADR-0006/RS-007）。
     pub fn compare(a: &Value, b: &Value) -> Option<std::cmp::Ordering> {
-        use std::cmp::Ordering;
         match (a, b) {
             (Value::Int(x), Value::Int(y)) => Some(x.cmp(y)),
-            (Value::Float(x), Value::Float(y)) => x.partial_cmp(y).or(Some(Ordering::Equal)),
+            (Value::Float(x), Value::Float(y)) => x.partial_cmp(y),
             (Value::Str(x), Value::Str(y)) => Some(x.cmp(y)),
             _ => None,
         }
@@ -370,6 +372,23 @@ mod tests {
         );
         assert_eq!(
             Value::compare(&Value::Int(1), &Value::Str("1".into())),
+            None
+        );
+    }
+
+    #[test]
+    fn compare_nan_float_is_none() {
+        // NaN 无全序（IEEE）→ None；关系运算在 ops 层按 IEEE 直落 false（RS-007）
+        assert_eq!(
+            Value::compare(&Value::Float(f64::NAN), &Value::Float(1.0)),
+            None
+        );
+        assert_eq!(
+            Value::compare(&Value::Float(1.0), &Value::Float(f64::NAN)),
+            None
+        );
+        assert_eq!(
+            Value::compare(&Value::Float(f64::NAN), &Value::Float(f64::NAN)),
             None
         );
     }

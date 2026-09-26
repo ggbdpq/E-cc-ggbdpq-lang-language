@@ -178,4 +178,40 @@ fn main() {
 }`;
     expect(run(src).out).toBe("1\n2.5\n0.1\n1e+21\n1e-05\n1e+20\n1e+06\n999999\n123456\n1.234567e+06\n1.234567895e+08\n0\n");
   });
+
+  it("int(float) boundary: truncate + NaN→0 + saturate (RS-006)", () => {
+    const src = `fn main() {
+    println(int(0.5), int(-0.5), int(2.9), int(-2.9))
+    var big = 1.0
+    for i in 0..400 {
+        big = big * 10.0
+    }
+    println(int(big))
+    println(int(0.0 - big))
+    println(int(big - big))
+}`;
+    // 期望值手算：向零截断；±Inf 饱和到 int64 边界；NaN → 0
+    expect(run(src).out).toBe("0 0 2 -2\n9223372036854775807\n-9223372036854775808\n0\n");
+  });
+
+  it("NaN comparisons all false (RS-007)", () => {
+    const src = `fn main() {
+    var big = 1.0
+    for i in 0..400 {
+        big = big * 10.0
+    }
+    let nan = big - big
+    println(nan == nan)
+    println(nan != nan)
+    println(nan < 1.0, nan <= 1.0, nan > 1.0, nan >= 1.0)
+    println(1.0 < nan, 1.0 >= nan)
+}`;
+    expect(run(src).out).toBe("false\ntrue\nfalse false false false\nfalse false\n");
+  });
+
+  it("jsonStringify non-string key is controlled error (RS-003)", () => {
+    expect(run(`fn main() { println(jsonStringify({1: "x"})) }`).err).toContain(
+      "JSON 对象键须为 string，得到 int",
+    );
+  });
 });

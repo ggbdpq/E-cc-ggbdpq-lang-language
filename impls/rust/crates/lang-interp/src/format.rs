@@ -302,4 +302,19 @@ mod tests {
         let err = host_builtin(&mut m, "jsonParse", vec![Value::str("{")]).unwrap_err();
         assert_eq!(err.kind(), RtErrorKind::JsonParse);
     }
+
+    /// jsonStringify 非字符串映射键 = 受控运行时错误（RS-003，ADR-0006），
+    /// 消息冻结、类型名随实型。
+    #[test]
+    fn host_json_stringify_non_string_key_error() {
+        let mut m = Machine::new();
+        let map = m.alloc_map_value();
+        let Value::Map(mid) = &map else { panic!() };
+        m.heap
+            .map_insert(*mid, &Value::Int(1), Value::str("x"))
+            .unwrap();
+        let err = host_builtin(&mut m, "jsonStringify", vec![map]).unwrap_err();
+        assert_eq!(err.kind(), RtErrorKind::TypeCast);
+        assert_eq!(err.message(), "JSON 对象键须为 string，得到 int");
+    }
 }

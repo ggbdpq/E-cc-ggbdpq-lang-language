@@ -635,3 +635,37 @@ println(m["a"])`, "6\n")
 	// let 绑定不可复合赋值（与 = 同规）
 	wantErr(t, "let x = 1\nx += 2", "let")
 }
+
+// —— ADR-0006 语义点（RS-006/RS-007/RS-003）——
+
+func TestInt浮点转换边界(t *testing.T) {
+	// int(float)：向零截断；NaN → 0；溢出饱和到 int64 边界（TYPE-CONV-005 v1.0.1，RS-006）
+	wantOut(t, `println(int(0.5), int(-0.5), int(2.9), int(-2.9))`, "0 0 2 -2\n")
+	// Inf/NaN 由浮点乘法静默溢出构造（语言无指数字面量），期望值手算
+	wantOut(t, `var big = 1.0
+for i in 0..400 {
+    big = big * 10.0
+}
+println(int(big))
+println(int(0.0 - big))
+println(int(big - big))`, "9223372036854775807\n-9223372036854775808\n0\n")
+}
+
+func TestNaN比较一律false(t *testing.T) {
+	// RS-007：NaN 参与任何比较一律 false；!= 恒 true（含自身对自身）
+	wantOut(t, `var big = 1.0
+for i in 0..400 {
+    big = big * 10.0
+}
+let nan = big - big
+println(nan == nan)
+println(nan != nan)
+println(nan < 1.0, nan <= 1.0, nan > 1.0, nan >= 1.0)
+println(1.0 < nan, 1.0 >= nan)`, "false\ntrue\nfalse false false false\nfalse false\n")
+}
+
+func TestJsonStringify非字符串键受控报错(t *testing.T) {
+	// RS-003：非字符串映射键 = 受控运行时错误（RUNTIME-JSON-001），消息冻结、类型名随实型
+	wantErr(t, `println(jsonStringify({1: "x"}))`, "JSON 对象键须为 string，得到 int")
+	wantErr(t, `println(jsonStringify({true: 1}))`, "JSON 对象键须为 string，得到 bool")
+}

@@ -293,9 +293,17 @@ public class BuiltinTests
         Assert.Equal(T.I(2), Call(m, sink, "int", new Value.Float(2.9)));
         Assert.Equal(T.I(42), Call(m, sink, "int", T.S("42")));
         Assert.Equal(T.I(42), Call(m, sink, "int", T.I(42)));
-        // 越界/非有限 → i64::MIN（Go amd64 口径，SPEC-GAP 登记）
-        Assert.Equal(T.I(long.MinValue), Call(m, sink, "int", new Value.Float(9.3e18)));
-        Assert.Equal(T.I(long.MinValue), Call(m, sink, "int", new Value.Float(double.NaN)));
+        // int(float) 边界（TYPE-CONV-005 v1.0.1，ADR-0006/RS-006）：NaN → 0；
+        // 正/负溢出饱和到 int64 边界；其余向零截断（期望值手算）
+        Assert.Equal(T.I(long.MaxValue), Call(m, sink, "int", new Value.Float(9.3e18)));
+        Assert.Equal(T.I(long.MaxValue), Call(m, sink, "int", new Value.Float(1e300)));
+        Assert.Equal(T.I(long.MaxValue), Call(m, sink, "int", new Value.Float(double.PositiveInfinity)));
+        Assert.Equal(T.I(long.MinValue), Call(m, sink, "int", new Value.Float(-9.3e18)));
+        Assert.Equal(T.I(long.MinValue), Call(m, sink, "int", new Value.Float(-1e300)));
+        Assert.Equal(T.I(long.MinValue), Call(m, sink, "int", new Value.Float(double.NegativeInfinity)));
+        Assert.Equal(T.I(0), Call(m, sink, "int", new Value.Float(double.NaN)));
+        Assert.Equal(T.I(0), Call(m, sink, "int", new Value.Float(0.5)));
+        Assert.Equal(T.I(0), Call(m, sink, "int", new Value.Float(-0.5)));
         Assert.Equal(RtErrorKind.TypeCast, CallErr(m, sink, "int", T.S("x")).Kind);
         Assert.Equal(RtErrorKind.TypeCast, CallErr(m, sink, "int", new Value.Bool(true)).Kind);
     }

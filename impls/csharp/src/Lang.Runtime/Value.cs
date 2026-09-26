@@ -205,15 +205,16 @@ public abstract record Value
     }
 
     /// <summary>
-    /// 同型 int/float/string 大小比较：返回 -1/0/1；异型或不可比类型返回 null（由解释器消费）。
-    /// float 含 NaN 退化为 Equal（IEEE 无序，SPEC-GAP 登记）；字符串为**码点序**
+    /// 同型 int/float/string 大小比较：返回 -1/0/1；异型、不可比类型或 NaN float 返回 null（由解释器消费）。
+    /// NaN 无全序（IEEE）：关系运算在 Ops 层对 float 对按 IEEE 运算符直落 false，不经本函数
+    /// （TYPE-CONV-005 v1.0.1，ADR-0006/RS-007）；字符串为**码点序**
     /// （Go strings.Compare 的 UTF-8 字节序）——注意 C# string.Ordinal 是 UTF-16 unit 序，
     /// astral 码点与 U+E000..U+FFFF 的相对次序两者相反，必须走 <see cref="CompareCodePoints"/>。
     /// </summary>
     public static int? Compare(Value a, Value b) => (a, b) switch
     {
         (Int x, Int y) => x.V.CompareTo(y.V),
-        (Float x, Float y) => CompareFloat(x.V, y.V),
+        (Float x, Float y) => double.IsNaN(x.V) || double.IsNaN(y.V) ? null : CompareFloat(x.V, y.V),
         (Str x, Str y) => CompareCodePoints(x.V, y.V),
         _ => null,
     };

@@ -1389,17 +1389,17 @@ func (g *gen) emitBinary(x *ir.Binary) (string, error) {
 	case ir.OpNeq:
 		return "!langGoEq(" + l + ", " + r + ")", nil
 	case ir.OpLt, ir.OpLe, ir.OpGt, ir.OpGe:
-		// 排序比较统一走 langGoCompare（任一侧 any 也能运行时分派）
-		cmp := "langGoCompare(" + l + ", " + r + ")"
+		// 关系比较走 langGoRel*：浮点对 IEEE 直落（NaN 一律 false，RS-007），
+		// 其余类型运行时分派到 langGoCompare 全序
 		switch x.Op {
 		case ir.OpLt:
-			return cmp + " < 0", nil
+			return "langGoRelLt(" + l + ", " + r + ")", nil
 		case ir.OpLe:
-			return cmp + " <= 0", nil
+			return "langGoRelLe(" + l + ", " + r + ")", nil
 		case ir.OpGt:
-			return cmp + " > 0", nil
+			return "langGoRelGt(" + l + ", " + r + ")", nil
 		default:
-			return cmp + " >= 0", nil
+			return "langGoRelGe(" + l + ", " + r + ")", nil
 		}
 	case ir.OpPlus:
 		// 任一侧为 any（如字符串索引/切片）时按 lang-go 语义收窄

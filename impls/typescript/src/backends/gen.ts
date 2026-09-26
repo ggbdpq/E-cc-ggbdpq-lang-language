@@ -1081,11 +1081,12 @@ class Gen {
       case "<=":
       case ">":
       case ">=": {
-        const cmp = `langGoCompare(${l}, ${r})`;
-        if (x.op === "<") return `${cmp} < 0`;
-        if (x.op === "<=") return `${cmp} <= 0`;
-        if (x.op === ">") return `${cmp} > 0`;
-        return `${cmp} >= 0`;
+        // 关系比较走 langGoRel*：浮点对 IEEE 直落（NaN 一律 false，RS-007），
+        // 其余类型运行时分派到 langGoCompare 全序
+        if (x.op === "<") return `langGoRelLt(${l}, ${r})`;
+        if (x.op === "<=") return `langGoRelLe(${l}, ${r})`;
+        if (x.op === ">") return `langGoRelGt(${l}, ${r})`;
+        return `langGoRelGe(${l}, ${r})`;
       }
       case "+": {
         const li = this.gt(x.l);
