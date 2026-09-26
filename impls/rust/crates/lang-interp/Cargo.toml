@@ -1,0 +1,24 @@
+[package]
+name = "lang-interp"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+lang-core.workspace = true
+lang-syntax.workspace = true
+lang-semantic.workspace = true
+lang-hir.workspace = true
+lang-ir.workspace = true
+lang-runtime.workspace = true
+# 输出面桥：ValueFormatter 经 A5 冻结的 fmt/json 纯函数（float 'g' 形 /
+# strconv.Quote / JSON 字节契约），零漂移复用而非复制规则。
+lang-backend-go.workspace = true
+# 宿主内建 jsonParse 的 JSON 合法性校验（数字按 json.Number 语义自提取）。
+serde_json.workspace = true
+
+[dev-dependencies]
+# conformance 实测矩阵：复用 A6 冻结的 manifest 解析与套件扫描器
+# （dev 依赖允许与 lang-conformance → lang-interp 的常规依赖成环）。
+lang-conformance.workspace = true

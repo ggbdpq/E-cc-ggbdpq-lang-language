@@ -1,0 +1,21 @@
+[package]
+name = "lang-verify"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+lang-core.workspace = true
+lang-syntax.workspace = true
+lang-semantic.workspace = true
+lang-hir.workspace = true
+lang-ir.workspace = true
+lang-runtime.workspace = true
+lang-interp.workspace = true
+lang-backend-go.workspace = true
+lang-backend-js.workspace = true
+lang-loader.workspace = true
+lang-contract.workspace = true
+lang-types.workspace = true
+lang-conformance.workspace = true
