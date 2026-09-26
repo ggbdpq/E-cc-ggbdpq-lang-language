@@ -336,11 +336,16 @@ fn rel_to_root(root: &Path, p: &Path) -> String {
     }
 }
 
-/// `std::path::absolute` 的错误包装（词法绝对化，等价 Go filepath.Abs）。
+/// 词法绝对化（等价 Go filepath.Abs）。
+///
+/// 必须再过 `lexically_clean`：`std::path::absolute` 在 Windows 折叠 `..` 而
+/// POSIX 保留 ParentDir 组件——不清理会让 root 带 `..` 进入 `rel_to_root`，
+/// 与清理过的目标路径组件错位，误判「逃出模块根目录」（Linux CI 实测）。
 fn path_absolute(dir: &Path) -> Result<PathBuf, LoadError> {
-    std::path::absolute(dir).map_err(|e| LoadError {
+    let p = std::path::absolute(dir).map_err(|e| LoadError {
         message: format!("{}: {e}", dir.display()),
-    })
+    })?;
+    Ok(lexically_clean(&p))
 }
 
 #[cfg(test)]
@@ -636,5 +641,29 @@ mod tests {
         assert_eq!(refs[0].path, "./a");
         assert_eq!(refs[0].line, 1);
         assert_eq!(refs[1].line, 3);
+    }
+
+    /// 路径含 `..` 时根包含判定不得误报（POSIX 的 std::path::absolute 保留
+    /// ParentDir 组件，Windows 折叠——本用例在任何平台都构造带 `..` 的入参，
+    /// 锁定 path_absolute 的词法清理；Linux CI 实测曾致 5 个 module case 全挂）。
+    #[test]
+    fn dotdot_root_path_does_not_escape() {
+        let td = TempDir::new("dotdot");
+        td.write("main.lang-go", "import \"./mid\"\nprintln(1)");
+        td.write("mid/main.lang-go", "import \"./leaf\"\nprintln(2)");
+        td.write("mid/leaf/main.lang-go", "println(3)");
+        // 经由同级目录折返进入模块根：root 携带 `..` 组件（td/mid/leaf/../.. ≡ td）
+        let detour = td
+            .path()
+            .join("mid")
+            .join("leaf")
+            .join("..")
+            .join("..")
+            .to_path_buf();
+        let prog = load(&detour, false).unwrap();
+        assert_eq!(
+            rels(&prog),
+            vec!["mid/leaf/main.lang-go", "mid/main.lang-go", "main.lang-go"]
+        );
     }
 }
