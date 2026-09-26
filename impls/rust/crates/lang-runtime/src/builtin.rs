@@ -445,7 +445,10 @@ mod tests {
         // 正溢出饱和到 int64 最大值
         assert_eq!(int_f(Value::Float(9.3e18)), 9_223_372_036_854_775_807);
         assert_eq!(int_f(Value::Float(1e300)), 9_223_372_036_854_775_807);
-        assert_eq!(int_f(Value::Float(f64::INFINITY)), 9_223_372_036_854_775_807);
+        assert_eq!(
+            int_f(Value::Float(f64::INFINITY)),
+            9_223_372_036_854_775_807
+        );
         // 负溢出饱和到 int64 最小值
         assert_eq!(int_f(Value::Float(-9.3e18)), -9_223_372_036_854_775_808);
         assert_eq!(int_f(Value::Float(-1e300)), -9_223_372_036_854_775_808);
