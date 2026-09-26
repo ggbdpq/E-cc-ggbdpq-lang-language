@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Lang.Core\Lang.Core.csproj" />
+    <ProjectReference Include="..\Lang.Hir\Lang.Hir.csproj" />
+    <ProjectReference Include="..\Lang.Types\Lang.Types.csproj" />
+    <ProjectReference Include="..\Lang.Semantic\Lang.Semantic.csproj" />
+    <ProjectReference Include="..\Lang.Syntax\Lang.Syntax.csproj" />
+    <ProjectReference Include="..\Lang.Contract\Lang.Contract.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
