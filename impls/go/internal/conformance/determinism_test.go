@@ -26,7 +26,7 @@ import (
 func conformanceRoot(t *testing.T) string {
 	t.Helper()
 	_, thisFile, _, _ := runtime.Caller(0)
-	root := filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "conformance")
+	root := filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "..", "conformance")
 	if _, err := os.Stat(root); err != nil {
 		t.Fatalf("conformance 目录缺失: %v", err)
 	}

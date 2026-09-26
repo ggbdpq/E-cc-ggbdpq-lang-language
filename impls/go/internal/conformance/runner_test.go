@@ -13,7 +13,7 @@ import (
 
 func TestConformanceSuite(t *testing.T) {
 	_, thisFile, _, _ := runtime.Caller(0)
-	root := filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "conformance")
+	root := filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "..", "conformance")
 	if _, err := os.Stat(root); err != nil {
 		t.Fatalf("conformance 套件目录缺失: %s（%v）", root, err)
 	}

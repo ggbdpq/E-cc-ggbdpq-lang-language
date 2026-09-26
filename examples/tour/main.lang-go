@@ -1,0 +1,129 @@
+// tour —— lang-go 语言十分钟入门（可执行教程）
+// 运行：lang-go run（每节打印标题与演示输出）
+// 规范见 docs/spec.md；本文只演示 v0.2 已实现的语言面。
+
+// ———— 结构与枚举在模块顶层声明（→Go 转译约束） ————
+
+struct Point {
+    x: int
+    y: int
+}
+
+fn (p Point).dist2(): int {
+    return p.x * p.x + p.y * p.y
+}
+
+enum Shape {
+    Circle(float)
+    Rect(float, float)
+    Unit
+}
+
+fn area(s: Shape): float {
+    return match s {
+        Circle(r) => 3.14159 * r * r
+        Rect(w, h) => w * h
+        Unit => 0.0
+    }
+}
+
+fn parseAge(s: string): Result[int, error] {
+    if s == "" {
+        return Err(err("空输入"))
+    }
+    return Ok(int(s))
+}
+
+fn emit(ch: chan[string], who: string) {
+    send(ch, "hi " + who)
+    send(ch, "bye " + who)
+}
+
+fn main() {
+    // ===== 1. 绑定与基本类型 =====
+    // let 不可重绑，var 可以；int 与 float 不隐式转换
+    let born = 2007
+    var age = 19
+    age += 1
+    let pi = 3.14159
+    let name = "lang-go"
+    println("== 1 绑定 ==", born, age, pi, name)
+    println("   显式转换:", float(3) / 2.0, int("42") + 1)
+
+    // ===== 2. 运算符 =====
+    // 算术/比较/逻辑与主流语言一致；位运算优先级对齐 Go；区间是半开 [lo, hi)
+    println("== 2 运算 ==", 1 + 2 * 3, 7 / 2, 7 % 2, 2.5 * 2.0)
+    println("   位运算:", 12 & 10, 12 | 10, 12 ^ 10, 1 << 4)
+    println("   区间 0..3:", len(0..3))
+
+    // ===== 3. 控制流 =====
+    println("== 3 控制流 ==")
+    var total = 0
+    for i in 0..5 {
+        if i % 2 == 0 {
+            total += i
+        } else {
+            total += 1
+        }
+    }
+    println("   循环累加:", total)
+
+    // ===== 4. 容器 =====
+    // 数组与映射是引用语义：赋值共享，push/+= 原位生效
+    var xs = [3, 1, 2]
+    xs += [4]
+    let m = {"b": 2, "a": 1}
+    println("== 4 容器 ==", xs, len(m), has(m, "a"))
+
+    // ===== 5. struct 值语义与引用 =====
+    // struct 赋值是拷贝；& 取引用后写穿透
+    var p = Point{x: 1, y: 2}
+    var q = p
+    q.x = 9
+    let r = &p
+    r.x = 100
+    println("== 5 struct ==", "q.x =", q.x, "（拷贝不受影响）", "p.x =", p.x, "（引用穿透）")
+    println("   方法:", p.dist2())
+
+    // ===== 6. enum 与 match =====
+    // match 必须穷尽所有 case（编译期检查），否则 check 不过
+    println("== 6 enum ==")
+    for s in [Circle(1.0), Rect(2.0, 5.0), Unit] {
+        println("  ", area(s))
+    }
+
+    // ===== 7. Result 与 ? =====
+    // 无异常无 null：错误是值，? 把 Err 上抛到函数边界
+    let ok = match parseAge("28") {
+        Ok(v) => v
+        Err(e) => 0
+    }
+    let bad = match parseAge("") {
+        Ok(v) => v
+        Err(e) => -1
+    }
+    println("== 7 Result ==", ok, bad)
+
+    // ===== 8. 复合赋值与闭包 =====
+    let counter = fn(): fn(): int {
+        var n = 0
+        return fn(): int {
+            n += 1
+            return n
+        }
+    }()
+    counter()
+    println("== 8 闭包 ==", "计数:", counter())
+
+    // ===== 9. JSON =====
+    // 动态值：null 变 None，对象键排序
+    let v = jsonParse("{\"b\": 2, \"a\": [1, null]}")
+    println("== 9 JSON ==", v["a"][0], v["a"][1] == None, jsonStringify(v))
+
+    // ===== 10. 并发：go 与 chan =====
+    // go 启动后台任务（→Go 真 goroutine + 进程退出前 join；解释器/→JS 在语句处同步执行）；
+    // recv 阻塞直到有值：go 生产者 + 主流程 recv 是三路一致的确定性模式（decisions #63）
+    var ch = makeChan()
+    go emit(ch, "lang-go")
+    println("== 10 并发 ==", recv(ch), recv(ch))
+}

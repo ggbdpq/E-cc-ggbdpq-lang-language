@@ -1,0 +1,146 @@
+// wbi.lang-go —— WBI 参数签名纯函数部分（移植自 linkpull bilibili/wbi.go）
+// 不含网络与缓存（wbiKeys 依赖 Bilibili 结构体，属于 linkpull 侧，不在 M4 范围）。
+// 语义对齐说明：lang-go 映射为单值键值表（Go url.Values 支持多值，本协议用不到）。
+let MIXIN_KEY_ENC_TAB = [46, 47, 18, 2, 53, 8, 23, 32, 15, 50, 10, 31, 58, 3, 45, 35, 27, 43, 5, 49, 33, 9, 42, 19, 29, 28, 14, 39, 12, 38, 41, 13, 37, 48, 7, 16, 24, 55, 40, 61, 26, 17, 0, 1, 60, 51, 30, 4, 22, 25, 54, 21, 56, 59, 6, 63, 57, 62, 11, 36, 20, 34, 44, 52]
+let HEXU = "0123456789ABCDEF"
+
+// indexOf 单字符首次出现位置，无则 -1
+fn indexOf(s: string, ch: string): int {
+    for i in 0..len(s) {
+        if s[i] == ch {
+            return i
+        }
+    }
+    return -1
+}
+
+// lastIndexOf 单字符末次出现位置，无则 -1
+fn lastIndexOf(s: string, ch: string): int {
+    var found = -1
+    for i in 0..len(s) {
+        if s[i] == ch {
+            found = i
+        }
+    }
+    return found
+}
+
+// keyOf 从图片 URL 取文件名。
+// 原版为 TrimSuffix(Split(u, "?")[0], ".")：只去掉「末尾一个点」，
+// 常规 .png 结尾的 URL 会连扩展名一起返回——bug-for-bug 保真。
+fn keyOf(u: string): string {
+    var s = u
+    let qi = indexOf(s, "?")
+    if qi >= 0 {
+        s = s[0:qi]
+    }
+    if len(s) > 0 && s[len(s) - 1] == "." {
+        s = s[0:len(s) - 1]
+    }
+    let li = lastIndexOf(s, "/")
+    if li >= 0 {
+        s = s[li + 1:len(s)]
+    }
+    return s
+}
+
+// getMixinKey 按置换表取前 32 位混合密钥
+fn getMixinKey(img: string, sub: string): string {
+    let raw = img + sub
+    var out = ""
+    for i in 0..len(MIXIN_KEY_ENC_TAB) {
+        if i >= 32 {
+            break
+        }
+        let idx = MIXIN_KEY_ENC_TAB[i]
+        if idx >= len(raw) {
+            break
+        }
+        out = out + raw[idx]
+    }
+    return out
+}
+
+// stripSpecial 参考实现要求剔除 ' ! ( ) * 五个字符
+fn stripSpecial(s: string): string {
+    var out = ""
+    for c in s {
+        if c != "!" && c != "'" && c != "(" && c != ")" && c != "*" {
+            out = out + c
+        }
+    }
+    return out
+}
+
+// sortStrings 选择排序（WBI 参数量小，O(n²) 足够）。
+// 元素经 [any] 流转：→Go 转译在比较处用 lang-goCompare 分派，输出处收窄。
+fn sortStrings(xs: [any]): [any] {
+    var pool: [any] = []
+    for x in xs {
+        push(pool, x)
+    }
+    var out: [any] = []
+    let n = len(pool)
+    while len(out) < n {
+        var mi = 0
+        for i in 0..len(pool) {
+            if pool[i] < pool[mi] {
+                mi = i
+            }
+        }
+        push(out, pool[mi])
+        var rest: [any] = []
+        for i in 0..len(pool) {
+            if i != mi {
+                push(rest, pool[i])
+            }
+        }
+        pool = rest
+    }
+    return out
+}
+
+// isUnreserved RFC 3986 unreserved + Go QueryEscape 的保留集
+fn isUnreserved(b: int): bool {
+    return b >= 97 && b <= 122 || b >= 65 && b <= 90 || b >= 48 && b <= 57 || b == 45 || b == 95 || b == 46 || b == 126
+}
+
+// queryEscape 对齐 Go url.QueryEscape：空格转 +，其余非保留集转大写 %XX
+fn queryEscape(s: string): string {
+    let bs = bytes(s)
+    var out = ""
+    for b in bs {
+        if b == 32 {
+            out = out + "+"
+        } else if isUnreserved(b) {
+            out = out + char(b)
+        } else {
+            out = out + "%" + HEXU[b >> 4] + HEXU[b & 15]
+        }
+    }
+    return out
+}
+
+// encodeQuery 键排序后拼 k=v&…（对齐 url.Values.Encode）
+fn encodeQuery(q: map[string]string): string {
+    let ks = sortStrings(keys(q))
+    var out = ""
+    for i in 0..len(ks) {
+        if i > 0 {
+            out = out + "&"
+        }
+        out = out + queryEscape(ks[i]) + "=" + queryEscape(q[ks[i]])
+    }
+    return out
+}
+
+// signWBI 追加 wts 并计算 w_rid，返回含两者新参数表
+fn signWBI(params: map[string]string, wts: int, mixinKey: string): map[string]string {
+    var q: map[string]string = {}
+    for k in keys(params) {
+        q[k] = stripSpecial(params[k])
+    }
+    q["wts"] = str(wts)
+    q["w_rid"] = md5Hex(encodeQuery(q) + mixinKey)
+    return q
+}

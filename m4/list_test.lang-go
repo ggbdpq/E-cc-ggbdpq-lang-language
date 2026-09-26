@@ -1,0 +1,49 @@
+// list_test.lang-go —— fixture 取自 m4/gofixture（list.go 纯函数实测输出）
+// 注：match 臂体是表达式，多断言用 && 串联
+fn testParseArchives() {
+    let refs = match parseArchives("{\"archives\":[{\"bvid\":\"BV1a\",\"title\":\"第一集\"},{\"bvid\":\"\",\"title\":\"跳过\"},{\"bvid\":\"BV1b\",\"title\":null}]}") {
+        Ok(rs) => rs
+        Err(e) => []
+    }
+    assert(len(refs) == 2, "空 bvid 跳过")
+    assert(refs[0].url == "https://www.bilibili.com/video/BV1a" && refs[0].title == "第一集", "URL 与标题")
+    assert(refs[1].title == "", "null 标题按空串")
+    let empty = match parseArchives("{}") {
+        Ok(rs) => rs
+        Err(e) => []
+    }
+    assert(len(empty) == 0, "无 archives 键")
+}
+fn testListKindOf() {
+    var q1: map[string]string = {}
+    q1["sid"] = "456"
+    let r1 = match listKindOf("/123/channel/collectiondetail", q1) {
+        Ok(t) => t.mid == "123" && t.kind == "season" && t.sid == "456"
+        Err(e) => false
+    }
+    assert(r1, "channel 即 season，sid 来自查询")
+    var q2: map[string]string = {}
+    q2["type"] = "series"
+    let r2 = match listKindOf("/123/lists/789", q2) {
+        Ok(t) => t.kind == "series" && t.sid == "789"
+        Err(e) => false
+    }
+    assert(r2, "lists + series")
+    var q3: map[string]string = {}
+    let r3 = match listKindOf("/123/lists/789", q3) {
+        Ok(t) => t.kind == "season"
+        Err(e) => false
+    }
+    assert(r3, "type 缺省归 season")
+    var q4: map[string]string = {}
+    let r4 = match listKindOf("/onlymid", q4) {
+        Ok(t) => false
+        Err(e) => e.msg == "不是 UP主列表页链接"
+    }
+    assert(r4, "非列表页报错")
+    let r5 = match listKindOf("/123/channel/collectiondetail", q4) {
+        Ok(t) => false
+        Err(e) => e.msg == "列表链接缺少 id 参数"
+    }
+    assert(r5, "缺 sid 报错")
+}

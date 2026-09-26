@@ -19,7 +19,7 @@ import (
 func corpus(t *testing.T) map[string]string {
 	t.Helper()
 	files := map[string]string{}
-	roots := []string{"../../../examples", "../../../m4"}
+	roots := []string{"../../../../examples", "../../../../m4"}
 	for _, root := range roots {
 		err := filepath.Walk(root, func(p string, info os.FileInfo, err error) error {
 			if err != nil || info.IsDir() || !strings.HasSuffix(p, ".lang-go") {

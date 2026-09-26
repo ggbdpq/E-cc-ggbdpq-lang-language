@@ -283,6 +283,121 @@ fn main() {
 	wantDiagCodes(t, res)
 }
 
+// ———— 契约点：ADR-0005 / NAME-SCOPE-001 ————
+
+func Test赋值顶层问号放行(t *testing.T) {
+	// ADR-0005：赋值右值位置的顶层 ? 合法（所在函数注解 Result 时零诊断）
+	res, _ := checkSrc(t, "fn f(): Result[int, error] { return Ok(1) }\nfn g(): Result[int, error] {\nvar x = 0\nx = f()?\nreturn Ok(x)\n}\nfn main() { }")
+	wantDiagCodes(t, res)
+
+	// 复合赋值右值同规则
+	res, _ = checkSrc(t, "fn f(): Result[int, error] { return Ok(1) }\nfn g(): Result[int, error] {\nvar x = 0\nx += f()?\nreturn Ok(x)\n}\nfn main() { }")
+	wantDiagCodes(t, res)
+
+	// 所在函数未注解 Result 仍按 E3005 拒绝
+	res, _ = checkSrc(t, "fn f(): Result[int, error] { return Ok(1) }\nfn g() {\nvar x = 0\nx = f()?\n}\nfn main() { }")
+	wantDiagCodes(t, res, E3005)
+}
+
+// findLetStmt 按 name 定位第一个 let（测试辅助）
+func findLetStmt(stmts []syntax.Stmt, name string) *syntax.LetStmt {
+	for _, s := range stmts {
+		switch st := s.(type) {
+		case *syntax.LetStmt:
+			if st.Name == name {
+				return st
+			}
+		case *syntax.FnDecl:
+			if r := findLetStmt(st.Body, name); r != nil {
+				return r
+			}
+		case *syntax.IfStmt:
+			if r := findLetStmt(st.Then, name); r != nil {
+				return r
+			}
+			if r := findLetStmt(st.Else, name); r != nil {
+				return r
+			}
+		case *syntax.WhileStmt:
+			if r := findLetStmt(st.Body, name); r != nil {
+				return r
+			}
+		case *syntax.ForInStmt:
+			if r := findLetStmt(st.Body, name); r != nil {
+				return r
+			}
+		}
+	}
+	return nil
+}
+
+// letInitType 取 let 绑定初值的推断类型（测试辅助）
+func letInitType(t *testing.T, res *Result, prog []syntax.Stmt, name string) *Type {
+	t.Helper()
+	d := findLetStmt(prog, name)
+	if d == nil {
+		t.Fatalf("未找到 let %s", name)
+	}
+	ty, ok := res.ExprTy[d.Init]
+	if !ok {
+		t.Fatalf("let %s 的初值无推断类型", name)
+	}
+	return ty
+}
+
+// checkSrcStrict 解析+检查，resolver 与 checker 均须零诊断（测试辅助）
+func checkSrcStrict(t *testing.T, src string) (*Result, []syntax.Stmt) {
+	t.Helper()
+	prog, err := syntax.Parse(src)
+	if err != nil {
+		t.Fatalf("解析失败: %v", err)
+	}
+	res := semantic.Resolve(prog)
+	if res.HasErrors() {
+		t.Fatalf("resolver 意外诊断: %v", res.Diags)
+	}
+	out := Check(prog, res)
+	if out.HasErrors() {
+		t.Fatalf("checker 意外诊断: %v", out.Diags)
+	}
+	return out, prog
+}
+
+// Test块内绑定类型不泄漏 NAME-SCOPE-001：块内 let/循环变量/match 臂绑定的类型
+// 写当前块作用域，不得写入函数/全局层（跨块同名绑定不互相污染）。
+func Test块内绑定类型不泄漏(t *testing.T) {
+	// 块内 let 不覆盖函数层同名绑定：外层 a 仍是 int
+	out, prog := checkSrcStrict(t, "fn main() {\nlet a = 1\nif true {\nlet a = \"s\"\n}\nlet c = a\nprintln(c)\n}")
+	if got := letInitType(t, out, prog, "c"); got.Kind != KInt {
+		t.Fatalf("块内 let 泄漏：let c = a 的类型 = %s, 期望 int", got.String())
+	}
+
+	// 循环变量写循环块层，不覆盖函数层同名绑定：循环后 x 仍是 string
+	out, prog = checkSrcStrict(t, "fn main() {\nlet x = \"s\"\nfor x in [1, 2] {\nlet y = x\nprintln(y)\n}\nlet z = x\nprintln(z)\n}")
+	if got := letInitType(t, out, prog, "z"); got.Kind != KString {
+		t.Fatalf("循环变量泄漏：let z = x 的类型 = %s, 期望 string", got.String())
+	}
+
+	// match 臂绑定写臂层，不覆盖函数层同名绑定：match 后 v 仍是 string
+	out, prog = checkSrcStrict(t, `
+enum E { A(int)
+    B
+}
+fn main() {
+    let v = "s"
+    var e = A(1)
+    match e {
+        A(v) => println(v)
+        B => println(0)
+    }
+    let z = v
+    println(z)
+}`)
+	if got := letInitType(t, out, prog, "z"); got.Kind != KString {
+		t.Fatalf("match 臂绑定泄漏：let z = v 的类型 = %s, 期望 string", got.String())
+	}
+}
+
 // TestCorpus零诊断 全部现有合法程序（examples + m4 + selftest）必须零诊断——
 // 这是「现有合法程序零误杀」的机械判据。
 func TestCorpus零诊断(t *testing.T) {
@@ -290,10 +405,10 @@ func TestCorpus零诊断(t *testing.T) {
 	// 它是 lang-go test 专用语料，含 interp-only 构造（嵌套声明、Ok 作值比较），
 	// v0.3 起这些构造在 check 时报 E2010/E3006（见 ADR-0001）。
 	dirs := []string{
-		"../../../examples/hello", "../../../examples/closures", "../../../examples/compound",
-		"../../../examples/goroutine", "../../../examples/json", "../../../examples/result",
-		"../../../examples/shapes", "../../../examples/tour", "../../../examples/channel",
-		"../../../m4",
+		"../../../../examples/hello", "../../../../examples/closures", "../../../../examples/compound",
+		"../../../../examples/goroutine", "../../../../examples/json", "../../../../examples/result",
+		"../../../../examples/shapes", "../../../../examples/tour", "../../../../examples/channel",
+		"../../../../m4",
 	}
 	for _, dir := range dirs {
 		dir := dir

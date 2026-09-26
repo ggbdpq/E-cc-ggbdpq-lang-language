@@ -1,0 +1,141 @@
+// video.lang-go —— video.go 纯函数层移植（linkpull bilibili）
+// 不含 probeVideo 网络编排（属 linkpull 结构体层）；dashStream 只保留纯函数用到的字段。
+struct DashStream {
+    codecs: string
+    codecid: int
+    bandwidth: int
+    height: int
+}
+
+// qnName 清晰度代号 → 展示名（数据表原样；lang-go 无 init()，直接全局字面量）
+var QNNAME = {"127": "8K 超高清", "126": "杜比视界", "125": "HDR 真彩", "120": "4K 超清", "116": "1080P 60帧", "112": "1080P 高码率", "100": "智能修复", "80": "1080P 高清", "74": "720P 60帧", "64": "720P 高清", "32": "480P 清晰", "16": "360P 流畅"}
+
+// hasPrefix 前缀判断
+fn hasPrefix(s: string, prefix: string): bool {
+    if len(prefix) > len(s) {
+        return false
+    }
+    return s[0:len(prefix)] == prefix
+}
+
+// codecName codecid/编码串 → 统一名称（逻辑原样）
+fn codecName(s: DashStream): string {
+    if hasPrefix(s.codecs, "avc") || s.codecid == 7 {
+        return "h264"
+    }
+    if hasPrefix(s.codecs, "hev") || hasPrefix(s.codecs, "hvc") || s.codecid == 12 {
+        return "hevc"
+    }
+    if hasPrefix(s.codecs, "av01") || s.codecid == 13 {
+        return "av1"
+    }
+    return s.codecs
+}
+
+// pickCodec 按偏好从同清晰度的多个编码流里选一个（b.CodecPref 改为参数）
+fn pickCodec(streams: [DashStream], pref: string): DashStream {
+    var score = fn(s: DashStream): int {
+        let name = codecName(s)
+        if pref == "av1" {
+            if name == "av1" {
+                return 0
+            }
+            if name == "hevc" {
+                return 1
+            }
+            return 2
+        }
+        if pref == "hevc" {
+            if name == "hevc" {
+                return 0
+            }
+            if name == "h264" {
+                return 1
+            }
+            return 2
+        }
+        if name == "h264" {
+            return 0
+        }
+        if name == "hevc" {
+            return 1
+        }
+        return 2
+    }
+    var best = streams[0]
+    for i in 1..len(streams) {
+        let s = streams[i]
+        if score(s) < score(best) || score(s) == score(best) && s.bandwidth > best.bandwidth {
+            best = s
+        }
+    }
+    return best
+}
+
+// isFloatStr 简易浮点字面量判定（数字/点/负号；Go ParseFloat 的常见子集）
+fn isFloatStr(s: string): bool {
+    if len(s) == 0 {
+        return false
+    }
+    var dots = 0
+    for i in 0..len(s) {
+        let c = s[i]
+        if c == "." {
+            dots = dots + 1
+            if dots > 1 {
+                return false
+            }
+        } else if !(c >= "0" && c <= "9") {
+            if !(i == 0 && c == "-") {
+                return false
+            }
+        }
+    }
+    return true
+}
+
+// isIntStr 纯数字判定（Atoi 的常用子集）
+fn isIntStr(s: string): bool {
+    if len(s) == 0 {
+        return false
+    }
+    for c in s {
+        if c < "0" || c > "9" {
+            return false
+        }
+    }
+    return true
+}
+
+// fpsOf 解析 "16000/1000" 形式的帧率（逻辑原样；解析失败按 0 处理）
+fn fpsOf(fr: string): int {
+    if fr == "" {
+        return 0
+    }
+    var num = fr
+    var den = "1"
+    let slash = indexOf(fr, "/")
+    if slash >= 0 {
+        num = fr[0:slash]
+        den = fr[slash + 1:len(fr)]
+    }
+    if !isFloatStr(num) {
+        return 0
+    }
+    var d = 1.0
+    if isFloatStr(den) {
+        let dv = float(den)
+        if dv > 0.0 {
+            d = dv
+        }
+    }
+    return int(float(num) / d + 0.5)
+}
+
+// pageOf 取 URL 参数 p 的页码（原版吃 *url.URL，这里吃已解析的查询表）
+fn pageOf(q: map[string]string): int {
+    if has(q, "p") && isIntStr(q["p"]) {
+        return int(q["p"])
+    }
+    return 0
+}
