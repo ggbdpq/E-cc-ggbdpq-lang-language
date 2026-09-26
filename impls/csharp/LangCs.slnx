@@ -1,5 +1,7 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Lang.BackendGo/Lang.BackendGo.csproj" />
+    <Project Path="src/Lang.BackendJs/Lang.BackendJs.csproj" />
     <Project Path="src/Lang.Contract/Lang.Contract.csproj" />
     <Project Path="src/Lang.Core/Lang.Core.csproj" />
     <Project Path="src/Lang.Graph/Lang.Graph.csproj" />
@@ -11,6 +13,8 @@
     <Project Path="src/Lang.Types/Lang.Types.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Lang.BackendGo.Tests/Lang.BackendGo.Tests.csproj" />
+    <Project Path="tests/Lang.BackendJs.Tests/Lang.BackendJs.Tests.csproj" />
     <Project Path="tests/Lang.Contract.Tests/Lang.Contract.Tests.csproj" />
     <Project Path="tests/Lang.Core.Tests/Lang.Core.Tests.csproj" />
     <Project Path="tests/Lang.Graph.Tests/Lang.Graph.Tests.csproj" />
