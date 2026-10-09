@@ -192,8 +192,8 @@ fn main() {
 			walkE(n.R)
 		}
 	}
-	var walkS func(list []Stmt)
-	walkS = func(list []Stmt) {
+
+	walkS := func(list []Stmt) {
 		for _, s := range list {
 			switch st := s.(type) {
 			case *Let:

@@ -678,10 +678,13 @@ func (c *checker) inferMatch(x *syntax.MatchEx) *Type {
 		return Unknown // 分类已报错（混用/字面量臂），不再叠加穷尽诊断
 	}
 
-	if kind == MatchEnum {
+	switch kind {
+	case MatchEnum:
 		c.checkEnumExhaustive(x)
-	} else if kind == MatchResult || kind == MatchOption {
+	case MatchResult, MatchOption:
 		c.checkAlgebraicExhaustive(x)
+	case MatchLiteral:
+		// 字面量匹配沿用既有规则，无代数类型穷尽检查。
 	}
 
 	// 臂绑定类型与臂体类型

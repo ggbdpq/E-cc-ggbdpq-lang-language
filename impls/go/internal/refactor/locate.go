@@ -100,8 +100,8 @@ func declNameSpan(prog []syntax.Stmt, srcs Sources, res *semantic.Result, target
 // findLetStmt 按符号找 LetStmt
 func findLetStmt(prog []syntax.Stmt, res *semantic.Result, target *semantic.Symbol) *syntax.LetStmt {
 	var found *syntax.LetStmt
-	var walkS func(s syntax.Stmt)
-	walkS = func(s syntax.Stmt) {
+
+	walkS := func(s syntax.Stmt) {
 		if st, ok := s.(*syntax.LetStmt); ok && found == nil {
 			if sym := res.DeclSyms[st]; sym == target {
 				found = st

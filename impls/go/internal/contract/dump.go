@@ -40,7 +40,7 @@ func HIRJSON(p *hir.Prog) []*Node {
 		n := stmtNode(&s.Node, "struct")
 		n.Name = s.Name
 		for _, f := range s.Fields {
-			n.Children = append(n.Children, &Node{NodeID: int(s.Node.ID), Kind: "field", Name: f.Name, Type: typeStr(f.Typ)})
+			n.Children = append(n.Children, &Node{NodeID: int(s.ID), Kind: "field", Name: f.Name, Type: typeStr(f.Typ)})
 		}
 		out = append(out, n)
 	}
@@ -48,7 +48,7 @@ func HIRJSON(p *hir.Prog) []*Node {
 		n := stmtNode(&e.Node, "enum")
 		n.Name = e.Name
 		for _, c := range e.Cases {
-			n.Children = append(n.Children, &Node{NodeID: int(e.Node.ID), Kind: "case", Name: c.Name})
+			n.Children = append(n.Children, &Node{NodeID: int(e.ID), Kind: "case", Name: c.Name})
 		}
 		out = append(out, n)
 	}
@@ -301,7 +301,7 @@ func (b *hirBuilder) expr(e hir.Expr) *Node {
 		n := hirNode(&x.Node, "struct_lit")
 		n.Name = symStr(x.Sym)
 		for _, f := range x.Fields {
-			fn := &Node{NodeID: int(x.Node.ID), Kind: "field_init", Name: f.Name}
+			fn := &Node{NodeID: int(x.ID), Kind: "field_init", Name: f.Name}
 			fn.Children = []*Node{b.expr(f.Val)}
 			n.Children = append(n.Children, fn)
 		}
@@ -310,7 +310,7 @@ func (b *hirBuilder) expr(e hir.Expr) *Node {
 	case *hir.MapLit:
 		n := hirNode(&x.Node, "map_lit")
 		for i := range x.Keys {
-			item := &Node{NodeID: int(x.Node.ID), Kind: "item"}
+			item := &Node{NodeID: int(x.ID), Kind: "item"}
 			item.Children = []*Node{b.expr(x.Keys[i]), b.expr(x.Vals[i])}
 			n.Children = append(n.Children, item)
 		}
@@ -337,7 +337,7 @@ func (b *hirBuilder) expr(e hir.Expr) *Node {
 		n.Name = kind
 		n.Children = []*Node{b.expr(x.Scrut)}
 		for _, arm := range x.Arms {
-			an := &Node{NodeID: int(x.Node.ID), Kind: "arm"}
+			an := &Node{NodeID: int(x.ID), Kind: "arm"}
 			an.Children = []*Node{b.pat(arm.Pat), b.expr(arm.Body)}
 			n.Children = append(n.Children, an)
 		}

@@ -638,9 +638,10 @@ func (g *jsgen) emitMatchStmt(m *ir.Match) error {
 func splitAlgebraic(m *ir.Match, posName, negName string) (pos, neg *ir.Arm) {
 	for i := range m.Arms {
 		if p, ok := m.Arms[i].Pat.(*ir.CtorPat); ok {
-			if p.Sym.Name == posName {
+			switch p.Sym.Name {
+			case posName:
 				pos = &m.Arms[i]
-			} else if p.Sym.Name == negName {
+			case negName:
 				neg = &m.Arms[i]
 			}
 		}

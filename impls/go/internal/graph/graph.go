@@ -246,7 +246,7 @@ func collectHIRExpr(e hir.Expr, from int, g *Graph) {
 		}
 	case *hir.Call:
 		if x.Fn != nil {
-			g.addEdge(Edge{From: from, To: int(x.Fn.ID), Kind: EdgeCall, Span: &x.Node.Sp})
+			g.addEdge(Edge{From: from, To: int(x.Fn.ID), Kind: EdgeCall, Span: &x.Sp})
 		}
 		if x.Callee != nil {
 			collectHIRExpr(x.Callee, from, g)
@@ -256,7 +256,7 @@ func collectHIRExpr(e hir.Expr, from int, g *Graph) {
 		}
 	case *hir.MethodCall:
 		if x.Method != nil {
-			g.addEdge(Edge{From: from, To: int(x.Method.ID), Kind: EdgeCall, Span: &x.Node.Sp})
+			g.addEdge(Edge{From: from, To: int(x.Method.ID), Kind: EdgeCall, Span: &x.Sp})
 		}
 		collectHIRExpr(x.Recv, from, g)
 		for _, a := range x.Args {
