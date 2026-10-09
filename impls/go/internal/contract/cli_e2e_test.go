@@ -21,6 +21,7 @@ func runCLI(t *testing.T, dir string, args ...string) (string, int) {
 	cmd.Dir = dir
 	out, err := cmd.CombinedOutput()
 	code := 0
+
 	if err != nil {
 		if ee, ok := errors.AsType[*exec.ExitError](err); ok {
 			code = ee.ExitCode()
@@ -28,6 +29,7 @@ func runCLI(t *testing.T, dir string, args ...string) (string, int) {
 			t.Fatalf("执行失败: %v\n%s", err, out)
 		}
 	}
+
 	return string(out), code
 }
 
@@ -35,10 +37,12 @@ func runCLI(t *testing.T, dir string, args ...string) (string, int) {
 func buildCLI(t *testing.T) string {
 	t.Helper()
 	bin := filepath.Join(t.TempDir(), "lang-go.exe")
+
 	build := exec.Command("go", "build", "-o", bin, "../../cmd/lang-go")
 	if out, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("构建 CLI 失败: %v\n%s", err, out)
 	}
+
 	return bin
 }
 
@@ -46,21 +50,26 @@ func TestCLI端到端(t *testing.T) {
 	if testing.Short() {
 		t.Skip("short 模式跳过构建")
 	}
+
 	dir := filepath.Join("..", "..", "examples", "hello")
 	envelope := func(t *testing.T, out string) map[string]any {
 		t.Helper()
+
 		var m map[string]any
 		if err := json.Unmarshal([]byte(out), &m); err != nil {
 			t.Fatalf("输出不是合法 JSON: %v\n%s", err, out)
 		}
+
 		for _, k := range []string{"schemaVersion", "toolVersion", "kind"} {
 			if _, ok := m[k]; !ok {
 				t.Fatalf("信封缺字段 %s: %s", k, out)
 			}
 		}
+
 		if m["schemaVersion"] != SchemaVersion {
 			t.Fatalf("schemaVersion = %v", m["schemaVersion"])
 		}
+
 		return m
 	}
 
@@ -80,6 +89,7 @@ func TestCLI端到端(t *testing.T) {
 			if code != 0 {
 				t.Fatalf("退出码 %d: %s", code, out)
 			}
+
 			envelope(t, out)
 		})
 	}
@@ -89,6 +99,7 @@ func TestCLI端到端(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("type 命中应退出 0: %s", out)
 	}
+
 	envelope(t, out)
 
 	// 无效输入：未知子命令 → error 信封 + 非零退出码
@@ -107,10 +118,12 @@ func TestCLI端到端(t *testing.T) {
 		[]byte("fn main() {\nprintln(nope)\n}\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
 	out, code = runCLI(t, bad, "check", "--json")
 	if code != 1 {
 		t.Fatalf("非法程序应退出 1: %s", out)
 	}
+
 	if !strings.Contains(out, `"E2002"`) {
 		t.Fatalf("缺稳定码 E2002: %s", out)
 	}
@@ -127,24 +140,29 @@ func TestSchema结构校验(t *testing.T) {
 		"inspect.dependencies": DependenciesEnvelope(nil),
 		"dump.ir":              DumpEnvelope(KindDumpIR, IRJSON(a.Prog)),
 	}
+
 	effEnum := map[string]bool{}
 	for _, e := range []string{EffPure, EffIO, EffFS, EffNET, EffTIME, EffRANDOM, EffSPAWN, EffCHANNEL, EffFFI} {
 		effEnum[e] = true
 	}
+
 	for kind, env := range envelopes {
 		if env.SchemaVersion != "1" || env.ToolVersion == "" || env.Kind != kind {
 			t.Fatalf("%s 信封字段缺失", kind)
 		}
+
 		for _, sym := range env.Symbols {
 			if sym.SymbolID <= 0 || sym.Visibility == "" || sym.Kind == "" {
 				t.Fatalf("%s symbol 结构违规: %+v", kind, sym)
 			}
 		}
+
 		for _, r := range env.References {
 			if r.ReferenceKind == "" || r.Span == nil {
 				t.Fatalf("%s reference 结构违规: %+v", kind, r)
 			}
 		}
+
 		for _, e := range env.Effects {
 			for _, x := range e.Effects {
 				if !effEnum[x] {
@@ -153,6 +171,7 @@ func TestSchema结构校验(t *testing.T) {
 			}
 		}
 	}
+
 	diag := Check("fn main() {\nprintln(nope)\n}").Diagnostics[0]
 	if diag.Severity != "error" || diag.PrimarySpan == nil || diag.RelatedSpans == nil {
 		t.Fatalf("诊断结构违规: %+v", diag)

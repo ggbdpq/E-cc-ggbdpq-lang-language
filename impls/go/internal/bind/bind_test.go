@@ -17,11 +17,13 @@ import (
 
 func writePkg(t *testing.T, dir string, files map[string]string) {
 	t.Helper()
+
 	for name, src := range files {
 		p := filepath.Join(dir, name)
 		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
 			t.Fatal(err)
 		}
+
 		if err := os.WriteFile(p, []byte(src), 0o644); err != nil {
 			t.Fatal(err)
 		}
@@ -49,10 +51,12 @@ func Multi(a int) (int, int) { return 0, 0 } // 双非 error 返回：跳过
 func Method() {}               // 导出但下方有接收者版本：仍按普通函数收集
 `,
 	})
+
 	out, err := Dir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	for _, want := range []string{
 		"fn Abs(x: float): float",
 		"fn Add(a: int, b: int): int",
@@ -65,11 +69,13 @@ func Method() {}               // 导出但下方有接收者版本：仍按普�
 			t.Fatalf("缺少 %q\n=== 草案 ===\n%s", want, out)
 		}
 	}
+
 	for _, gone := range []string{"fn PtrArg", "fn Multi"} {
 		if strings.Contains(out, gone) {
 			t.Fatalf("%s 应被跳过（不含声明行）\n=== 草案 ===\n%s", gone, out)
 		}
 	}
+
 	if !strings.Contains(out, "跳过") {
 		t.Fatalf("应列出跳过原因")
 	}
@@ -84,18 +90,22 @@ func Twice(n int) (int, error) { return 0, nil }
 func Echo(s string) string { return "" }
 `,
 	})
+
 	out, err := Dir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	prog, err := syntax.Parse(out)
 	if err != nil {
 		t.Fatalf("草案不可解析: %v\n%s", err, out)
 	}
+
 	irProg, err := pipeline.CompileStmts(prog)
 	if err != nil {
 		t.Fatalf("草案未通过前端管线: %v\n%s", err, out)
 	}
+
 	if _, err := gen.Transpile(irProg); err != nil {
 		t.Fatalf("草案不可转译: %v\n%s", err, out)
 	}
@@ -108,13 +118,16 @@ func Test跳过测试文件与非Go(t *testing.T) {
 		"a_test.go":  "package lib\nfunc Hide() {}\n",
 		"readme.txt": "not go",
 	})
+
 	out, err := Dir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if strings.Contains(out, "Hide") {
 		t.Fatal("测试文件不应参与")
 	}
+
 	if !strings.Contains(out, "Show") {
 		t.Fatalf("实现文件应参与\n%s", out)
 	}
@@ -125,6 +138,7 @@ func Test空包报错(t *testing.T) {
 	writePkg(t, dir, map[string]string{
 		"only.go": "package lib\nfunc hidden() {}\n",
 	})
+
 	_, err := Dir(dir)
 	if err == nil || !strings.Contains(err.Error(), "导出函数") {
 		t.Fatalf("无导出函数应报错，得到: %v", err)

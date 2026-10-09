@@ -46,5 +46,6 @@ func (l ErrorList) Error() string {
 	if len(l) == 0 {
 		return "无诊断"
 	}
+
 	return l[0].Error()
 }

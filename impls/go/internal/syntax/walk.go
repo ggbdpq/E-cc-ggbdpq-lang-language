@@ -15,6 +15,7 @@ func WalkStmt(st Stmt, s func(Stmt), e func(Expr), pat func(Pat)) {
 	if s != nil {
 		s(st)
 	}
+
 	switch x := st.(type) {
 	case *LetStmt:
 		WalkExpr(x.Init, s, e, pat)
@@ -53,6 +54,7 @@ func WalkExpr(ex Expr, s func(Stmt), e func(Expr), pat func(Pat)) {
 	if e != nil {
 		e(ex)
 	}
+
 	switch x := ex.(type) {
 	case *IntLit, *FloatLit, *StrLit, *BoolLit, *Ident:
 	case *Unary:
@@ -65,6 +67,7 @@ func WalkExpr(ex Expr, s func(Stmt), e func(Expr), pat func(Pat)) {
 		WalkExpr(x.Hi, s, e, pat)
 	case *CallEx:
 		WalkExpr(x.Callee, s, e, pat)
+
 		for _, a := range x.Args {
 			WalkExpr(a, s, e, pat)
 		}
@@ -94,6 +97,7 @@ func WalkExpr(ex Expr, s func(Stmt), e func(Expr), pat func(Pat)) {
 		}
 	case *MatchEx:
 		WalkExpr(x.Scrut, s, e, pat)
+
 		for _, arm := range x.Arms {
 			WalkPat(arm.Pat, s, e, pat)
 			WalkExpr(arm.Body, s, e, pat)
@@ -108,6 +112,7 @@ func WalkPat(p Pat, s func(Stmt), e func(Expr), pat func(Pat)) {
 	if pat != nil {
 		pat(p)
 	}
+
 	switch x := p.(type) {
 	case *LitPat:
 		WalkExpr(x.Val, s, e, pat)

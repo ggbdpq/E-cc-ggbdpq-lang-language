@@ -39,6 +39,7 @@ func keyString(v Value) (string, bool) {
 	case BoolVal:
 		return fmt.Sprintf("b:%v", bool(x)), true
 	}
+
 	return "", false
 }
 
@@ -47,7 +48,9 @@ func (m *MapVal) Get(k Value) (Value, bool) {
 	if !ok {
 		return nil, false
 	}
+
 	v, ok := m.m[ks]
+
 	return v, ok
 }
 
@@ -56,13 +59,17 @@ func (m *MapVal) Set(k, v Value) error {
 	if !ok {
 		return fmt.Errorf("映射键须为 int/string/bool，得到 %s", typeName(k))
 	}
+
 	if m.m == nil {
 		m.m = map[string]Value{}
 	}
+
 	if _, exists := m.m[ks]; !exists {
 		m.ks = append(m.ks, k)
 	}
+
 	m.m[ks] = v
+
 	return nil
 }
 
@@ -86,6 +93,7 @@ func (d *EnumDef) caseIndex(name string) int {
 			return i
 		}
 	}
+
 	return -1
 }
 
@@ -136,7 +144,9 @@ func (e *Env) define(name string, v Value, mutable bool) error {
 	if _, exists := e.vars[name]; exists {
 		return fmt.Errorf("%s 在此作用域重复定义", name)
 	}
+
 	e.vars[name] = &cell{val: v, mutable: mutable}
+
 	return nil
 }
 
@@ -151,6 +161,7 @@ func (e *Env) lookup(name string) (*cell, bool) {
 			return c, true
 		}
 	}
+
 	return nil, false
 }
 
@@ -164,14 +175,17 @@ func copyValue(v Value) Value {
 		for i, f := range x.Fields {
 			fs[i] = copyValue(f)
 		}
+
 		return &StructVal{Def: x.Def, Fields: fs}
 	case *EnumVal:
 		ps := make([]Value, len(x.Payloads))
 		for i, p := range x.Payloads {
 			ps[i] = copyValue(p)
 		}
+
 		return &EnumVal{Def: x.Def, Case: x.Case, Payloads: ps}
 	}
+
 	return v
 }
 
@@ -206,6 +220,7 @@ func typeName(v Value) string {
 	case *ChanVal:
 		return "chan"
 	}
+
 	return "未知值"
 }
 
@@ -217,39 +232,46 @@ func equals(a, b Value) (bool, error) {
 		if !ok {
 			return false, typeErr(a, b)
 		}
+
 		return x == y, nil
 	case FloatVal:
 		y, ok := b.(FloatVal)
 		if !ok {
 			return false, typeErr(a, b)
 		}
+
 		return x == y, nil
 	case BoolVal:
 		y, ok := b.(BoolVal)
 		if !ok {
 			return false, typeErr(a, b)
 		}
+
 		return x == y, nil
 	case StrVal:
 		y, ok := b.(StrVal)
 		if !ok {
 			return false, typeErr(a, b)
 		}
+
 		return x == y, nil
 	case *EnumVal:
 		y, ok := b.(*EnumVal)
 		if !ok || y.Def != x.Def || y.Case != x.Case {
 			return false, nil
 		}
+
 		for i := range x.Payloads {
 			eq, err := equals(x.Payloads[i], y.Payloads[i])
 			if err != nil {
 				return false, err
 			}
+
 			if !eq {
 				return false, nil
 			}
 		}
+
 		return true, nil
 	default:
 		return false, fmt.Errorf("%s 不可用 == 比较", typeName(a))
@@ -265,6 +287,7 @@ func truthy(v Value) (bool, error) {
 	if !ok {
 		return false, fmt.Errorf("条件须为 bool，得到 %s", typeName(v))
 	}
+
 	return bool(b), nil
 }
 
@@ -285,6 +308,7 @@ func fmtVal(v Value, top bool) string {
 		if top {
 			return string(x)
 		}
+
 		return strconv.Quote(string(x))
 	case UnitVal:
 		return "()"
@@ -293,6 +317,7 @@ func fmtVal(v Value, top bool) string {
 		for i, it := range x.Items {
 			parts[i] = fmtVal(it, false)
 		}
+
 		return "[" + strings.Join(parts, ", ") + "]"
 	case *MapVal:
 		parts := make([]string, 0, x.Len())
@@ -300,22 +325,26 @@ func fmtVal(v Value, top bool) string {
 			kv, _ := x.Get(k)
 			parts = append(parts, fmtVal(k, false)+": "+fmtVal(kv, false))
 		}
+
 		return "{" + strings.Join(parts, ", ") + "}"
 	case *StructVal:
 		parts := make([]string, len(x.Fields))
 		for i, f := range x.Fields {
 			parts[i] = x.Def.Fields[i] + ": " + fmtVal(f, false)
 		}
+
 		return x.Def.Name + "{" + strings.Join(parts, ", ") + "}"
 	case *EnumVal:
 		name := x.Def.Cases[x.Case]
 		if len(x.Payloads) == 0 {
 			return name
 		}
+
 		parts := make([]string, len(x.Payloads))
 		for i, p := range x.Payloads {
 			parts[i] = fmtVal(p, false)
 		}
+
 		return name + "(" + strings.Join(parts, ", ") + ")"
 	case *RangeVal:
 		return fmtVal(IntVal(x.Lo), true) + ".." + fmtVal(IntVal(x.Hi), true)
@@ -323,11 +352,13 @@ func fmtVal(v Value, top bool) string {
 		if x.Name != "" {
 			return "<fn " + x.Name + ">"
 		}
+
 		return "<fn 匿名>"
 	case *Builtin:
 		return "<内建 " + x.Name + ">"
 	case *PtrVal:
 		return "&" + fmtVal(*x.Cell, false)
 	}
+
 	return "?"
 }

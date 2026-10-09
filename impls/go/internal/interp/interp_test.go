@@ -13,22 +13,28 @@ import (
 
 func runSrc(t *testing.T, src string) (string, error) {
 	t.Helper()
+
 	prog, err := syntax.Parse(src)
 	if err != nil {
 		return "", err
 	}
+
 	var out bytes.Buffer
+
 	it := interp.New(&out)
 	err = it.Run(prog)
+
 	return out.String(), err
 }
 
 func wantOut(t *testing.T, src, want string) {
 	t.Helper()
+
 	got, err := runSrc(t, src)
 	if err != nil {
 		t.Fatalf("运行出错: %v\n源码:\n%s", err, src)
 	}
+
 	if got != want {
 		t.Fatalf("输出不符\n源码:\n%s\n=== 期望 ===\n%q\n=== 实际 ===\n%q", src, want, got)
 	}
@@ -36,10 +42,12 @@ func wantOut(t *testing.T, src, want string) {
 
 func wantErr(t *testing.T, src, wantSub string) {
 	t.Helper()
+
 	_, err := runSrc(t, src)
 	if err == nil {
 		t.Fatalf("期望报错但成功了\n源码:\n%s", src)
 	}
+
 	if !strings.Contains(err.Error(), wantSub) {
 		t.Fatalf("错误信息不含 %q\n实际: %v\n源码:\n%s", wantSub, err, src)
 	}
@@ -563,6 +571,7 @@ func TestHTTP结构(t *testing.T) {
 	if err != nil {
 		t.Fatalf("运行出错: %v", err)
 	}
+
 	if !strings.HasPrefix(out, "err: ") {
 		t.Fatalf("畸形 URL 应走 Err 分支，得到 %q", out)
 	}
@@ -575,6 +584,7 @@ match g("%zz", {}) {
 	if err != nil {
 		t.Fatalf("运行出错: %v", err)
 	}
+
 	if !strings.HasPrefix(out, "err") {
 		t.Fatalf("函数值调用 http.get 应生效，得到 %q", out)
 	}

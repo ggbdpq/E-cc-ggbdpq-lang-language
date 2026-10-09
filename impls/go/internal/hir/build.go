@@ -25,15 +25,19 @@ func Build(prog []syntax.Stmt, res *semantic.Result, ty *types.Result) *Prog {
 			b.ctors[s.StructName] = append(b.ctors[s.StructName], s)
 		}
 	}
+
 	b.collectDecls(prog)
+
 	return b.out
 }
 
 func (b *builder) node(sp syntax.Span, line int, sym *semantic.Symbol, t *types.Type) Node {
 	b.next++
+
 	if t == nil {
 		t = types.Unknown
 	}
+
 	return Node{ID: b.next, Line: line, Sp: sp, Sym: sym, Typ: t}
 }
 
@@ -41,6 +45,7 @@ func (b *builder) anno(t syntax.TypeEx, tparams []string) *types.Type {
 	if t == nil {
 		return types.Unknown
 	}
+
 	return types.ResolveAnno(b.res, t, tparams)
 }
 
@@ -55,21 +60,25 @@ func (b *builder) collectDecls(prog []syntax.Stmt) {
 			b.out.Enums = append(b.out.Enums, b.enumDecl(d))
 		}
 	}
+
 	for _, s := range prog {
 		if d, ok := s.(*syntax.LetStmt); ok {
 			b.out.Globals = append(b.out.Globals, b.let(d))
 		}
 	}
+
 	for _, s := range prog {
 		switch d := s.(type) {
 		case *syntax.FnDecl:
 			if d.Recv != nil {
 				continue
 			}
+
 			fn := b.fnDecl(d, b.res.DeclSyms[d])
 			if d.Name == "main" && b.out.Main == nil {
 				b.out.Main = fn
 			}
+
 			b.out.Fns = append(b.out.Fns, fn)
 		case *syntax.ExternDecl:
 			for _, f := range d.Fns {
@@ -81,6 +90,7 @@ func (b *builder) collectDecls(prog []syntax.Stmt) {
 			}
 		}
 	}
+
 	for _, s := range prog {
 		if d, ok := s.(*syntax.FnDecl); ok && d.Recv != nil {
 			if st := b.recvStructSym(d); st != nil {
@@ -96,6 +106,7 @@ func (b *builder) externSym(host string, f *syntax.FnDecl) *semantic.Symbol {
 			return s
 		}
 	}
+
 	return nil
 }
 
@@ -104,14 +115,17 @@ func (b *builder) recvStructSym(d *syntax.FnDecl) *semantic.Symbol {
 	if !ok {
 		return nil
 	}
+
 	if s := b.res.Builtin[nt.Name]; s != nil && s.Kind == semantic.KStruct {
 		return s
 	}
+
 	return b.typeSymByName(nt.Name)
 }
 
 func (b *builder) structDecl(d *syntax.StructDecl) *StructDecl {
 	sym := b.typeSymByName(d.Name)
+
 	sd := &StructDecl{
 		Node:       b.node(d.Sp, d.Line, sym, nil),
 		Name:       d.Name,
@@ -123,11 +137,13 @@ func (b *builder) structDecl(d *syntax.StructDecl) *StructDecl {
 			Typ:  b.anno(f.Typ, d.TypeParams),
 		})
 	}
+
 	return sd
 }
 
 func (b *builder) enumDecl(d *syntax.EnumDecl) *EnumDecl {
 	sym := b.typeSymByName(d.Name)
+
 	ed := &EnumDecl{
 		Node:       b.node(d.Sp, d.Line, sym, nil),
 		Name:       d.Name,
@@ -140,16 +156,20 @@ func (b *builder) enumDecl(d *syntax.EnumDecl) *EnumDecl {
 				cs.Sym = s
 			}
 		}
+
 		for _, pt := range c.Payloads {
 			cs.Payloads = append(cs.Payloads, b.anno(pt, d.TypeParams))
 		}
+
 		ed.Cases = append(ed.Cases, cs)
 	}
+
 	return ed
 }
 
 func (b *builder) let(d *syntax.LetStmt) *Let {
 	sym := b.res.DeclSyms[d]
+
 	return &Let{
 		Node:    b.node(d.Sp, d.Line, sym, b.symType(sym)),
 		Name:    d.Name,
@@ -163,6 +183,7 @@ func (b *builder) fnDecl(d *syntax.FnDecl, sym *semantic.Symbol) *Fn {
 	if d.Ret != nil {
 		ret = b.anno(d.Ret, d.TypeParams)
 	}
+
 	fn := &Fn{
 		Node:       b.node(d.Sp, d.Line, sym, ret),
 		Name:       d.Name,
@@ -173,12 +194,15 @@ func (b *builder) fnDecl(d *syntax.FnDecl, sym *semantic.Symbol) *Fn {
 	if d.Recv != nil {
 		fn.Recv = &Param{Name: d.Recv.Name, Typ: b.anno(d.Recv.Typ, nil)}
 	}
+
 	for _, p := range d.Params {
 		fn.Params = append(fn.Params, Param{Name: p.Name, Typ: b.anno(p.Typ, d.TypeParams)})
 	}
+
 	for _, s := range d.Body {
 		fn.Body = append(fn.Body, b.stmt(s))
 	}
+
 	return fn
 }
 
@@ -189,6 +213,7 @@ func (b *builder) stmts(list []syntax.Stmt) []Stmt {
 	for _, s := range list {
 		out = append(out, b.stmt(s))
 	}
+
 	return out
 }
 
@@ -209,6 +234,7 @@ func (b *builder) stmt(s syntax.Stmt) Stmt {
 		if st.Val != nil {
 			r.Val = b.expr(st.Val)
 		}
+
 		return r
 
 	case *syntax.IfStmt:
@@ -218,6 +244,7 @@ func (b *builder) stmt(s syntax.Stmt) Stmt {
 			Then: b.stmts(st.Then),
 			Else: b.stmts(st.Else),
 		}
+
 		return n
 
 	case *syntax.WhileStmt:
@@ -229,6 +256,7 @@ func (b *builder) stmt(s syntax.Stmt) Stmt {
 
 	case *syntax.ForInStmt:
 		sym := b.res.DeclSyms[st]
+
 		return &ForIn{
 			Node:    b.node(st.Sp, st.Line, sym, types.Unknown),
 			Var:     st.Var,
@@ -247,14 +275,17 @@ func (b *builder) stmt(s syntax.Stmt) Stmt {
 		if id, ok := st.Call.Callee.(*syntax.Ident); ok {
 			sp.Fn = b.res.Refs[id]
 		}
+
 		for _, a := range st.Call.Args {
 			sp.Args = append(sp.Args, b.expr(a))
 		}
+
 		return sp
 
 	case *syntax.FnDecl:
 		return &FnStmt{Node: b.node(st.Sp, st.Line, nil, types.Unknown), Fn: b.fnDecl(st, b.res.DeclSyms[st])}
 	}
+
 	return nil
 }
 
@@ -265,6 +296,7 @@ func (b *builder) assign(st *syntax.AssignStmt) *Assign {
 		Target: b.assignTarget(st.Target),
 		RHS:    b.expr(st.Val),
 	}
+
 	return n
 }
 
@@ -278,6 +310,7 @@ func (b *builder) assignTarget(t syntax.Expr) Expr {
 	case *syntax.IndexEx:
 		return &Index{Node: b.node(x.Sp, x.Line, nil, types.Unknown), Obj: b.expr(x.Obj), Idx: b.expr(x.Idx)}
 	}
+
 	return nil
 }
 
@@ -308,9 +341,11 @@ func (b *builder) expr(e syntax.Expr) Expr {
 		if x.Op == syntax.And {
 			return &AndThen{Node: b.node(x.Sp, x.Line, nil, types.Bool), L: b.expr(x.L), R: b.expr(x.R)}
 		}
+
 		if x.Op == syntax.Or {
 			return &OrElse{Node: b.node(x.Sp, x.Line, nil, types.Bool), L: b.expr(x.L), R: b.expr(x.R)}
 		}
+
 		return &Binary{
 			Node: b.node(x.Sp, x.Line, nil, b.exprType(x)),
 			Op:   x.Op,
@@ -358,6 +393,7 @@ func (b *builder) expr(e syntax.Expr) Expr {
 		for _, f := range x.Fields {
 			n.Fields = append(n.Fields, FieldValue{Name: f.Name, Val: b.expr(f.Val)})
 		}
+
 		return n
 
 	case *syntax.MapLit:
@@ -366,6 +402,7 @@ func (b *builder) expr(e syntax.Expr) Expr {
 			n.Keys = append(n.Keys, b.expr(it.Key))
 			n.Vals = append(n.Vals, b.expr(it.Val))
 		}
+
 		return n
 
 	case *syntax.ArrLit:
@@ -373,6 +410,7 @@ func (b *builder) expr(e syntax.Expr) Expr {
 		for _, el := range x.Items {
 			n.Elems = append(n.Elems, b.expr(el))
 		}
+
 		return n
 
 	case *syntax.MatchEx:
@@ -386,9 +424,12 @@ func (b *builder) expr(e syntax.Expr) Expr {
 		for _, p := range x.Params {
 			n.Params = append(n.Params, Param{Name: p.Name, Typ: b.anno(p.Typ, x.TypeParams)})
 		}
+
 		n.Body = b.stmts(x.Body)
+
 		return n
 	}
+
 	return nil
 }
 
@@ -405,6 +446,7 @@ func (b *builder) ident(x *syntax.Ident) Expr {
 			return &LocalRef{Node: b.node(x.Sp, x.Line, sym, t), Name: x.Name}
 		}
 	}
+
 	if b.res.Builtin[x.Name] != nil {
 		return &BuiltinRef{Node: b.node(x.Sp, x.Line, nil, t), Name: x.Name}
 	}
@@ -423,21 +465,25 @@ func (b *builder) call(x *syntax.CallEx) Expr {
 			for _, a := range x.Args {
 				n.Args = append(n.Args, b.expr(a))
 			}
+
 			return n
 		case sym == nil && b.res.Builtin[id.Name] != nil:
 			n := &Call{Node: b.node(x.Sp, x.Line, nil, t), Builtin: id.Name}
 			for _, a := range x.Args {
 				n.Args = append(n.Args, b.expr(a))
 			}
+
 			return n
 		case sym != nil && sym.Kind == semantic.KFn:
 			n := &Call{Node: b.node(x.Sp, x.Line, sym, t), Fn: sym}
 			for _, a := range x.Args {
 				n.Args = append(n.Args, b.expr(a))
 			}
+
 			return n
 		}
 	}
+
 	if fe, ok := x.Callee.(*syntax.FieldEx); ok {
 		recv := b.expr(fe.Obj)
 		if st := structOf(Typ(recv)); st != nil && st.Methods[fe.Name] != nil {
@@ -445,6 +491,7 @@ func (b *builder) call(x *syntax.CallEx) Expr {
 			for _, a := range x.Args {
 				n.Args = append(n.Args, b.expr(a))
 			}
+
 			return n
 		}
 		// http.get：预载服务值 → 内建
@@ -453,6 +500,7 @@ func (b *builder) call(x *syntax.CallEx) Expr {
 			for _, a := range x.Args {
 				n.Args = append(n.Args, b.expr(a))
 			}
+
 			return n
 		}
 		// 字段持有的函数值
@@ -460,6 +508,7 @@ func (b *builder) call(x *syntax.CallEx) Expr {
 		for _, a := range x.Args {
 			n.Args = append(n.Args, b.expr(a))
 		}
+
 		return n
 	}
 	// 表达式 callee（函数值）
@@ -467,6 +516,7 @@ func (b *builder) call(x *syntax.CallEx) Expr {
 	for _, a := range x.Args {
 		n.Args = append(n.Args, b.expr(a))
 	}
+
 	return n
 }
 
@@ -474,6 +524,7 @@ func (b *builder) call(x *syntax.CallEx) Expr {
 func methodNameSpan(fe *syntax.FieldEx) syntax.Span {
 	sp := fe.Sp
 	n := len([]rune(fe.Name))
+
 	return syntax.Span{
 		File:  sp.File,
 		Start: syntax.Position{Offset: sp.End.Offset - n, Line: sp.End.Line, Col: sp.End.Col - n},
@@ -486,9 +537,11 @@ func structOf(t *types.Type) *semantic.Symbol {
 	for t != nil && t.Kind == types.KRef {
 		t = t.Elem
 	}
+
 	if t != nil && t.Kind == types.KStruct {
 		return t.Sym
 	}
+
 	return nil
 }
 
@@ -501,6 +554,7 @@ func (b *builder) match(x *syntax.MatchEx) Expr {
 	for _, arm := range x.Arms {
 		n.Arms = append(n.Arms, Arm{Line: arm.Line, Pat: b.pat(arm.Pat), Body: b.expr(arm.Body)})
 	}
+
 	return n
 }
 
@@ -517,8 +571,10 @@ func (b *builder) pat(p syntax.Pat) Pat {
 		for _, sp := range pt.Subs {
 			n.Subs = append(n.Subs, b.pat(sp))
 		}
+
 		return n
 	}
+
 	return &WildPat{}
 }
 
@@ -528,6 +584,7 @@ func (b *builder) exprType(e syntax.Expr) *types.Type {
 	if t := b.ty.ExprTy[e]; t != nil {
 		return t
 	}
+
 	return types.Unknown
 }
 
@@ -535,6 +592,7 @@ func (b *builder) patType(p syntax.Pat) *types.Type {
 	if t := b.ty.PatTy[p]; t != nil {
 		return t
 	}
+
 	return types.Unknown
 }
 
@@ -542,9 +600,11 @@ func (b *builder) symType(s *semantic.Symbol) *types.Type {
 	if s == nil {
 		return types.Unknown
 	}
+
 	if t := b.ty.SymTy[s.ID]; t != nil {
 		return t
 	}
+
 	return types.Unknown
 }
 
@@ -552,10 +612,12 @@ func (b *builder) typeSymByName(name string) *semantic.Symbol {
 	if s := b.res.Builtin[name]; s != nil && s.Kind == semantic.KStruct {
 		return s
 	}
+
 	for _, s := range b.res.Symbols {
 		if (s.Kind == semantic.KStruct || s.Kind == semantic.KEnum) && s.Name == name {
 			return s
 		}
 	}
+
 	return nil
 }

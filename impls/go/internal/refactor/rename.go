@@ -24,20 +24,25 @@ func ResolveTarget(res *semantic.Result, arg string) (*semantic.Symbol, error) {
 	if arg == "" {
 		return nil, errors.New("缺少 --symbol 参数")
 	}
+
 	if n, ok := allDigits(arg); ok {
 		for _, s := range res.Symbols {
 			if !s.BuiltinMark && int(s.ID) == n {
 				return s, nil
 			}
 		}
+
 		return nil, fmt.Errorf("未知符号 ID %s", arg)
 	}
+
 	var hits []*semantic.Symbol
+
 	for _, s := range res.Symbols {
 		if !s.BuiltinMark && s.Name == arg {
 			hits = append(hits, s)
 		}
 	}
+
 	switch len(hits) {
 	case 1:
 		return hits[0], nil
@@ -52,13 +57,17 @@ func allDigits(s string) (int, bool) {
 	if s == "" {
 		return 0, false
 	}
+
 	n := 0
+
 	for _, r := range s {
 		if r < '0' || r > '9' {
 			return 0, false
 		}
+
 		n = n*10 + int(r-'0')
 	}
+
 	return n, true
 }
 
@@ -67,19 +76,23 @@ func ValidateNewName(name string) error {
 	if name == "" {
 		return errors.New("新名字为空")
 	}
+
 	for i, r := range name {
 		first := i == 0
+
 		ok := r == '_' || (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') ||
 			(!first && r >= '0' && r <= '9')
 		if !ok {
 			return fmt.Errorf("新名字含非法字符 %q", string(r))
 		}
 	}
+
 	for _, kw := range reservedNames {
 		if name == kw {
 			return fmt.Errorf("新名字 %s 与关键字/保留字/内建名冲突", name)
 		}
 	}
+
 	return nil
 }
 
@@ -103,6 +116,7 @@ func Rename(prog []syntax.Stmt, srcs Sources, res *semantic.Result, h *hir.Prog,
 	if err := ValidateNewName(newName); err != nil {
 		return nil, err
 	}
+
 	switch target.Kind {
 	case semantic.KFn, semantic.KMethod, semantic.KVar, semantic.KParam:
 	case semantic.KStruct, semantic.KEnum, semantic.KCtor:
@@ -110,6 +124,7 @@ func Rename(prog []syntax.Stmt, srcs Sources, res *semantic.Result, h *hir.Prog,
 	default:
 		return nil, errors.New("该符号类型不支持 rename")
 	}
+
 	if target.Name == "_" {
 		return nil, errors.New("占位符 _ 不可 rename")
 	}
@@ -118,6 +133,7 @@ func Rename(prog []syntax.Stmt, srcs Sources, res *semantic.Result, h *hir.Prog,
 		if s.BuiltinMark || s.ID == target.ID {
 			continue
 		}
+
 		if s.Name == newName {
 			return nil, fmt.Errorf("新名字 %s 与已有符号冲突（%s #%d）", newName, s.Name, int(s.ID))
 		}
@@ -128,7 +144,9 @@ func Rename(prog []syntax.Stmt, srcs Sources, res *semantic.Result, h *hir.Prog,
 	if defErr != nil {
 		return nil, defErr
 	}
+
 	var edits []edit.TextEdit
+
 	edits = append(edits, edit.TextEdit{
 		File:        defSp.File,
 		StartOffset: defSp.Start.Offset,
@@ -168,6 +186,7 @@ func Rename(prog []syntax.Stmt, srcs Sources, res *semantic.Result, h *hir.Prog,
 		for _, st := range h.Globals {
 			collectHIRMethodRefs(st, res, target, newName, &edits)
 		}
+
 		for _, f := range h.Fns {
 			for _, st := range f.Body {
 				collectHIRMethodRefs(st, res, target, newName, &edits)
@@ -180,18 +199,23 @@ func Rename(prog []syntax.Stmt, srcs Sources, res *semantic.Result, h *hir.Prog,
 
 func dedupeEdits(edits []edit.TextEdit) []edit.TextEdit {
 	var out []edit.TextEdit
+
 	for _, e := range edits {
 		dup := false
+
 		for _, x := range out {
 			if x.StartOffset == e.StartOffset && x.EndOffset == e.EndOffset && x.File == e.File {
 				dup = true
 			}
 		}
+
 		if !dup {
 			out = append(out, e)
 		}
 	}
+
 	sortByStartDesc(out)
+
 	return out
 }
 
@@ -220,5 +244,6 @@ func kindName(k semantic.Kind) string {
 	case semantic.KCtor:
 		return "constructor"
 	}
+
 	return "unknown"
 }

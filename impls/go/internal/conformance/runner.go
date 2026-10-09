@@ -47,10 +47,12 @@ func RunCase(dir string) CaseResult {
 	if err != nil {
 		return CaseResult{Name: filepath.Base(dir), Note: "读 case.yaml: " + err.Error()}
 	}
+
 	c, err := ParseManifest(string(bs))
 	if err != nil {
 		return CaseResult{Name: filepath.Base(dir), Note: err.Error()}
 	}
+
 	res := CaseResult{Name: c.Name, Category: c.Category, Mode: c.Mode, RuleIDs: c.RuleIDs}
 
 	prog, _, err := load.Program(dir, false)
@@ -65,7 +67,9 @@ func RunCase(dir string) CaseResult {
 	case "check":
 		return runDiagnostic(c, prog, res)
 	}
+
 	res.Note = "未知 mode " + c.Mode
+
 	return res
 }
 
@@ -77,6 +81,7 @@ func runDifferential(c *Case, prog []syntax.Stmt, res CaseResult) CaseResult {
 		res.Note = "run 模式 case 前端诊断: " + pipeline.FormatDiags(diags)
 		return res
 	}
+
 	a, err := pipeline.AnalyzeStmts(prog)
 	if err != nil {
 		res.Note = "分析失败: " + err.Error()
@@ -103,12 +108,15 @@ func runDifferential(c *Case, prog []syntax.Stmt, res CaseResult) CaseResult {
 		if err != nil {
 			return "", "", err
 		}
+
 		if err := os.WriteFile(filepath.Join(dir, "main.go"), []byte(src), 0o644); err != nil {
 			return "", "", err
 		}
+
 		if err := tool(dir, 30*time.Second, "go", "build", "-o", "prog.exe", "main.go"); err != nil {
 			return "", "", fmt.Errorf("go build: %w", err)
 		}
+
 		return runCapture(dir, filepath.Join(dir, "prog.exe"))
 	})
 	if backendFail(&res, "go", err) {
@@ -121,9 +129,11 @@ func runDifferential(c *Case, prog []syntax.Stmt, res CaseResult) CaseResult {
 		if err != nil {
 			return "", "", err
 		}
+
 		if err := os.WriteFile(filepath.Join(dir, "out.mjs"), []byte(src), 0o644); err != nil {
 			return "", "", err
 		}
+
 		return runCapture(dir, "node", filepath.Join(dir, "out.mjs"))
 	})
 	if backendFail(&res, "node", err) {
@@ -141,7 +151,9 @@ func runDifferential(c *Case, prog []syntax.Stmt, res CaseResult) CaseResult {
 			return res
 		}
 	}
+
 	res.OK = true
+
 	return res
 }
 
@@ -150,18 +162,22 @@ func execBackend(c *Case, toolName string, fn func(dir string) (string, string, 
 	if _, err := exec.LookPath(toolName); err != nil {
 		return "", errSkipped(fmt.Sprintf("宿主缺 %s，差分跳过（不计入通过）", toolName))
 	}
+
 	dir, err := os.MkdirTemp("", "conformance-"+c.Name)
 	if err != nil {
 		return "", err
 	}
 	defer os.RemoveAll(dir)
+
 	stdout, stderr, err := fn(dir)
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", toolName, err)
 	}
+
 	if stderr != "" {
 		return "", fmt.Errorf("%s stderr 非空: %s", toolName, stderr)
 	}
+
 	return stdout, nil
 }
 
@@ -175,47 +191,59 @@ func backendFail(res *CaseResult, toolName string, err error) bool {
 	if err == nil {
 		return false
 	}
+
 	res.Note = err.Error()
 	if _, ok := errors.AsType[errSkipped](err); ok {
 		res.Skipped = true
 	}
+
 	return true
 }
 
 // runDiagnostic check 模式：诊断断言（code + severity + line 多重集）.
 func runDiagnostic(c *Case, prog []syntax.Stmt, res CaseResult) CaseResult {
 	diags, _ := pipeline.CheckStmts(prog)
+
 	got := map[string]int{}
 	for _, d := range diags {
 		got[d.Code+"|"+contract.RuleOf(d.Code)+"|error|"+strconv.Itoa(d.Line)]++
 	}
 	// 期望声明了 ruleId 则精确比对；未声明（v0.8 旧 case）回填映射表值参与匹配
 	want := map[string]int{}
+
 	for _, d := range c.Expect.Diagnostics {
 		rule := d.RuleID
 		if rule == "" {
 			rule = contract.RuleOf(d.Code)
 		}
+
 		want[d.Code+"|"+rule+"|"+d.Severity+"|"+strconv.Itoa(d.Line)]++
 	}
+
 	var missing, extra []string
+
 	for k, n := range want {
 		if got[k] < n {
 			missing = append(missing, fmt.Sprintf("%s×%d", k, n-got[k]))
 		}
 	}
+
 	for k, n := range got {
 		if want[k] < n {
 			extra = append(extra, fmt.Sprintf("%s×%d", k, n-want[k]))
 		}
 	}
+
 	if len(missing) > 0 || len(extra) > 0 {
 		sort.Strings(missing)
 		sort.Strings(extra)
 		res.Note = fmt.Sprintf("诊断不匹配 缺%s 多%s", strings.Join(missing, ","), strings.Join(extra, ","))
+
 		return res
 	}
+
 	res.OK = true
+
 	return res
 }
 
@@ -225,36 +253,46 @@ func RunSuite(root string) ([]CaseResult, int, error) {
 	if err != nil {
 		return nil, 0, err
 	}
+
 	var all []CaseResult
+
 	for _, cat := range cats {
 		if !cat.IsDir() {
 			continue
 		}
+
 		cases, err := os.ReadDir(filepath.Join(root, cat.Name()))
 		if err != nil {
 			return nil, 0, err
 		}
+
 		for _, cd := range cases {
 			if !cd.IsDir() {
 				continue
 			}
+
 			dir := filepath.Join(root, cat.Name(), cd.Name())
 			if _, err := os.Stat(filepath.Join(dir, "case.yaml")); err != nil {
 				return nil, 0, fmt.Errorf("套件目录 %s 缺 case.yaml", dir)
 			}
+
 			r := RunCase(dir)
 			if r.Name == "" {
 				r.Name = cd.Name()
 			}
+
 			all = append(all, r)
 		}
 	}
+
 	fails := 0
+
 	for _, r := range all {
 		if !r.OK {
 			fails++
 		}
 	}
+
 	return all, fails, nil
 }
 
@@ -262,12 +300,15 @@ func RunSuite(root string) ([]CaseResult, int, error) {
 func tool(dir string, timeout time.Duration, name string, args ...string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
+
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Dir = dir
+
 	bs, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("%w: %s", err, strings.TrimSpace(string(bs)))
 	}
+
 	return nil
 }
 
@@ -275,13 +316,18 @@ func tool(dir string, timeout time.Duration, name string, args ...string) error 
 func runCapture(dir string, name string, args ...string) (string, string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
+
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Dir = dir
+
 	var out, errBuf bytes.Buffer
+
 	cmd.Stdout = &out
+
 	cmd.Stderr = &errBuf
 	if err := cmd.Run(); err != nil {
 		return "", "", fmt.Errorf("%w: %s", err, strings.TrimSpace(errBuf.String()))
 	}
+
 	return out.String(), errBuf.String(), nil
 }

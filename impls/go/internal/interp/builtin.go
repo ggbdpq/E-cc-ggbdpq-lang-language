@@ -21,12 +21,15 @@ func (it *Interp) prelude() {
 				if pd.Name == ci.Enum {
 					ed = &EnumDef{Name: pd.Name, Cases: append([]string(nil), pd.Cases...)}
 					it.enums[ed.Name] = ed
+
 					break
 				}
 			}
 		}
+
 		it.ctors[name] = &ctor{def: ed, idx: ci.Index, arity: ci.Arity}
 	}
+
 	it.structs[prelude.ErrorStruct] = func() *StructDef {
 		sd := prelude.ErrorDef()
 		return &StructDef{Name: sd.Name, Fields: append([]string(nil), sd.Fields...), Methods: map[string]*Closure{}}
@@ -46,6 +49,7 @@ func (it *Interp) prelude() {
 		if err := it.arity("len", args, 1); err != nil {
 			return nil, err
 		}
+
 		switch x := args[0].(type) {
 		case StrVal:
 			return IntVal(len([]rune(string(x)))), nil
@@ -57,20 +61,24 @@ func (it *Interp) prelude() {
 			if x.Hi > x.Lo {
 				return IntVal(x.Hi - x.Lo), nil
 			}
+
 			return IntVal(0), nil
 		}
+
 		return nil, fmt.Errorf("len 不支持 %s", typeName(args[0]))
 	})
 	reg("str", func(it *Interp, args []Value) (Value, error) {
 		if err := it.arity("str", args, 1); err != nil {
 			return nil, err
 		}
+
 		return StrVal(fmtVal(args[0], true)), nil
 	})
 	reg("int", func(it *Interp, args []Value) (Value, error) {
 		if err := it.arity("int", args, 1); err != nil {
 			return nil, err
 		}
+
 		switch x := args[0].(type) {
 		case IntVal:
 			return x, nil
@@ -81,14 +89,17 @@ func (it *Interp) prelude() {
 			if err != nil {
 				return nil, fmt.Errorf("无法把 %q 转为 int", string(x))
 			}
+
 			return IntVal(n), nil
 		}
+
 		return nil, fmt.Errorf("int() 不支持 %s", typeName(args[0]))
 	})
 	reg("float", func(it *Interp, args []Value) (Value, error) {
 		if err := it.arity("float", args, 1); err != nil {
 			return nil, err
 		}
+
 		switch x := args[0].(type) {
 		case IntVal:
 			return FloatVal(x), nil
@@ -99,107 +110,133 @@ func (it *Interp) prelude() {
 			if err != nil {
 				return nil, fmt.Errorf("无法把 %q 转为 float", string(x))
 			}
+
 			return FloatVal(f), nil
 		}
+
 		return nil, fmt.Errorf("float() 不支持 %s", typeName(args[0]))
 	})
 	reg("keys", func(it *Interp, args []Value) (Value, error) {
 		if err := it.arity("keys", args, 1); err != nil {
 			return nil, err
 		}
+
 		m, ok := args[0].(*MapVal)
 		if !ok {
 			return nil, fmt.Errorf("keys 需要映射，得到 %s", typeName(args[0]))
 		}
+
 		return &ArrVal{Items: m.Keys()}, nil
 	})
 	reg("values", func(it *Interp, args []Value) (Value, error) {
 		if err := it.arity("values", args, 1); err != nil {
 			return nil, err
 		}
+
 		m, ok := args[0].(*MapVal)
 		if !ok {
 			return nil, fmt.Errorf("values 需要映射，得到 %s", typeName(args[0]))
 		}
+
 		vs := make([]Value, 0, m.Len())
 		for _, k := range m.ks {
 			v, _ := m.Get(k)
 			vs = append(vs, v)
 		}
+
 		return &ArrVal{Items: vs}, nil
 	})
 	reg("has", func(it *Interp, args []Value) (Value, error) {
 		if err := it.arity("has", args, 2); err != nil {
 			return nil, err
 		}
+
 		m, ok := args[0].(*MapVal)
 		if !ok {
 			return nil, fmt.Errorf("has 需要映射，得到 %s", typeName(args[0]))
 		}
+
 		_, found := m.Get(args[1])
+
 		return BoolVal(found), nil
 	})
 	reg("push", func(it *Interp, args []Value) (Value, error) {
 		if len(args) < 2 {
 			return nil, errors.New("push 需要至少 2 个参数")
 		}
+
 		arr, ok := args[0].(*ArrVal)
 		if !ok {
 			return nil, fmt.Errorf("push 需要数组，得到 %s", typeName(args[0]))
 		}
+
 		arr.Items = append(arr.Items, args[1:]...)
+
 		return arr, nil
 	})
 	reg("assert", func(it *Interp, args []Value) (Value, error) {
 		if len(args) < 1 || len(args) > 2 {
 			return nil, errors.New("assert 需要 1~2 个参数")
 		}
+
 		t, err := truthy(args[0])
 		if err != nil {
 			return nil, err
 		}
+
 		if !t {
 			if len(args) == 2 {
 				return nil, fmt.Errorf("assert 失败: %s", fmtVal(args[1], true))
 			}
+
 			return nil, errors.New("assert 失败")
 		}
+
 		return UnitVal{}, nil
 	})
 	reg("err", func(it *Interp, args []Value) (Value, error) {
 		if err := it.arity("err", args, 1); err != nil {
 			return nil, err
 		}
+
 		msg, ok := args[0].(StrVal)
 		if !ok {
 			return nil, fmt.Errorf("err 需要字符串，得到 %s", typeName(args[0]))
 		}
+
 		def := it.structs["error"]
+
 		return &StructVal{Def: def, Fields: []Value{msg}}, nil
 	})
 	reg("bytes", func(it *Interp, args []Value) (Value, error) {
 		if err := it.arity("bytes", args, 1); err != nil {
 			return nil, err
 		}
+
 		s, ok := args[0].(StrVal)
 		if !ok {
 			return nil, fmt.Errorf("bytes 需要字符串，得到 %s", typeName(args[0]))
 		}
+
 		bs := []byte(string(s))
+
 		items := make([]Value, len(bs))
 		for i, b := range bs {
 			items[i] = IntVal(b)
 		}
+
 		return &ArrVal{Items: items}, nil
 	})
 	reg("char", func(it *Interp, args []Value) (Value, error) {
 		if err := it.arity("char", args, 1); err != nil {
 			return nil, err
 		}
+
 		n, ok := args[0].(IntVal)
 		if !ok {
 			return nil, fmt.Errorf("char 需要 int，得到 %s", typeName(args[0]))
 		}
+
 		return StrVal(string(rune(n))), nil
 	})
 }
@@ -209,6 +246,7 @@ func (it *Interp) fmtArgs(args []Value) string {
 	for i, a := range args {
 		parts[i] = fmtVal(a, true)
 	}
+
 	return strings.Join(parts, " ")
 }
 
@@ -221,6 +259,7 @@ func (it *Interp) arity(name string, args []Value, n int) error {
 	if len(args) != n {
 		return fmt.Errorf("%s 需要 %d 个参数，得到 %d 个", name, n, len(args))
 	}
+
 	return nil
 }
 
@@ -236,5 +275,6 @@ func floatToInt64(f float64) int64 {
 	case f <= -9223372036854775808.0: // 恰为 -2^63 时 int64(f) 本就等于 MinInt64
 		return math.MinInt64
 	}
+
 	return int64(f)
 }

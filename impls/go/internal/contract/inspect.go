@@ -29,6 +29,7 @@ func kindStr(k semantic.Kind) string {
 	case semantic.KCtor:
 		return "constructor"
 	}
+
 	return "unknown"
 }
 
@@ -36,6 +37,7 @@ func kindStr(k semantic.Kind) string {
 func Symbols(prog []syntax.Stmt, res *semantic.Result, ty *types.Result) []Symbol {
 	// 反查绑定节点的定义 Span（var/for 变量）
 	stmtSpan := map[semantic.SymbolID]syntax.Span{}
+
 	for st, sym := range res.DeclSyms {
 		if sp, ok := st.(syntax.Spanned); ok {
 			stmtSpan[sym.ID] = *sp.NodeSpan()
@@ -46,21 +48,26 @@ func Symbols(prog []syntax.Stmt, res *semantic.Result, ty *types.Result) []Symbo
 		if ty == nil {
 			return ""
 		}
+
 		if t := ty.SymTy[sym.ID]; t != nil {
 			return t.String()
 		}
+
 		if t := ty.FnTy[sym.ID]; t != nil {
 			return t.String()
 		}
+
 		return ""
 	}
 	defSpan := func(sym *semantic.Symbol) *Span {
 		if d, ok := sym.Decl.(syntax.Spanned); ok {
 			return SpanJSON(*d.NodeSpan())
 		}
+
 		if sp, ok := stmtSpan[sym.ID]; ok {
 			return SpanJSON(sp)
 		}
+
 		return nil
 	}
 
@@ -69,14 +76,17 @@ func Symbols(prog []syntax.Stmt, res *semantic.Result, ty *types.Result) []Symbo
 		if sym.BuiltinMark {
 			continue
 		}
+
 		visibility := "local"
 		if sym.Line > 0 && !sym.Mutable && isTopLevel(sym) {
 			visibility = "public"
 		}
+
 		module := ""
 		if sp := defSpan(sym); sp != nil {
 			module = sp.File
 		}
+
 		out = append(out, Symbol{
 			SymbolID:   int(sym.ID),
 			Name:       sym.Name,
@@ -87,7 +97,9 @@ func Symbols(prog []syntax.Stmt, res *semantic.Result, ty *types.Result) []Symbo
 			Module:     module,
 		})
 	}
+
 	sort.SliceStable(out, func(i, j int) bool { return out[i].SymbolID < out[j].SymbolID })
+
 	return out
 }
 
@@ -97,6 +109,7 @@ func isTopLevel(sym *semantic.Symbol) bool {
 	case semantic.KFn, semantic.KMethod, semantic.KStruct, semantic.KEnum, semantic.KCtor:
 		return true
 	}
+
 	return false
 }
 
@@ -111,6 +124,7 @@ func References(prog []syntax.Stmt, res *semantic.Result) []Reference {
 				writes[id] = true
 			}
 		}
+
 		if x, ok := e.(*syntax.CallEx); ok {
 			if id, ok := x.Callee.(*syntax.Ident); ok {
 				calls[id] = true
@@ -124,6 +138,7 @@ func References(prog []syntax.Stmt, res *semantic.Result) []Reference {
 		if sym == nil {
 			return
 		}
+
 		out = append(out, Reference{SymbolID: int(sym.ID), Span: SpanJSON(sp), ReferenceKind: kind})
 	}
 	onStmt := func(st syntax.Stmt) {}
@@ -132,12 +147,14 @@ func References(prog []syntax.Stmt, res *semantic.Result) []Reference {
 		case *syntax.Ident:
 			if sym := res.Refs[x]; sym != nil {
 				kind := "read"
+
 				switch {
 				case writes[x]:
 					kind = "write"
 				case calls[x]:
 					kind = "call"
 				}
+
 				add(x.Sp, sym, kind)
 			}
 		case *syntax.StructLit:
@@ -160,14 +177,18 @@ func References(prog []syntax.Stmt, res *semantic.Result) []Reference {
 		if a.SymbolID != b.SymbolID {
 			return a.SymbolID < b.SymbolID
 		}
+
 		if a.Span == nil || b.Span == nil {
 			return b.Span != nil
 		}
+
 		if a.Span.File != b.Span.File {
 			return a.Span.File < b.Span.File
 		}
+
 		return a.Span.Start.Offset < b.Span.Start.Offset
 	})
+
 	return out
 }
 
@@ -181,13 +202,16 @@ func TypeAt(prog []syntax.Stmt, res *semantic.Result, ty *types.Result, file str
 		if !ok {
 			return
 		}
+
 		s := *sp.NodeSpan()
 		if file != "" && s.File != file {
 			return
 		}
+
 		if !containsPos(s, line, col) {
 			return
 		}
+
 		size := spanSize(s)
 		if !found || size < bestSize {
 			ab := &astBuilder{ty: ty, res: res, enable: ty != nil}
@@ -197,9 +221,11 @@ func TypeAt(prog []syntax.Stmt, res *semantic.Result, ty *types.Result, file str
 		}
 	}
 	syntax.WalkStmts(prog, nil, consider, nil)
+
 	if !found {
 		return nil
 	}
+
 	return best
 }
 
@@ -207,12 +233,15 @@ func containsPos(s syntax.Span, line, col int) bool {
 	if line < s.Start.Line || line > s.End.Line {
 		return false
 	}
+
 	if line == s.Start.Line && col < s.Start.Col {
 		return false
 	}
+
 	if line == s.End.Line && col > s.End.Col {
 		return false
 	}
+
 	return true
 }
 
@@ -238,8 +267,10 @@ func ReferencesEnvelope(prog []syntax.Stmt, res *semantic.Result, symbolID int) 
 				filtered = append(filtered, r)
 			}
 		}
+
 		refs = filtered
 	}
+
 	return Envelope{SchemaVersion: SchemaVersion, ToolVersion: ToolVersion, Kind: KindInspectRefs, References: refs}
 }
 
@@ -249,6 +280,7 @@ func TypeEnvelope(prog []syntax.Stmt, res *semantic.Result, ty *types.Result, fi
 	if n == nil {
 		return ErrorEnvelope(KindInspectType, "指定位置没有表达式节点"), false
 	}
+
 	return Envelope{SchemaVersion: SchemaVersion, ToolVersion: ToolVersion, Kind: KindInspectType, Nodes: []*Node{n}}, true
 }
 
@@ -260,8 +292,10 @@ func DependenciesEnvelope(files []load.FileInfo) Envelope {
 		if imports == nil {
 			imports = []string{}
 		}
+
 		deps = append(deps, Dependency{Module: f.Path, Imports: imports})
 	}
+
 	return Envelope{SchemaVersion: SchemaVersion, ToolVersion: ToolVersion, Kind: KindInspectDependencies, Dependencies: deps}
 }
 

@@ -14,38 +14,47 @@ import (
 
 func buildSrc(t *testing.T, src string) (*Graph, *pipeline.Analyzed) {
 	t.Helper()
+
 	prog, err := syntax.Parse(src)
 	if err != nil {
 		t.Fatalf("解析失败: %v", err)
 	}
+
 	a, err := pipeline.AnalyzeStmts(prog)
 	if err != nil {
 		t.Fatalf("管线失败: %v", err)
 	}
+
 	return Build(a.AST, a.Res, a.Ty, a.HIR, a.Prog, nil), a
 }
 
 func buildDir(t *testing.T, dir string) (*Graph, *pipeline.Analyzed) {
 	t.Helper()
+
 	prog, _, files, err := load.ProgramEx(dir, false)
 	if err != nil {
 		t.Fatalf("装载失败: %v", err)
 	}
+
 	a, err := pipeline.AnalyzeStmts(prog)
 	if err != nil {
 		t.Fatalf("管线失败: %v", err)
 	}
+
 	return Build(a.AST, a.Res, a.Ty, a.HIR, a.Prog, files), a
 }
 
 func symIDByName(t *testing.T, a *pipeline.Analyzed, name string) int {
 	t.Helper()
+
 	for _, s := range a.Res.Symbols {
 		if !s.BuiltinMark && s.Name == name {
 			return int(s.ID)
 		}
 	}
+
 	t.Fatalf("符号未找到: %s", name)
+
 	return -1
 }
 
@@ -65,23 +74,29 @@ fn main() {
 	if len(callers) != 1 || callers[0].From != mainID {
 		t.Fatalf("mid 的调用方应为 main: %+v", callers)
 	}
+
 	trans := g.Callers(leafID, -1)
 	if len(trans) != 2 {
 		t.Fatalf("leaf 的传递调用方应含 main+mid: %+v", trans)
 	}
+
 	anyMain, anyMainTrans, anyMidDirect := false, false, false
+
 	for _, it := range trans {
 		if it.From == mainID {
 			anyMain = true
 			anyMainTrans = it.Transitive
 		}
+
 		if it.From == midID {
 			anyMidDirect = !it.Transitive
 		}
 	}
+
 	if !anyMain || !anyMainTrans || !anyMidDirect {
 		t.Fatalf("传递标记错误: %+v", trans)
 	}
+
 	callees := g.Callees(mainID, 1)
 	if len(callees) != 1 || callees[0].From != midID {
 		t.Fatalf("main 应直接调用 mid: %+v", callees)
@@ -106,24 +121,30 @@ fn main() { println(isEven(4)) }`
 	// 互递归：isEven 的调用方 = isOdd（直接）+ main（传递）
 	callersEven := g.Callers(even, -1)
 	foundOdd, foundMain := false, false
+
 	for _, it := range callersEven {
 		if it.From == odd {
 			foundOdd = true
 		}
+
 		if it.From == mainID {
 			foundMain = true
 		}
 	}
+
 	if !foundOdd || !foundMain {
 		t.Fatalf("isEven 的调用方应含 isOdd 与 main: %+v", callersEven)
 	}
+
 	calleesEven := g.Callees(even, 1)
 	foundOddCallee := false
+
 	for _, it := range calleesEven {
 		if it.From == odd {
 			foundOddCallee = true
 		}
 	}
+
 	if !foundOddCallee {
 		t.Fatalf("isEven 应调用 isOdd: %+v", calleesEven)
 	}
@@ -138,7 +159,9 @@ fn main() {
 }`
 	g, a := buildSrc(t, src)
 	nID := symIDByName(t, a, "n")
+
 	var writes, reads int
+
 	for _, e := range g.In(nID) {
 		switch e.Kind {
 		case EdgeWrite:
@@ -147,6 +170,7 @@ fn main() {
 			reads++
 		}
 	}
+
 	if writes == 0 || reads == 0 {
 		t.Fatalf("n 应同时有读写边: w=%d r=%d", writes, reads)
 	}
@@ -167,12 +191,15 @@ fn main() {
 	g, a := buildSrc(t, src)
 	getID := symIDByName(t, a, "get")
 	mainID := symIDByName(t, a, "main")
+
 	var found bool
+
 	for _, e := range g.In(getID) {
 		if e.Kind == EdgeCall && e.From == mainID {
 			found = true
 		}
 	}
+
 	if !found {
 		t.Fatalf("main → get 方法调用边缺失")
 	}
@@ -187,6 +214,7 @@ func Test跨模块依赖(t *testing.T) {
 		[]byte("fn libHelp(): int {\n    return 1\n}"), 0o644)
 	g, a := buildDir(t, dir)
 	symIDByName(t, a, "main")
+
 	deps := g.FileDependsOn["main.lang-go"]
 	if len(deps) == 0 {
 		t.Fatalf("main 应有文件级依赖: %+v", g.FileDependsOn)
@@ -203,6 +231,7 @@ fn main() {
     println(tag)
 }`
 	g, a := buildSrc(t, src)
+
 	tagID := symIDByName(t, a, "tag")
 	for _, e := range g.In(tagID) {
 		if e.Kind == EdgeReference {

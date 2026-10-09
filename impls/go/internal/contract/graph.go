@@ -74,16 +74,20 @@ func ImpactEnvelope(imp graph.Impact) Envelope {
 	if imp.Symbol != nil {
 		out.Symbol = nodeJSON(*imp.Symbol)
 	}
+
 	for _, it := range imp.Direct {
 		out.Direct = append(out.Direct, impactItemJSON(it))
 	}
+
 	for _, it := range imp.Transitive {
 		out.Transitive = append(out.Transitive, impactItemJSON(it))
 	}
+
 	out.EffectWatch = append([]int(nil), imp.EffectWatch...)
 	if out.EffectWatch == nil {
 		out.EffectWatch = []int{}
 	}
+
 	return Envelope{SchemaVersion: SchemaVersion, ToolVersion: ToolVersion, Kind: KindInspectImpact, Impact: &out}
 }
 
@@ -93,7 +97,9 @@ func GraphNodeJSON(n graph.Node) GraphNode {
 	if effs == nil {
 		effs = []string{}
 	}
+
 	sp := n.Span
+
 	return GraphNode{
 		SymbolID: n.ID,
 		Kind:     n.Kind,
@@ -123,6 +129,7 @@ func impactItemsJSON(g *graph.Graph, items []graph.ImpactItem) []ImpactItemJSON 
 		if n, ok := g.Nodes[it.From]; ok {
 			name, kind, module = n.Name, n.Kind, n.Module
 		}
+
 		out = append(out, ImpactItemJSON{
 			SymbolID:   it.From,
 			Name:       name,
@@ -132,6 +139,7 @@ func impactItemsJSON(g *graph.Graph, items []graph.ImpactItem) []ImpactItemJSON 
 			Span:       spanPtr(it.Span),
 		})
 	}
+
 	return out
 }
 
@@ -139,6 +147,7 @@ func spanPtr(sp *syntax.Span) *Span {
 	if sp == nil {
 		return nil
 	}
+
 	return SpanJSON(*sp)
 }
 
@@ -148,10 +157,12 @@ func GraphDepJSON(dep graph.FileDep) Envelope {
 	if imports == nil {
 		imports = []string{}
 	}
+
 	dependsOn := dep.DependsOn
 	if dependsOn == nil {
 		dependsOn = []string{}
 	}
+
 	return Envelope{
 		SchemaVersion: SchemaVersion, ToolVersion: ToolVersion, Kind: KindInspectDependency,
 		Dependency: &FileDepJSON{Module: dep.Module, Imports: imports, DependsOn: dependsOn},

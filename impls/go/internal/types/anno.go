@@ -13,6 +13,7 @@ func ResolveAnno(res *semantic.Result, t syntax.TypeEx, tparams []string) *Type 
 	if t == nil {
 		return Unknown
 	}
+
 	return resolveAnno(res, t, tparamsOf(tparams))
 }
 
@@ -21,6 +22,7 @@ func tparamsOf(names []string) map[string]bool {
 	for _, n := range names {
 		m[n] = true
 	}
+
 	return m
 }
 
@@ -28,11 +30,13 @@ func lookupTypeSym(res *semantic.Result, name string) *semantic.Symbol {
 	if s := res.Builtin[name]; s != nil && s.Kind == semantic.KStruct {
 		return s
 	}
+
 	for _, s := range res.Symbols {
 		if (s.Kind == semantic.KStruct || s.Kind == semantic.KEnum) && s.Name == name {
 			return s
 		}
 	}
+
 	return nil
 }
 
@@ -57,28 +61,35 @@ func resolveAnno(res *semantic.Result, t syntax.TypeEx, tps map[string]bool) *Ty
 			if len(tt.Args) == 1 {
 				elem = resolveAnno(res, tt.Args[0], tps)
 			}
+
 			return ChanOf(elem)
 		case "Option":
 			if len(tt.Args) == 1 {
 				return OptionOf(resolveAnno(res, tt.Args[0], tps))
 			}
+
 			return OptionOf(Unknown)
 		case "Result":
 			ok := Unknown
 			if len(tt.Args) >= 1 {
 				ok = resolveAnno(res, tt.Args[0], tps)
 			}
+
 			return ResultOf(ok, ErrorT)
 		}
+
 		if tps[tt.Name] {
 			return &Type{Kind: KTypeArg, Name: tt.Name}
 		}
+
 		if sym := lookupTypeSym(res, tt.Name); sym != nil {
 			if sym.Kind == semantic.KEnum {
 				return EnumOf(sym)
 			}
+
 			return StructOf(sym)
 		}
+
 		return Unknown
 	case *syntax.ArrType:
 		return SliceOf(resolveAnno(res, tt.Elem, tps))
@@ -91,11 +102,14 @@ func resolveAnno(res *semantic.Result, t syntax.TypeEx, tps map[string]bool) *Ty
 		for _, p := range tt.Params {
 			ps = append(ps, resolveAnno(res, p, tps))
 		}
+
 		ret := Unknown
 		if tt.Ret != nil {
 			ret = resolveAnno(res, tt.Ret, tps)
 		}
+
 		return FnOf(ps, ret)
 	}
+
 	return Unknown
 }

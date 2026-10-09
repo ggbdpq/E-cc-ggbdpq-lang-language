@@ -53,6 +53,7 @@ func Resolve(prog []syntax.Stmt) *Result {
 	r.bindGlobals(prog)
 	r.bindFns(prog)
 	r.popScope()
+
 	return r.res
 }
 
@@ -68,13 +69,16 @@ func (r *resolver) prelude() {
 	for _, n := range builtinNames {
 		r.res.Builtin[n] = r.newSym(&Symbol{Kind: KFn, Name: n, BuiltinMark: true})
 	}
+
 	for _, n := range preludeStructNames {
 		r.res.Builtin[n] = r.newSym(&Symbol{Kind: KStruct, Name: n, BuiltinMark: true})
 	}
+
 	r.res.Builtin["http"] = r.newSym(&Symbol{Kind: KVar, Name: "http", BuiltinMark: true})
 
 	// 预载构造器：Some/None/Ok/Err（与 interp prelude 的 case 序号一致）
 	opt := "Option"
+
 	res_ := "Result"
 	for _, c := range []struct {
 		name     string
@@ -99,6 +103,7 @@ func (r *resolver) newSym(s *Symbol) *Symbol {
 	r.nextID++
 	s.ID = r.nextID
 	r.res.Symbols = append(r.res.Symbols, s)
+
 	return s
 }
 
@@ -120,9 +125,12 @@ func (r *resolver) define(s *Symbol) {
 	top := r.scopes[len(r.scopes)-1]
 	if old, dup := top[s.Name]; dup {
 		_ = old
+
 		r.errf(s.Line, E2001, "%s %s 在此作用域重复定义", kindName(s.Kind), s.Name)
+
 		return
 	}
+
 	top[s.Name] = s
 }
 
@@ -131,6 +139,7 @@ func (r *resolver) defineCtor(s *Symbol) {
 		r.errf(s.Line, E2003, "构造器 %s 重名（已被 %s 使用）", s.Name, ownerName(old))
 		return
 	}
+
 	r.ctorScope[s.Name] = s
 }
 
@@ -138,6 +147,7 @@ func ownerName(s *Symbol) string {
 	if s.BuiltinMark {
 		return "内建"
 	}
+
 	return s.StructName
 }
 
@@ -158,6 +168,7 @@ func kindName(k Kind) string {
 	case KCtor:
 		return "构造器"
 	}
+
 	return "符号"
 }
 
@@ -168,6 +179,7 @@ func (r *resolver) lookup(name string) *Symbol {
 			return s
 		}
 	}
+
 	return nil
 }
 
@@ -180,6 +192,7 @@ func (r *resolver) lookupType(name string) *Symbol {
 			return s
 		}
 	}
+
 	return nil
 }
 
@@ -193,24 +206,29 @@ func (r *resolver) collectTypes(prog []syntax.Stmt) {
 				r.errf(d.Line, E2001, "struct %s 重复定义", d.Name)
 				continue
 			}
+
 			sym := r.newSym(&Symbol{Kind: KStruct, Name: d.Name, Line: d.Line, TypeParams: d.TypeParams, Decl: d})
 			for _, f := range d.Fields {
 				sym.Fields = append(sym.Fields, f.Name)
 				sym.FieldTypes = append(sym.FieldTypes, f.Typ)
 			}
+
 			r.typeScopes[0][d.Name] = sym
 		case *syntax.EnumDecl:
 			if _, ok := r.typeScopes[0][d.Name]; ok {
 				r.errf(d.Line, E2001, "enum %s 重复定义", d.Name)
 				continue
 			}
+
 			sym := r.newSym(&Symbol{Kind: KEnum, Name: d.Name, Line: d.Line, TypeParams: d.TypeParams, Decl: d})
+
 			r.typeScopes[0][d.Name] = sym
 			for i, c := range d.Cases {
 				if _, used := r.res.Builtin[c.Name]; used {
 					r.errf(c.Line, E2006, "case %s 与内建名冲突", c.Name)
 					continue
 				}
+
 				cs := r.newSym(&Symbol{
 					Kind: KCtor, Name: c.Name, Line: c.Line,
 					StructName: d.Name, CaseIndex: i,
@@ -232,10 +250,12 @@ func (r *resolver) collectFns(prog []syntax.Stmt) {
 				r.collectMethod(d)
 				continue
 			}
+
 			if old, dup := r.lookupTop(d.Name); dup {
 				r.errf(d.Line, E2001, "fn %s 重复定义（先前定义于第 %d 行）", d.Name, old.Line)
 				continue
 			}
+
 			r.scopes[0][d.Name] = r.fnSymbol(d)
 		case *syntax.ExternDecl:
 			for _, fn := range d.Fns {
@@ -243,6 +263,7 @@ func (r *resolver) collectFns(prog []syntax.Stmt) {
 					r.errf(d.Line, E2001, "fn %s 重复定义（先前定义于第 %d 行）", fn.Name, old.Line)
 					continue
 				}
+
 				sym := r.fnSymbol(fn)
 				sym.Extern = true
 				r.scopes[0][fn.Name] = sym
@@ -264,6 +285,7 @@ func (r *resolver) fnSymbol(d *syntax.FnDecl) *Symbol {
 	for _, p := range d.Params {
 		sym.Params = append(sym.Params, p.Typ)
 	}
+
 	return sym
 }
 
@@ -273,15 +295,18 @@ func (r *resolver) collectMethod(d *syntax.FnDecl) {
 		r.errf(d.Line, E2004, "方法接收者须为具名 struct 类型")
 		return
 	}
+
 	st, ok := r.typeScopes[0][nt.Name]
 	if !ok || st.Kind != KStruct {
 		r.errf(d.Line, E2004, "为未知 struct %s 定义方法", nt.Name)
 		return
 	}
+
 	if _, dup := st.Methods[d.Name]; dup {
 		r.errf(d.Line, E2001, "方法 %s 在 struct %s 上重复定义", d.Name, nt.Name)
 		return
 	}
+
 	sym := r.newSym(&Symbol{
 		Kind: KMethod, Name: d.Name, Line: d.Line, RecvName: nt.Name,
 		TypeEx: d.Ret, Arity: len(d.Params),
@@ -289,9 +314,11 @@ func (r *resolver) collectMethod(d *syntax.FnDecl) {
 	for _, p := range d.Params {
 		sym.Params = append(sym.Params, p.Typ)
 	}
+
 	if st.Methods == nil {
 		st.Methods = map[string]*Symbol{}
 	}
+
 	st.Methods[d.Name] = sym
 }
 
@@ -304,13 +331,16 @@ func (r *resolver) bindGlobals(prog []syntax.Stmt) {
 		switch d := s.(type) {
 		case *syntax.LetStmt:
 			r.expr(d.Init)
+
 			if d.Name == "_" {
 				continue
 			}
+
 			if old, dup := r.lookupTop(d.Name); dup {
 				r.errf(d.Line, E2001, "绑定 %s 在此作用域重复定义（先前定义于第 %d 行）", d.Name, old.Line)
 				continue
 			}
+
 			sym := r.newSym(&Symbol{
 				Kind: KVar, Name: d.Name, Line: d.Line, Mutable: d.Mutable, TypeEx: d.Typ,
 			})
@@ -334,14 +364,17 @@ func (r *resolver) bindFns(prog []syntax.Stmt) {
 			if sym != nil {
 				r.res.DeclSyms[d] = sym
 			}
+
 			r.fnScope(d, sym)
 		}
 	}
+
 	for _, s := range prog {
 		d, ok := s.(*syntax.FnDecl)
 		if !ok || d.Recv == nil {
 			continue
 		}
+
 		if nt, ok := d.Recv.Typ.(*syntax.NamedType); ok {
 			if st, ok := r.typeScopes[0][nt.Name]; ok && st.Kind == KStruct {
 				if sym := st.Methods[d.Name]; sym != nil {
@@ -357,9 +390,11 @@ func (r *resolver) stmt(s syntax.Stmt) {
 	switch st := s.(type) {
 	case *syntax.LetStmt:
 		r.expr(st.Init)
+
 		if st.Name == "_" {
 			return
 		}
+
 		sym := r.newSym(&Symbol{Kind: KVar, Name: st.Name, Line: st.Line, Mutable: st.Mutable, TypeEx: st.Typ})
 		r.define(sym)
 		r.res.DeclSyms[st] = sym
@@ -372,10 +407,12 @@ func (r *resolver) stmt(s syntax.Stmt) {
 			} else if !sym.Mutable {
 				r.errf(st.Line, E2005, "%s 由 let 绑定，不可重新赋值", id.Name)
 			}
+
 			r.res.Refs[id] = sym
 		} else {
 			r.assignTarget(st.Target)
 		}
+
 		r.expr(st.Val)
 
 	case *syntax.ExprStmt:
@@ -385,6 +422,7 @@ func (r *resolver) stmt(s syntax.Stmt) {
 		if r.fnDepth == 0 {
 			r.errf(st.Line, E2008, "return 出现在函数之外")
 		}
+
 		if st.Val != nil {
 			r.expr(st.Val)
 		}
@@ -392,6 +430,7 @@ func (r *resolver) stmt(s syntax.Stmt) {
 	case *syntax.IfStmt:
 		r.expr(st.Cond)
 		r.block(st.Then)
+
 		if st.Else != nil {
 			r.block(st.Else)
 		}
@@ -405,15 +444,18 @@ func (r *resolver) stmt(s syntax.Stmt) {
 	case *syntax.ForInStmt:
 		r.expr(st.Iter)
 		r.pushScope()
+
 		if st.Var != "_" {
 			sym := r.newSym(&Symbol{Kind: KVar, Name: st.Var, Line: st.Line})
 			r.define(sym)
 			r.res.DeclSyms[st] = sym
 		}
+
 		r.loopDepth++
 		for _, b := range st.Body {
 			r.stmt(b)
 		}
+
 		r.loopDepth--
 		r.popScope()
 
@@ -439,6 +481,7 @@ func (r *resolver) stmt(s syntax.Stmt) {
 	case *syntax.StructDecl:
 		// 嵌套类型声明：E2010（interp 容忍属实现越界，转译目标无法表达）
 		r.errf(st.Line, E2010, "嵌套类型声明不支持（struct %s 须在顶层声明）", st.Name)
+
 		top := r.typeScopes[len(r.typeScopes)-1]
 		if _, dup := top[st.Name]; !dup {
 			sym := r.newSym(&Symbol{Kind: KStruct, Name: st.Name, Line: st.Line, TypeParams: st.TypeParams})
@@ -446,11 +489,13 @@ func (r *resolver) stmt(s syntax.Stmt) {
 				sym.Fields = append(sym.Fields, f.Name)
 				sym.FieldTypes = append(sym.FieldTypes, f.Typ)
 			}
+
 			top[st.Name] = sym
 		}
 
 	case *syntax.EnumDecl:
 		r.errf(st.Line, E2010, "嵌套类型声明不支持（enum %s 须在顶层声明）", st.Name)
+
 		top := r.typeScopes[len(r.typeScopes)-1]
 		if _, dup := top[st.Name]; !dup {
 			r.newSym(&Symbol{Kind: KEnum, Name: st.Name, Line: st.Line, TypeParams: st.TypeParams})
@@ -474,6 +519,7 @@ func (r *resolver) stmt(s syntax.Stmt) {
 		} else {
 			r.res.Refs[id] = sym
 		}
+
 		for _, a := range st.Call.Args {
 			r.expr(a)
 		}
@@ -486,9 +532,11 @@ func (r *resolver) stmt(s syntax.Stmt) {
 // block 开新作用域走语句序列.
 func (r *resolver) block(stmts []syntax.Stmt) {
 	r.pushScope()
+
 	for _, s := range stmts {
 		r.stmt(s)
 	}
+
 	r.popScope()
 }
 
@@ -496,27 +544,34 @@ func (r *resolver) block(stmts []syntax.Stmt) {
 // 参数符号按序记入 FnParams[fn 符号]（接收者在前），供 checker/HIR 对位取类型。
 func (r *resolver) fnScope(d *syntax.FnDecl, sym *Symbol) {
 	r.pushScope()
+
 	var psyms []*Symbol
+
 	if d.Recv != nil {
 		ps := r.newSym(&Symbol{Kind: KParam, Name: d.Recv.Name, Line: d.Line, TypeEx: d.Recv.Typ})
 		r.define(ps)
 		psyms = append(psyms, ps)
 	}
+
 	for _, p := range d.Params {
 		if p.Name == "_" {
 			continue
 		}
+
 		ps := r.newSym(&Symbol{Kind: KParam, Name: p.Name, Line: d.Line, TypeEx: p.Typ})
 		r.define(ps)
 		psyms = append(psyms, ps)
 	}
+
 	if sym != nil {
 		r.res.FnParams[sym.ID] = psyms
 	}
+
 	r.fnDepth++
 	for _, s := range d.Body {
 		r.stmt(s)
 	}
+
 	r.fnDepth--
 	r.popScope()
 }
@@ -541,13 +596,16 @@ func (r *resolver) expr(e syntax.Expr) {
 			r.res.Refs[x] = sym
 			return
 		}
+
 		if sym := r.lookupCtor(x.Name); sym != nil {
 			r.res.Refs[x] = sym
 			return
 		}
+
 		if _, isBuiltin := r.res.Builtin[x.Name]; isBuiltin {
 			return // 裸内建引用是否合法（如传函数值）由 checker 判定
 		}
+
 		r.errf(x.Line, E2002, "未定义 %s", x.Name)
 
 	case *syntax.Unary:
@@ -560,6 +618,7 @@ func (r *resolver) expr(e syntax.Expr) {
 		r.expr(x.Hi)
 	case *syntax.CallEx:
 		r.expr(x.Callee)
+
 		for _, a := range x.Args {
 			r.expr(a)
 		}
@@ -581,6 +640,7 @@ func (r *resolver) expr(e syntax.Expr) {
 		} else {
 			r.errf(x.Line, E2002, "未知 struct %s", x.TypeName)
 		}
+
 		for _, f := range x.Fields {
 			r.expr(f.Val)
 		}
@@ -597,6 +657,7 @@ func (r *resolver) expr(e syntax.Expr) {
 
 	case *syntax.MatchEx:
 		r.expr(x.Scrut)
+
 		for _, arm := range x.Arms {
 			r.pushScope()
 			r.pat(arm.Pat)
@@ -606,15 +667,18 @@ func (r *resolver) expr(e syntax.Expr) {
 
 	case *syntax.FnLit:
 		r.pushScope()
+
 		for _, p := range x.Params {
 			if p.Name != "_" {
 				r.define(r.newSym(&Symbol{Kind: KParam, Name: p.Name, Line: x.Line, TypeEx: p.Typ}))
 			}
 		}
+
 		r.fnDepth++
 		for _, s := range x.Body {
 			r.stmt(s)
 		}
+
 		r.fnDepth--
 		r.popScope()
 	}
@@ -636,6 +700,7 @@ func (r *resolver) pat(p syntax.Pat) {
 		} else {
 			r.res.PatRefs[x] = sym
 		}
+
 		for _, sp := range x.Subs {
 			r.pat(sp)
 		}

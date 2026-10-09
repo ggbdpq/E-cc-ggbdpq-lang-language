@@ -23,9 +23,11 @@ func (s Sources) Source(file string) string {
 	if file == "" {
 		return s.Default
 	}
+
 	if c, ok := s.ByFile[file]; ok {
 		return c
 	}
+
 	return s.Default
 }
 
@@ -38,21 +40,27 @@ type declInfo struct {
 // collectFnDecls 收集全部函数声明（顶层/嵌套/方法）.
 func collectFnDecls(prog []syntax.Stmt, res *semantic.Result) []declInfo {
 	var out []declInfo
+
 	seen := map[syntax.Stmt]bool{}
+
 	var walkS func(s syntax.Stmt)
+
 	walkS = func(s syntax.Stmt) {
 		if seen[s] {
 			return
 		}
+
 		seen[s] = true
 		if d, ok := s.(*syntax.FnDecl); ok {
 			if sym, ok := res.DeclSyms[d]; ok {
 				out = append(out, declInfo{d, sym})
 			}
 		}
+
 		syntax.WalkStmt(s, walkS, nil, nil)
 	}
 	syntax.WalkStmts(prog, walkS, nil, nil)
+
 	return out
 }
 
@@ -64,37 +72,45 @@ func declNameSpan(prog []syntax.Stmt, srcs Sources, res *semantic.Result, target
 		if !ok {
 			return syntax.Span{}, errors.New("未找到函数声明节点")
 		}
+
 		return scanNameAfterFn(d.Sp, srcs, false)
 	case semantic.KMethod:
 		d, ok := target.Decl.(*syntax.FnDecl)
 		if !ok {
 			return syntax.Span{}, errors.New("未找到方法声明节点")
 		}
+
 		return scanNameAfterFn(d.Sp, srcs, true)
 	case semantic.KVar:
 		st := findLetStmt(prog, res, target)
 		if st == nil {
 			return syntax.Span{}, errors.New("未找到绑定声明")
 		}
+
 		return firstIdentSpan(st.Sp, srcs)
 	case semantic.KParam:
 		ownerSym, idx, ok := paramOwner(res, target)
 		if !ok {
 			return syntax.Span{}, errors.New("未找到参数所属函数")
 		}
+
 		d := findFnDeclBySym(prog, res, ownerSym)
 		if d == nil {
 			return syntax.Span{}, errors.New("未找到函数声明节点")
 		}
+
 		hasRecv := d.Recv != nil
 		group := 0
 		seg := idx
+
 		if hasRecv {
 			group = 1
 			seg = idx
 		}
+
 		return paramIdentSpan(d.Sp, srcs, group, seg)
 	}
+
 	return syntax.Span{}, errors.New("不支持的定义定位")
 }
 
@@ -110,6 +126,7 @@ func findLetStmt(prog []syntax.Stmt, res *semantic.Result, target *semantic.Symb
 		}
 	}
 	syntax.WalkStmts(prog, walkS, nil, nil)
+
 	return found
 }
 
@@ -122,10 +139,12 @@ func paramOwner(res *semantic.Result, target *semantic.Symbol) (*semantic.Symbol
 				if fn == nil {
 					return nil, 0, false
 				}
+
 				return fn, i, true
 			}
 		}
 	}
+
 	return nil, 0, false
 }
 
@@ -135,6 +154,7 @@ func findSymByID(res *semantic.Result, id semantic.SymbolID) *semantic.Symbol {
 			return s
 		}
 	}
+
 	return nil
 }
 
@@ -145,11 +165,13 @@ func findFnDeclBySym(prog []syntax.Stmt, res *semantic.Result, owner *semantic.S
 			return d.Decl
 		}
 	}
+
 	if owner.Decl != nil {
 		if d, ok := owner.Decl.(*syntax.FnDecl); ok {
 			return d
 		}
 	}
+
 	return nil
 }
 
@@ -166,29 +188,35 @@ type spanTok struct {
 // spanTokens 声明区间的词法切分（坐标换算为绝对行列）.
 func spanTokens(sp syntax.Span, src string) []spanTok {
 	runes := []rune(src)
+
 	lo, hi := sp.Start.Offset, sp.End.Offset
 	if lo < 0 || hi > len(runes) || lo >= hi {
 		return nil
 	}
+
 	lineStarts := []int{lo}
 	for i := lo; i < hi; i++ {
 		if runes[i] == '\n' {
 			lineStarts = append(lineStarts, i+1)
 		}
 	}
+
 	toks, err := syntax.Lex(string(runes[lo:hi]))
 	if err != nil {
 		return nil
 	}
+
 	out := make([]spanTok, 0, len(toks))
 	for _, t := range toks {
 		if t.Kind == syntax.EOF || t.Kind == syntax.Newline {
 			continue
 		}
+
 		lineIdx := t.Line - 1
 		if lineIdx < 0 || lineIdx >= len(lineStarts) {
 			continue
 		}
+
 		off := lo + t.Start
 		out = append(out, spanTok{
 			kind:     t.Kind,
@@ -198,22 +226,28 @@ func spanTokens(sp syntax.Span, src string) []spanTok {
 			absCol:   off - lineStarts[lineIdx] + 1,
 		})
 	}
+
 	return out
 }
 
 // scanNameAfterFn fn 声明内的名字 token：fn 后（方法则越过接收者括号与 `.`）的第一个标识符.
 func scanNameAfterFn(sp syntax.Span, srcs Sources, hasRecv bool) (syntax.Span, error) {
 	toks := spanTokens(sp, srcs.Source(sp.File))
+
 	i := 0
 	for i < len(toks) && toks[i].kind != syntax.KwFn {
 		i++
 	}
+
 	if i >= len(toks) {
 		return syntax.Span{}, errors.New("未找到 fn")
 	}
+
 	i++ // 越过 fn
+
 	if hasRecv {
 		depth := 1
+
 		i++
 		for i < len(toks) && depth > 0 {
 			switch toks[i].kind {
@@ -222,18 +256,22 @@ func scanNameAfterFn(sp syntax.Span, srcs Sources, hasRecv bool) (syntax.Span, e
 			case syntax.RParen:
 				depth--
 			}
+
 			if depth > 0 {
 				i++
 			}
 		}
+
 		i++
 		for i < len(toks) && toks[i].kind == syntax.Dot {
 			i++
 		}
 	}
+
 	if i >= len(toks) || toks[i].kind != syntax.TokIdent {
 		return syntax.Span{}, errors.New("未找到名字 token")
 	}
+
 	return spanTokAbs(sp, toks[i]), nil
 }
 
@@ -245,6 +283,7 @@ func firstIdentSpan(sp syntax.Span, srcs Sources) (syntax.Span, error) {
 			return spanTokAbs(sp, t), nil
 		}
 	}
+
 	return syntax.Span{}, errors.New("未找到标识符")
 }
 
@@ -252,16 +291,20 @@ func firstIdentSpan(sp syntax.Span, srcs Sources) (syntax.Span, error) {
 func paramIdentSpan(sp syntax.Span, srcs Sources, group, seg int) (syntax.Span, error) {
 	toks := spanTokens(sp, srcs.Source(sp.File))
 	gi := 0
+
 	i := 0
 	for i < len(toks) {
 		if toks[i].kind != syntax.LParen {
 			i++
 			continue
 		}
+
 		if gi == group {
 			return segIdent(sp, toks, i, seg)
 		}
+
 		depth := 1
+
 		i++
 		for i < len(toks) && depth > 0 {
 			switch toks[i].kind {
@@ -270,11 +313,13 @@ func paramIdentSpan(sp syntax.Span, srcs Sources, group, seg int) (syntax.Span, 
 			case syntax.RParen, syntax.RBracket:
 				depth--
 			}
+
 			if depth > 0 {
 				i++
 			}
 		}
 	}
+
 	return syntax.Span{}, errors.New("未找到参数组")
 }
 
@@ -282,6 +327,7 @@ func segIdent(sp syntax.Span, toks []spanTok, lp, seg int) (syntax.Span, error) 
 	depth := 1
 	i := lp + 1
 	segIdx := 0
+
 	start := i
 	for i < len(toks) && depth > 0 {
 		switch toks[i].kind {
@@ -290,21 +336,27 @@ func segIdent(sp syntax.Span, toks []spanTok, lp, seg int) (syntax.Span, error) 
 		case syntax.RParen, syntax.RBracket:
 			depth--
 		}
+
 		if depth == 0 {
 			break
 		}
+
 		if toks[i].kind == syntax.Comma && depth == 1 {
 			if segIdx == seg {
 				return firstIdentInSeg(sp, toks[start:i])
 			}
+
 			segIdx++
 			start = i + 1
 		}
+
 		i++
 	}
+
 	if segIdx == seg {
 		return firstIdentInSeg(sp, toks[start:i])
 	}
+
 	return syntax.Span{}, fmt.Errorf("参数段 %d 不存在", seg)
 }
 
@@ -314,6 +366,7 @@ func firstIdentInSeg(sp syntax.Span, toks []spanTok) (syntax.Span, error) {
 			return spanTokAbs(sp, t), nil
 		}
 	}
+
 	return syntax.Span{}, errors.New("参数段无标识符")
 }
 

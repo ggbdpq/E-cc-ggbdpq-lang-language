@@ -21,9 +21,12 @@ func (c Comment) Col() int { return c.Span.Start.Col }
 // ScanComments 扫描源码中的全部注释（依出现序）.
 func ScanComments(src string) []Comment {
 	runes := []rune(src)
+
 	var out []Comment
+
 	line := 1
 	lineStart := 0
+
 	i := 0
 	for i < len(runes) {
 		r := runes[i]
@@ -39,20 +42,24 @@ func ScanComments(src string) []Comment {
 					i += 2
 					continue
 				}
+
 				if runes[i] == '"' || runes[i] == '\n' {
 					i++
 					break
 				}
+
 				i++
 			}
 		case '/':
 			if i+1 < len(runes) && runes[i+1] == '/' {
 				start := i
 				startLine := line
+
 				startCol := i - lineStart + 1
 				for i < len(runes) && runes[i] != '\n' {
 					i++
 				}
+
 				text := strings.TrimRight(string(runes[start:i]), "\r")
 				out = append(out, Comment{
 					Span: Span{
@@ -61,12 +68,15 @@ func ScanComments(src string) []Comment {
 					},
 					Text: text,
 				})
+
 				continue
 			}
+
 			i++
 		default:
 			i++
 		}
 	}
+
 	return out
 }

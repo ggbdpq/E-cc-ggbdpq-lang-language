@@ -62,6 +62,7 @@ func (f *frame) slot(l *ir.Local) **interp.Value {
 			return &p
 		}
 	}
+
 	return nil
 }
 
@@ -81,55 +82,69 @@ func New(out io.Writer) *Machine {
 	for _, pd := range prelude.Enums() {
 		m.enums[pd.Name] = &interp.EnumDef{Name: pd.Name, Cases: append([]string(nil), pd.Cases...)}
 	}
+
 	for name, ci := range prelude.Ctors() {
 		m.ctors[name] = &ctorInfo{def: m.enums[ci.Enum], idx: ci.Index}
 	}
+
 	if es := prelude.ErrorDef(); true {
 		m.structs[es.Name] = &interp.StructDef{Name: es.Name, Fields: append([]string(nil), es.Fields...), Methods: map[string]*interp.Closure{}}
 	}
+
 	return m
 }
 
 // Run 执行程序：声明注册 → 全局初始化（MODULE-INIT-005 合并序）→ 调 main.
 func (m *Machine) Run(p *ir.Prog) error {
 	m.globals = newFrame(nil)
+
 	for _, sd := range p.Structs {
 		fs := make([]string, len(sd.Fields))
 		for i, f := range sd.Fields {
 			fs[i] = f.Name
 		}
+
 		m.structs[sd.Name] = &interp.StructDef{Name: sd.Name, Fields: fs, Methods: map[string]*interp.Closure{}}
 	}
+
 	for _, ed := range p.Enums {
 		cs := make([]string, len(ed.Cases))
 		for i, c := range ed.Cases {
 			cs[i] = c.Name
 		}
+
 		def := &interp.EnumDef{Name: ed.Name, Cases: cs}
+
 		m.enums[ed.Name] = def
 		for i, c := range ed.Cases {
 			m.ctors[c.Name] = &ctorInfo{def: def, idx: i}
 		}
 	}
+
 	for _, fn := range p.Fns {
 		if fn.Recv != nil {
 			m.methods[fn.Recv.Typ.Sym.Name+"."+fn.Name] = fn
 			continue
 		}
+
 		m.fns[fn.Name] = fn
 	}
+
 	for _, g := range p.Globals {
 		v, err := m.eval(g.Init, m.globals)
 		if err != nil {
 			return err
 		}
+
 		m.globals.vars[g.Local] = valPtr(copyVal(v))
 		m.indexGlobal(g.Local)
 	}
+
 	if p.Main != nil {
 		_, err := m.callFn(p.Main, nil, nil)
 		return err
 	}
+
 	return nil
 }
 
@@ -149,6 +164,7 @@ func (m *Machine) globalSlot(l *ir.Local) **interp.Value {
 			return &p
 		}
 	}
+
 	return nil
 }
 
@@ -175,6 +191,7 @@ func (m *Machine) execStmts(stmts []ir.Stmt, f *frame) (step, error) {
 			return s, err
 		}
 	}
+
 	return step{}, nil
 }
 
@@ -185,7 +202,9 @@ func (m *Machine) exec(st ir.Stmt, f *frame) (step, error) {
 		if err != nil {
 			return step{}, err
 		}
+
 		f.vars[x.Local] = valPtr(copyVal(v))
+
 		return step{}, nil
 	case *ir.Assign:
 		return m.execAssign(x, f)
@@ -193,25 +212,31 @@ func (m *Machine) exec(st ir.Stmt, f *frame) (step, error) {
 		if _, err := m.eval(x.X, f); err != nil {
 			return step{}, err
 		}
+
 		return step{}, nil
 	case *ir.Return:
 		var v interp.Value = interp.UnitVal{}
+
 		if x.Val != nil {
 			rv, err := m.eval(x.Val, f)
 			if err != nil {
 				return step{}, err
 			}
+
 			v = copyVal(rv)
 		}
+
 		return step{flow: flowReturn, val: v}, nil
 	case *ir.If:
 		c, err := m.eval(x.Cond, f)
 		if err != nil {
 			return step{}, err
 		}
+
 		if truthy(c) {
 			return m.execStmts(x.Then, newFrame(f))
 		}
+
 		return m.execStmts(x.Else, newFrame(f))
 	case *ir.While:
 		for {
@@ -219,9 +244,11 @@ func (m *Machine) exec(st ir.Stmt, f *frame) (step, error) {
 			if err != nil {
 				return step{}, err
 			}
+
 			if !truthy(c) {
 				return step{}, nil
 			}
+
 			s, err := m.execStmts(x.Body, newFrame(f))
 			if err != nil || s.flow == flowBreak || s.flow == flowReturn {
 				return s, err
@@ -239,18 +266,22 @@ func (m *Machine) exec(st ir.Stmt, f *frame) (step, error) {
 		if err != nil {
 			return step{}, err
 		}
+
 		fn := m.fns[x.Fn.Name]
 		if fn == nil {
 			return step{}, fmt.Errorf("go 的目标未注册: %s", x.Fn.Name)
 		}
+
 		if _, err := m.callFn(fn, nil, args); err != nil {
 			return step{}, err
 		}
+
 		return step{}, nil
 	case *ir.FnDef:
 		f.fns[x.Fn.Name] = x.Fn
 		return step{}, nil
 	}
+
 	return step{}, fmt.Errorf("irinterp: 未支持的语句 %T", st)
 }
 
@@ -259,7 +290,9 @@ func (m *Machine) execForIn(x *ir.ForIn, f *frame) (step, error) {
 	if err != nil {
 		return step{}, err
 	}
+
 	var items []interp.Value
+
 	switch x.Kind {
 	case ir.IterSlice:
 		items = append(items, it.(*interp.ArrVal).Items...)
@@ -277,17 +310,21 @@ func (m *Machine) execForIn(x *ir.ForIn, f *frame) (step, error) {
 	default:
 		return step{}, errors.New("该类型不可迭代")
 	}
+
 	for _, item := range items {
 		body := newFrame(f)
 		body.vars[x.Var] = valPtr(item)
+
 		s, err := m.execStmts(x.Body, body)
 		if err != nil {
 			return s, err
 		}
+
 		if s.flow == flowBreak {
 			break
 		}
 	}
+
 	return step{}, nil
 }
 
@@ -329,6 +366,7 @@ func (s mapSlot) read() interp.Value {
 	if !ok {
 		return interp.UnitVal{}
 	}
+
 	return v
 }
 func (s mapSlot) write(v interp.Value) { _ = s.mm.Set(s.k, v) }
@@ -341,48 +379,59 @@ func (m *Machine) evalSlot(tgt ir.Expr, f *frame) (assignSlot, error) {
 			if gp := m.globalSlot(t.Local); gp != nil {
 				return localSlot{p: *gp}, nil
 			}
+
 			return nil, fmt.Errorf("未定义变量 %s", t.Local.Name)
 		}
+
 		return localSlot{p: *p}, nil
 	case *ir.Field:
 		ov, err := m.eval(t.Obj, f)
 		if err != nil {
 			return nil, err
 		}
+
 		sv, err := asStruct(derefVal(ov))
 		if err != nil {
 			return nil, err
 		}
+
 		for i, fname := range sv.Def.Fields {
 			if fname == t.Name {
 				return fieldSlot{sv: sv, idx: i}, nil
 			}
 		}
+
 		return nil, fmt.Errorf("%s 没有字段 %s", sv.Def.Name, t.Name)
 	case *ir.Index:
 		ov, err := m.eval(t.Obj, f)
 		if err != nil {
 			return nil, err
 		}
+
 		iv, err := m.eval(t.Idx, f)
 		if err != nil {
 			return nil, err
 		}
+
 		switch c := ov.(type) {
 		case *interp.ArrVal:
 			i, err := intIndex(iv, len(c.Items))
 			if err != nil {
 				return nil, err
 			}
+
 			return arrSlot{arr: c, idx: i}, nil
 		case *interp.MapVal:
 			if _, ok := keyOK(iv); !ok {
 				return nil, errors.New("映射键须为 int/string/bool")
 			}
+
 			return mapSlot{mm: c, k: iv}, nil
 		}
+
 		return nil, errors.New("该类型不可索引赋值")
 	}
+
 	return nil, errors.New("赋值目标不合法")
 }
 
@@ -391,10 +440,12 @@ func (m *Machine) execAssign(x *ir.Assign, f *frame) (step, error) {
 	if err != nil {
 		return step{}, err
 	}
+
 	v, err := m.eval(x.Val, f)
 	if err != nil {
 		return step{}, err
 	}
+
 	if x.Op == ir.OpAssign {
 		slot.write(copyVal(v))
 		return step{}, nil
@@ -407,15 +458,20 @@ func (m *Machine) execAssign(x *ir.Assign, f *frame) (step, error) {
 			if !ok {
 				return step{}, fmt.Errorf("数组 += 需要数组，得到 %s", typeName(v))
 			}
+
 			arr.Items = append(arr.Items, add.Items...)
+
 			return step{}, nil
 		}
 	}
+
 	combined, err := m.arith(binOpOf(x.Op), slot.read(), v)
 	if err != nil {
 		return step{}, err
 	}
+
 	slot.write(combined)
+
 	return step{}, nil
 }
 
@@ -440,13 +496,16 @@ func (m *Machine) eval(e ir.Expr, f *frame) (interp.Value, error) {
 			if gp := m.globalSlot(x.Local); gp != nil {
 				return **gp, nil
 			}
+
 			return nil, fmt.Errorf("未定义变量 %s", x.Local.Name)
 		}
+
 		return **p, nil
 	case *ir.FnGet:
 		if fn, ok := m.fns[x.Name]; ok {
 			return &irFnVal{fn: fn, name: x.Name}, nil
 		}
+
 		return nil, fmt.Errorf("未注册函数 %s", x.Name)
 	case *ir.BuiltinGet:
 		return &irBuiltinVal{name: x.Name}, nil
@@ -455,10 +514,12 @@ func (m *Machine) eval(e ir.Expr, f *frame) (interp.Value, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		ci, ok := m.ctors[x.Sym.Name]
 		if !ok {
 			return nil, fmt.Errorf("未知构造器 %s", x.Sym.Name)
 		}
+
 		return &interp.EnumVal{Def: ci.def, Case: ci.idx, Payloads: args}, nil
 	case *ir.Call:
 		return m.evalCall(x, f)
@@ -467,6 +528,7 @@ func (m *Machine) eval(e ir.Expr, f *frame) (interp.Value, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		switch x.Op {
 		case ir.OpNeg:
 			switch n := v.(type) {
@@ -475,6 +537,7 @@ func (m *Machine) eval(e ir.Expr, f *frame) (interp.Value, error) {
 			case interp.FloatVal:
 				return -n, nil
 			}
+
 			return nil, errors.New("一元 - 不适用于该类型")
 		case ir.OpNot:
 			return interp.BoolVal(!truthy(v)), nil
@@ -485,8 +548,10 @@ func (m *Machine) eval(e ir.Expr, f *frame) (interp.Value, error) {
 					return &interp.PtrVal{Cell: *p}, nil
 				}
 			}
+
 			return nil, errors.New("& 仅可作用于变量")
 		}
+
 		return nil, fmt.Errorf("irinterp: 未支持的一元运算 %s", string(x.Op))
 	case *ir.Binary:
 		lv, err := m.eval(x.L, f)
@@ -498,115 +563,141 @@ func (m *Machine) eval(e ir.Expr, f *frame) (interp.Value, error) {
 			if !truthy(lv) {
 				return interp.BoolVal(false), nil
 			}
+
 			rv, err := m.eval(x.R, f)
 			if err != nil {
 				return nil, err
 			}
+
 			return interp.BoolVal(truthy(rv)), nil
 		}
+
 		if x.Op == ir.OpOrOr {
 			if truthy(lv) {
 				return interp.BoolVal(true), nil
 			}
+
 			rv, err := m.eval(x.R, f)
 			if err != nil {
 				return nil, err
 			}
+
 			return interp.BoolVal(truthy(rv)), nil
 		}
+
 		rv, err := m.eval(x.R, f)
 		if err != nil {
 			return nil, err
 		}
+
 		return m.evalBinary(x.Op, lv, rv)
 	case *ir.Range:
 		lo, err := m.eval(x.Lo, f)
 		if err != nil {
 			return nil, err
 		}
+
 		hi, err := m.eval(x.Hi, f)
 		if err != nil {
 			return nil, err
 		}
+
 		return &interp.RangeVal{Lo: int64(lo.(interp.IntVal)), Hi: int64(hi.(interp.IntVal))}, nil
 	case *ir.Index:
 		ov, err := m.eval(x.Obj, f)
 		if err != nil {
 			return nil, err
 		}
+
 		iv, err := m.eval(x.Idx, f)
 		if err != nil {
 			return nil, err
 		}
+
 		switch c := ov.(type) {
 		case *interp.ArrVal:
 			i, err := intIndex(iv, len(c.Items))
 			if err != nil {
 				return nil, err
 			}
+
 			return c.Items[i], nil
 		case *interp.MapVal:
 			v, ok := c.Get(iv)
 			if !ok {
 				return nil, fmt.Errorf("映射无键 %s（用 has() 探测）", interp.Fmt(iv))
 			}
+
 			return v, nil
 		case interp.StrVal:
 			i, err := intIndex(iv, len([]rune(string(c))))
 			if err != nil {
 				return nil, err
 			}
+
 			return interp.StrVal(string([]rune(string(c))[i])), nil
 		}
+
 		return nil, errors.New("该类型不可索引")
 	case *ir.Slice:
 		ov, err := m.eval(x.Obj, f)
 		if err != nil {
 			return nil, err
 		}
+
 		loV, err := m.eval(x.Lo, f)
 		if err != nil {
 			return nil, err
 		}
+
 		hiV, err := m.eval(x.Hi, f)
 		if err != nil {
 			return nil, err
 		}
+
 		lo, hi := int64(loV.(interp.IntVal)), int64(hiV.(interp.IntVal))
+
 		switch c := ov.(type) {
 		case *interp.ArrVal:
 			if lo < 0 || hi > int64(len(c.Items)) || lo > hi {
 				return nil, fmt.Errorf("切片区间 [%d,%d) 越界（长度 %d）", lo, hi, len(c.Items))
 			}
+
 			return &interp.ArrVal{Items: append([]interp.Value(nil), c.Items[lo:hi]...)}, nil
 		case interp.StrVal:
 			rs := []rune(string(c))
 			if lo < 0 || hi > int64(len(rs)) || lo > hi {
 				return nil, fmt.Errorf("切片区间 [%d,%d) 越界（长度 %d）", lo, hi, len(rs))
 			}
+
 			return interp.StrVal(string(rs[lo:hi])), nil
 		}
+
 		return nil, errors.New("该类型不可切片")
 	case *ir.Field:
 		ov, err := m.eval(x.Obj, f)
 		if err != nil {
 			return nil, err
 		}
+
 		sv, err := asStruct(derefVal(ov))
 		if err != nil {
 			return nil, err
 		}
+
 		for i, fname := range sv.Def.Fields {
 			if fname == x.Name {
 				return sv.Fields[i], nil
 			}
 		}
+
 		return nil, fmt.Errorf("%s 没有字段 %s", sv.Def.Name, x.Name)
 	case *ir.Try:
 		v, err := m.eval(x.X, f)
 		if err != nil {
 			return nil, err
 		}
+
 		ev := v.(*interp.EnumVal)
 		if ev.Def.Name == "Result" && ev.Case == 0 {
 			return ev.Payloads[0], nil
@@ -618,34 +709,43 @@ func (m *Machine) eval(e ir.Expr, f *frame) (interp.Value, error) {
 		if !ok {
 			return nil, fmt.Errorf("未知 struct %s", structName(x.Struct))
 		}
+
 		vals := map[string]interp.Value{}
+
 		for _, fv := range x.Fields {
 			v, err := m.eval(fv.Val, f)
 			if err != nil {
 				return nil, err
 			}
+
 			vals[fv.Name] = v
 		}
+
 		fields := make([]interp.Value, len(def.Fields))
 		for i, fname := range def.Fields {
 			fields[i] = vals[fname]
 		}
+
 		return &interp.StructVal{Def: def, Fields: fields}, nil
 	case *ir.MapLit:
 		mm := &interp.MapVal{}
+
 		for i := range x.Keys {
 			k, err := m.eval(x.Keys[i], f)
 			if err != nil {
 				return nil, err
 			}
+
 			v, err := m.eval(x.Vals[i], f)
 			if err != nil {
 				return nil, err
 			}
+
 			if err := mm.Set(k, v); err != nil {
 				return nil, err
 			}
 		}
+
 		return mm, nil
 	case *ir.SliceLit:
 		items := make([]interp.Value, len(x.Elems))
@@ -654,14 +754,17 @@ func (m *Machine) eval(e ir.Expr, f *frame) (interp.Value, error) {
 			if err != nil {
 				return nil, err
 			}
+
 			items[i] = v
 		}
+
 		return &interp.ArrVal{Items: items}, nil
 	case *ir.Match:
 		return m.evalMatch(x, f)
 	case *ir.FnLit:
 		return &irFnVal{lit: x, env: f}, nil
 	}
+
 	return nil, fmt.Errorf("irinterp: 未支持的表达式 %T", e)
 }
 
@@ -683,53 +786,64 @@ func (m *Machine) evalCall(x *ir.Call, f *frame) (interp.Value, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		return m.callBuiltin(x.Builtin, args)
 	case x.Method != nil:
 		recv, err := m.eval(x.Recv, f)
 		if err != nil {
 			return nil, err
 		}
+
 		sv, err := asStruct(recv)
 		if err != nil {
 			return nil, err
 		}
+
 		fn := m.methods[sv.Def.Name+"."+x.Method.Name]
 		if fn == nil {
 			return nil, fmt.Errorf("%s 没有方法 %s", sv.Def.Name, x.Method.Name)
 		}
+
 		args, err := m.evalArgs(x.Args, f)
 		if err != nil {
 			return nil, err
 		}
+
 		return m.callFn(fn, recv, args)
 	case x.Fn != nil:
 		args, err := m.evalArgs(x.Args, f)
 		if err != nil {
 			return nil, err
 		}
+
 		fn := m.fns[x.Fn.Name]
 		if fn == nil {
 			if nested := f.lookupFn(x.Fn.Name); nested != nil {
 				return m.callFn(nested, nil, args)
 			}
+
 			return nil, fmt.Errorf("未注册函数 %s", x.Fn.Name)
 		}
+
 		return m.callFn(fn, nil, args)
 	default:
 		cv, err := m.eval(x.Callee, f)
 		if err != nil {
 			return nil, err
 		}
+
 		args, err := m.evalArgs(x.Args, f)
 		if err != nil {
 			return nil, err
 		}
+
 		switch fv := cv.(type) {
 		case *irFnVal:
 			return m.callFnVal(fv, args)
 		case *irBuiltinVal:
 			return m.callBuiltin(fv.name, args)
 		}
+
 		return nil, errors.New("该值不可调用")
 	}
 }
@@ -740,6 +854,7 @@ func (f *frame) lookupFn(name string) *ir.Fn {
 			return fn
 		}
 	}
+
 	return nil
 }
 
@@ -750,8 +865,10 @@ func (m *Machine) evalArgs(args []ir.Expr, f *frame) ([]interp.Value, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		out[i] = v
 	}
+
 	return out, nil
 }
 
@@ -764,13 +881,16 @@ func (m *Machine) callBuiltin(name string, args []interp.Value) (interp.Value, e
 		_, err := fmt.Fprint(m.Out, m.fmtArgs(args))
 		return interp.UnitVal{}, err
 	}
+
 	v, found, err := m.host.CallBuiltin(name, args)
 	if err != nil {
 		return nil, err
 	}
+
 	if !found {
 		return nil, fmt.Errorf("irinterp: 未支持的内建 %s", name)
 	}
+
 	return v, nil
 }
 
@@ -778,17 +898,21 @@ func (m *Machine) callFn(fn *ir.Fn, recv interp.Value, args []interp.Value) (int
 	if fn.Extern {
 		return nil, errors.New("extern 函数仅转译可用")
 	}
+
 	f := newFrame(m.globals)
 	if fn.Recv != nil {
 		f.vars[fn.Recv] = valPtr(copyVal(recv))
 	}
+
 	for i, p := range fn.Params {
 		var v interp.Value = interp.UnitVal{}
 		if i < len(args) {
 			v = copyVal(args[i])
 		}
+
 		f.vars[p] = valPtr(v)
 	}
+
 	return m.execBody(fn.Body, f)
 }
 
@@ -804,15 +928,19 @@ func (m *Machine) callFnVal(fv *irFnVal, args []interp.Value) (interp.Value, err
 				f.vars[l] = *p
 			}
 		}
+
 		for i, p := range fv.lit.Params {
 			var v interp.Value = interp.UnitVal{}
 			if i < len(args) {
 				v = copyVal(args[i])
 			}
+
 			f.vars[p] = valPtr(v)
 		}
+
 		return m.execBody(fv.lit.Body, f)
 	}
+
 	return nil, errors.New("空函数值不可调用")
 }
 
@@ -823,11 +951,14 @@ func (m *Machine) execBody(body []ir.Stmt, f *frame) (interp.Value, error) {
 		if te, ok := errors.AsType[*tryErr](err); ok {
 			return te.val, nil
 		}
+
 		return nil, err
 	}
+
 	if s.flow == flowReturn {
 		return s.val, nil
 	}
+
 	return interp.UnitVal{}, nil
 }
 
@@ -838,13 +969,16 @@ func (m *Machine) evalMatch(x *ir.Match, f *frame) (interp.Value, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	for _, arm := range x.Arms {
 		bind := newFrame(f)
 		if !m.matchPat(arm.Pat, scrut, bind) {
 			continue
 		}
+
 		return m.eval(arm.Body, bind)
 	}
+
 	return nil, errors.New("match 无匹配分支")
 }
 
@@ -856,28 +990,34 @@ func (m *Machine) matchPat(p ir.Pat, v interp.Value, bind *frame) bool {
 		if pat.Local != nil {
 			bind.vars[pat.Local] = valPtr(v)
 		}
+
 		return true
 	case *ir.LitPat:
 		lv, err := m.eval(pat.Val, bind)
 		if err != nil {
 			return false
 		}
+
 		return eqValues(lv, v)
 	case *ir.CtorPat:
 		ev, ok := v.(*interp.EnumVal)
 		if !ok || ev.Def.Cases[ev.Case] != pat.Sym.Name {
 			return false
 		}
+
 		for i, sub := range pat.Subs {
 			if i >= len(ev.Payloads) {
 				return false
 			}
+
 			if !m.matchPat(sub, ev.Payloads[i], bind) {
 				return false
 			}
 		}
+
 		return true
 	}
+
 	return false
 }
 
@@ -894,6 +1034,7 @@ func (m *Machine) evalBinary(op ir.Op, lv, rv interp.Value) (interp.Value, error
 	case ir.OpLt, ir.OpLe, ir.OpGt, ir.OpGe:
 		return m.compare(op, lv, rv)
 	}
+
 	return m.arith(op, lv, rv)
 }
 
@@ -904,6 +1045,7 @@ func (m *Machine) arith(op ir.Op, lv, rv interp.Value) (interp.Value, error) {
 		if !ok {
 			return nil, errors.New("int 与 float 不可混合运算（无隐式转换）")
 		}
+
 		switch op {
 		case ir.OpPlus, ir.OpPlusA:
 			return a + b, nil
@@ -915,11 +1057,13 @@ func (m *Machine) arith(op ir.Op, lv, rv interp.Value) (interp.Value, error) {
 			if b == 0 {
 				return nil, errors.New("整数除零")
 			}
+
 			return a / b, nil
 		case ir.OpPercent:
 			if b == 0 {
 				return nil, errors.New("整数模零")
 			}
+
 			return a % b, nil
 		case ir.OpAnd:
 			return a & b, nil
@@ -937,6 +1081,7 @@ func (m *Machine) arith(op ir.Op, lv, rv interp.Value) (interp.Value, error) {
 		if !ok {
 			return nil, errors.New("int 与 float 不可混合运算（无隐式转换）")
 		}
+
 		switch op {
 		case ir.OpPlus, ir.OpPlusA:
 			return a + b, nil
@@ -952,10 +1097,12 @@ func (m *Machine) arith(op ir.Op, lv, rv interp.Value) (interp.Value, error) {
 		if !ok {
 			return nil, errors.New("string 只能与 string 拼接")
 		}
+
 		if op == ir.OpPlus || op == ir.OpPlusA {
 			return a + b, nil
 		}
 	}
+
 	return nil, errors.New("运算不适用于该类型")
 }
 
@@ -1001,6 +1148,7 @@ func (m *Machine) compare(op ir.Op, lv, rv interp.Value) (interp.Value, error) {
 			}
 		}
 	}
+
 	return nil, errors.New("该类型不可比较")
 }
 
@@ -1011,6 +1159,7 @@ func (m *Machine) fmtArgs(args []interp.Value) string {
 	for i, a := range args {
 		parts[i] = interp.Fmt(a)
 	}
+
 	return strings.Join(parts, " ")
 }
 
@@ -1024,6 +1173,7 @@ func derefVal(v interp.Value) interp.Value {
 	if p, ok := v.(*interp.PtrVal); ok {
 		return *p.Cell
 	}
+
 	return v
 }
 
@@ -1031,6 +1181,7 @@ func asStruct(v interp.Value) (*interp.StructVal, error) {
 	if sv, ok := v.(*interp.StructVal); ok {
 		return sv, nil
 	}
+
 	return nil, fmt.Errorf("该值不是 struct（是 %s）", typeName(v))
 }
 
@@ -1039,10 +1190,12 @@ func intIndex(v interp.Value, length int) (int, error) {
 	if !ok {
 		return 0, errors.New("索引须为 int")
 	}
+
 	n := int(i)
 	if n < 0 || n >= length {
 		return 0, fmt.Errorf("索引 %d 越界（长度 %d）", n, length)
 	}
+
 	return n, nil
 }
 
@@ -1055,6 +1208,7 @@ func keyOK(v interp.Value) (string, bool) {
 	case interp.BoolVal:
 		return fmt.Sprintf("b:%v", bool(x)), true
 	}
+
 	return "", false
 }
 
@@ -1077,13 +1231,16 @@ func eqValues(a, b interp.Value) bool {
 		if !ok || x.Def.Name != y.Def.Name || x.Case != y.Case || len(x.Payloads) != len(y.Payloads) {
 			return false
 		}
+
 		for i := range x.Payloads {
 			if !eqValues(x.Payloads[i], y.Payloads[i]) {
 				return false
 			}
 		}
+
 		return true
 	}
+
 	return false
 }
 
@@ -1095,14 +1252,17 @@ func copyVal(v interp.Value) interp.Value {
 		for i, fv := range x.Fields {
 			fs[i] = copyVal(fv)
 		}
+
 		return &interp.StructVal{Def: x.Def, Fields: fs}
 	case *interp.EnumVal:
 		ps := make([]interp.Value, len(x.Payloads))
 		for i, p := range x.Payloads {
 			ps[i] = copyVal(p)
 		}
+
 		return &interp.EnumVal{Def: x.Def, Case: x.Case, Payloads: ps}
 	}
+
 	return v
 }
 
@@ -1125,6 +1285,7 @@ func typeName(v interp.Value) string {
 	case *interp.EnumVal:
 		return "enum"
 	}
+
 	return "未知值"
 }
 
@@ -1136,6 +1297,7 @@ func structName(sym *semantic.Symbol) string {
 	if sym == nil {
 		return ""
 	}
+
 	return sym.Name
 }
 
@@ -1150,6 +1312,7 @@ func binOpOf(op ir.Op) ir.Op {
 	case ir.OpSlashA:
 		return ir.OpSlash
 	}
+
 	return op
 }
 

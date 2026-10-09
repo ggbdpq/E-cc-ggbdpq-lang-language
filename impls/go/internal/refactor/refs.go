@@ -25,19 +25,23 @@ func collectHIRMethodRefs(st hir.Stmt, res *semantic.Result, target *semantic.Sy
 		}
 	case *hir.If:
 		collectHIREdit(x.Cond, res, target, newName, edits)
+
 		for _, s2 := range x.Then {
 			collectHIRMethodRefs(s2, res, target, newName, edits)
 		}
+
 		for _, s2 := range x.Else {
 			collectHIRMethodRefs(s2, res, target, newName, edits)
 		}
 	case *hir.While:
 		collectHIREdit(x.Cond, res, target, newName, edits)
+
 		for _, s2 := range x.Body {
 			collectHIRMethodRefs(s2, res, target, newName, edits)
 		}
 	case *hir.ForIn:
 		collectHIREdit(x.Iter, res, target, newName, edits)
+
 		for _, s2 := range x.Body {
 			collectHIRMethodRefs(s2, res, target, newName, edits)
 		}
@@ -64,7 +68,9 @@ func collectHIREdit(e hir.Expr, res *semantic.Result, target *semantic.Symbol, n
 				Replacement: newName,
 			})
 		}
+
 		collectHIREdit(x.Recv, res, target, newName, edits)
+
 		for _, a := range x.Args {
 			collectHIREdit(a, res, target, newName, edits)
 		}
@@ -72,6 +78,7 @@ func collectHIREdit(e hir.Expr, res *semantic.Result, target *semantic.Symbol, n
 		if x.Callee != nil {
 			collectHIREdit(x.Callee, res, target, newName, edits)
 		}
+
 		for _, a := range x.Args {
 			collectHIREdit(a, res, target, newName, edits)
 		}
@@ -119,6 +126,7 @@ func collectHIREdit(e hir.Expr, res *semantic.Result, target *semantic.Symbol, n
 		}
 	case *hir.Match:
 		collectHIREdit(x.Scrut, res, target, newName, edits)
+
 		for _, arm := range x.Arms {
 			collectHIREdit(arm.Body, res, target, newName, edits)
 		}

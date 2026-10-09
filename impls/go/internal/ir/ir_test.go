@@ -14,18 +14,22 @@ import (
 
 func lowerSrc(t *testing.T, src string) *Prog {
 	t.Helper()
+
 	prog, err := syntax.Parse(src)
 	if err != nil {
 		t.Fatalf("解析失败: %v", err)
 	}
+
 	res := semantic.Resolve(prog)
 	if res.HasErrors() {
 		t.Fatalf("resolver 诊断: %v", res.Diags)
 	}
+
 	ty := types.Check(prog, res)
 	if ty.HasErrors() {
 		t.Fatalf("checker 诊断: %v", ty.Diags)
 	}
+
 	return Lower(hir.Build(prog, res, ty))
 }
 
@@ -87,19 +91,24 @@ fn main() {
 		t.Run(name, func(t *testing.T) {
 			got := Dump(lowerSrc(t, src))
 			golden := "testdata/" + name + ".irdump"
+
 			if os.Getenv("UPDATE_GOLDEN") != "" {
 				if err := os.MkdirAll("testdata", 0o755); err != nil {
 					t.Fatal(err)
 				}
+
 				if err := os.WriteFile(golden, []byte(got), 0o644); err != nil {
 					t.Fatal(err)
 				}
+
 				return
 			}
+
 			want, err := os.ReadFile(golden)
 			if err != nil {
 				t.Fatalf("缺少 golden（UPDATE_GOLDEN=1 生成）: %v", err)
 			}
+
 			if got != string(want) {
 				t.Fatalf("dump 与 golden 不一致\n=== got ===\n%s\n=== want ===\n%s", got, string(want))
 			}
@@ -125,8 +134,12 @@ fn main() {
 	if p.Main == nil || len(p.Main.Body) == 0 {
 		t.Fatalf("main 缺失")
 	}
-	var hasSpawn, hasFor bool
-	var walk func(list []Stmt)
+
+	var (
+		hasSpawn, hasFor bool
+		walk             func(list []Stmt)
+	)
+
 	walk = func(list []Stmt) {
 		for _, s := range list {
 			switch st := s.(type) {
@@ -134,6 +147,7 @@ fn main() {
 				hasSpawn = true
 			case *ForIn:
 				hasFor = true
+
 				if st.Kind != IterSlice {
 					t.Fatalf("数组 for-in 应归类 IterSlice")
 				}
@@ -146,16 +160,19 @@ fn main() {
 		}
 	}
 	walk(p.Main.Body)
+
 	if !hasSpawn || !hasFor {
 		t.Fatalf("Spawn/ForIn 降级丢失")
 	}
 	// 可变局部进 locals 表且带类型
 	var found bool
+
 	for _, v := range p.Main.Locals {
 		if v.Name == "n" && v.Mutable && v.Typ.Kind == types.KInt {
 			found = true
 		}
 	}
+
 	if !found {
 		t.Fatalf("可变局部 n 未入表或类型丢失")
 	}
@@ -173,17 +190,23 @@ fn main() {
     let v = P{x: 1}.get()
     println(v)
 }`)
-	var method *Call
-	var walkE func(e Expr)
+
+	var (
+		method *Call
+		walkE  func(e Expr)
+	)
+
 	walkE = func(e Expr) {
 		if c, ok := e.(*Call); ok && c.Method != nil && method == nil {
 			method = c
 		}
+
 		switch n := e.(type) {
 		case *Call:
 			for _, a := range n.Args {
 				walkE(a)
 			}
+
 			if n.Recv != nil {
 				walkE(n.Recv)
 			}
@@ -210,6 +233,7 @@ fn main() {
 	for _, f := range p.Fns {
 		walkS(f.Body)
 	}
+
 	if method == nil || method.Method.Name != "get" || method.Recv == nil {
 		t.Fatalf("方法调用应降级为 Call{Method, Recv}")
 	}

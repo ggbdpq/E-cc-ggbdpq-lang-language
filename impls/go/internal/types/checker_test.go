@@ -15,23 +15,28 @@ import (
 
 func checkSrc(t *testing.T, src string) (*Result, *semantic.Result) {
 	t.Helper()
+
 	prog, err := syntax.Parse(src)
 	if err != nil {
 		t.Fatalf("解析失败: %v", err)
 	}
+
 	res := semantic.Resolve(prog)
 	if res.HasErrors() {
 		t.Fatalf("resolver 意外诊断: %v", res.Diags)
 	}
+
 	return Check(prog, res), res
 }
 
 func wantDiagCodes(t *testing.T, res *Result, want ...string) {
 	t.Helper()
+
 	var got []string
 	for _, d := range res.Diags {
 		got = append(got, d.Code)
 	}
+
 	if strings.Join(got, ",") != strings.Join(want, ",") {
 		t.Fatalf("诊断码 = %v, 期望 %v\n诊断: %v", got, want, res.Diags)
 	}
@@ -244,6 +249,7 @@ func Test嵌套类型声明拒绝(t *testing.T) {
 	if err != nil {
 		t.Fatalf("解析失败: %v", err)
 	}
+
 	res := semantic.Resolve(prog)
 	if len(res.Diags) != 1 || res.Diags[0].Code != "E2010" {
 		t.Fatalf("期望 [E2010]，得到 %v", res.Diags)
@@ -331,6 +337,7 @@ func findLetStmt(stmts []syntax.Stmt, name string) *syntax.LetStmt {
 			if r := findLetStmt(st.Then, name); r != nil {
 				return r
 			}
+
 			if r := findLetStmt(st.Else, name); r != nil {
 				return r
 			}
@@ -344,38 +351,46 @@ func findLetStmt(stmts []syntax.Stmt, name string) *syntax.LetStmt {
 			}
 		}
 	}
+
 	return nil
 }
 
 // letInitType 取 let 绑定初值的推断类型（测试辅助）.
 func letInitType(t *testing.T, res *Result, prog []syntax.Stmt, name string) *Type {
 	t.Helper()
+
 	d := findLetStmt(prog, name)
 	if d == nil {
 		t.Fatalf("未找到 let %s", name)
 	}
+
 	ty, ok := res.ExprTy[d.Init]
 	if !ok {
 		t.Fatalf("let %s 的初值无推断类型", name)
 	}
+
 	return ty
 }
 
 // checkSrcStrict 解析+检查，resolver 与 checker 均须零诊断（测试辅助）.
 func checkSrcStrict(t *testing.T, src string) (*Result, []syntax.Stmt) {
 	t.Helper()
+
 	prog, err := syntax.Parse(src)
 	if err != nil {
 		t.Fatalf("解析失败: %v", err)
 	}
+
 	res := semantic.Resolve(prog)
 	if res.HasErrors() {
 		t.Fatalf("resolver 意外诊断: %v", res.Diags)
 	}
+
 	out := Check(prog, res)
 	if out.HasErrors() {
 		t.Fatalf("checker 意外诊断: %v", out.Diags)
 	}
+
 	return out, prog
 }
 
@@ -433,27 +448,34 @@ func TestCorpus零诊断(t *testing.T) {
 			if err != nil {
 				t.Fatalf("读目录失败: %v", err)
 			}
+
 			var srcs []string
+
 			for _, e := range entries {
 				if !e.IsDir() && strings.HasSuffix(e.Name(), ".lang-go") {
 					bs, err := os.ReadFile(filepath.Join(dir, e.Name()))
 					if err != nil {
 						t.Fatalf("读文件失败: %v", err)
 					}
+
 					srcs = append(srcs, string(bs))
 				}
 			}
+
 			if len(srcs) == 0 {
 				t.Skip("无 .lang-go 文件")
 			}
+
 			prog, err := syntax.Parse(strings.Join(srcs, "\n"))
 			if err != nil {
 				t.Fatalf("解析失败: %v", err)
 			}
+
 			res := semantic.Resolve(prog)
 			if res.HasErrors() {
 				t.Fatalf("resolver 诊断: %v", res.Diags)
 			}
+
 			out := Check(prog, res)
 			if out.HasErrors() {
 				t.Fatalf("checker 诊断 %d 条:\n%v", len(out.Diags), out.Diags)

@@ -19,6 +19,7 @@ import (
 
 func corpusDirs(t *testing.T) []string {
 	t.Helper()
+
 	return []string{
 		filepath.Join("..", "..", "m4"),
 		filepath.Join("..", "..", "examples"),
@@ -27,44 +28,55 @@ func corpusDirs(t *testing.T) []string {
 
 func langGoFiles(t *testing.T, root string) []string {
 	t.Helper()
+
 	var out []string
+
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
+
 		if !d.IsDir() && strings.HasSuffix(path, ".lang-go") {
 			out = append(out, path)
 		}
+
 		return nil
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	return out
 }
 
 func Test格式化幂等(t *testing.T) {
 	n := 0
+
 	for _, dir := range corpusDirs(t) {
 		for _, f := range langGoFiles(t, dir) {
 			src, err := os.ReadFile(f)
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			once, err := Format(string(src))
 			if err != nil {
 				t.Fatalf("%s: %v", f, err)
 			}
+
 			twice, err := Format(once)
 			if err != nil {
 				t.Fatalf("%s 二次格式化失败: %v\n=== 一次产物 ===\n%s", f, err, once)
 			}
+
 			if once != twice {
 				t.Fatalf("%s 格式化不幂等\n=== 一次 ===\n%s\n=== 二次 ===\n%s", f, once, twice)
 			}
+
 			n++
 		}
 	}
+
 	if n < 10 {
 		t.Fatalf("语料不足：%d 个文件", n)
 	}
@@ -73,19 +85,23 @@ func Test格式化幂等(t *testing.T) {
 // copyLangGoDir 把 root 下全部 .lang-go 按相对路径拷到 dst（保留子目录结构）.
 func copyLangGoDir(t *testing.T, root, dst string) {
 	t.Helper()
+
 	for _, f := range langGoFiles(t, root) {
 		rel, err := filepath.Rel(root, f)
 		if err != nil {
 			t.Fatal(err)
 		}
+
 		target := filepath.Join(dst, rel)
 		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 			t.Fatal(err)
 		}
+
 		src, err := os.ReadFile(f)
 		if err != nil {
 			t.Fatal(err)
 		}
+
 		if err := os.WriteFile(target, src, 0o644); err != nil {
 			t.Fatal(err)
 		}
@@ -94,14 +110,17 @@ func copyLangGoDir(t *testing.T, root, dst string) {
 
 func runProgram(t *testing.T, dir string) string {
 	t.Helper()
+
 	prog, _, err := load.Program(dir, false)
 	if err != nil {
 		t.Fatalf("装载 %s: %v", dir, err)
 	}
+
 	var out strings.Builder
 	if err := interp.New(&out).Run(prog); err != nil {
 		t.Fatalf("运行 %s: %v", dir, err)
 	}
+
 	return out.String()
 }
 
@@ -110,23 +129,28 @@ func Test语义等价_格式化前后(t *testing.T) {
 	for _, name := range []string{"hello", "shapes", "result", "closures", "json"} {
 		dirs = append(dirs, filepath.Join("..", "..", "examples", name))
 	}
+
 	for _, dir := range dirs {
 		before := runProgram(t, dir)
 		tmp := t.TempDir()
 		copyLangGoDir(t, dir, tmp)
+
 		for _, f := range langGoFiles(t, tmp) {
 			src, err := os.ReadFile(f)
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			formatted, err := Format(string(src))
 			if err != nil {
 				t.Fatalf("%s: %v", f, err)
 			}
+
 			if err := os.WriteFile(f, []byte(formatted), 0o644); err != nil {
 				t.Fatal(err)
 			}
 		}
+
 		after := runProgram(t, tmp)
 		if before != after {
 			t.Fatalf("%s 格式化后语义漂移\n=== 前 ===\n%q\n=== 后 ===\n%q", dir, before, after)
@@ -146,10 +170,12 @@ fn main() {
     println(add(1, 2))
 }
 `
+
 	out, err := Format(src)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	for _, want := range []string{"// 文件头注释", "// 求和", "// 主入口"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("注释丢失 %q\n=== 输出 ===\n%s", want, out)
@@ -170,19 +196,23 @@ fn main() {
     println(1)
 }
 `
+
 	out, err := Format(src)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	for _, want := range []string{`import "./lib"`, `extern "go" {`, "fn hostFn(x: int): int"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("丢失 %q\n=== 输出 ===\n%s", want, out)
 		}
 	}
+
 	once, err := Format(out)
 	if err != nil {
 		t.Fatalf("二次格式化失败: %v\n%s", err, out)
 	}
+
 	if once != out {
 		t.Fatalf("extern/import 场景不幂等\n=== 一次 ===\n%s\n=== 二次 ===\n%s", out, once)
 	}
@@ -193,6 +223,7 @@ func Test缩进规范化(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	want := "fn main() {\n    println(1)\n    if true {\n        println(2)\n    }\n}\n"
 	if out != want {
 		t.Fatalf("缩进不符\n=== 期望 ===\n%q\n=== 实际 ===\n%q", want, out)
@@ -206,13 +237,16 @@ func TestChan注解输出(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if !strings.Contains(out, "fn prod(ch: chan[int], n: int)") {
 		t.Fatalf("chan 注解输出不符\n=== 输出 ===\n%s", out)
 	}
+
 	once, err := Format(out)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if once != out {
 		t.Fatalf("chan 注解场景不幂等\n=== 一次 ===\n%s\n=== 二次 ===\n%s", out, once)
 	}

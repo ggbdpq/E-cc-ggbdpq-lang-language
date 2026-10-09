@@ -43,7 +43,9 @@ type Case struct {
 // 任何超集形态（多级嵌套、流式列表、锚点）一律报错——套件拒绝模糊输入。
 func ParseManifest(src string) (*Case, error) {
 	c := &Case{Mode: "run"}
+
 	type ctxT int
+
 	const (
 		ctxTop ctxT = iota
 		ctxExpect
@@ -51,15 +53,20 @@ func ParseManifest(src string) (*Case, error) {
 		ctxDiag
 		ctxRules
 	)
+
 	ctx := ctxTop
+
 	var diag *DiagExpect
+
 	blockIndent := -1
+
 	lines := strings.Split(src, "\n")
 	for i := 0; i < len(lines); i++ {
 		raw := strings.TrimRight(lines[i], "\r")
 		if strings.TrimSpace(raw) == "" || strings.HasPrefix(strings.TrimSpace(raw), "#") {
 			continue
 		}
+
 		indent := len(raw) - len(strings.TrimLeft(raw, " "))
 		line := strings.TrimSpace(raw)
 
@@ -69,6 +76,7 @@ func ParseManifest(src string) (*Case, error) {
 				c.Expect.Stdout += raw[blockIndent:] + "\n"
 				continue
 			}
+
 			ctx = ctxExpect
 		}
 
@@ -78,12 +86,15 @@ func ParseManifest(src string) (*Case, error) {
 				c.RuleIDs = append(c.RuleIDs, strings.TrimPrefix(line, "- "))
 				continue
 			}
+
 			ctx = ctxTop
 		}
+
 		key, val, hasVal := cutKey(line)
 		if !hasVal {
 			return nil, fmt.Errorf("manifest 第%d行: 形态不支持 %q", i+1, line)
 		}
+
 		switch ctx {
 		case ctxTop:
 			switch key {
@@ -99,11 +110,13 @@ func ParseManifest(src string) (*Case, error) {
 				if val != "" {
 					return nil, fmt.Errorf("manifest 第%d行: ruleIds 不接受内联值", i+1)
 				}
+
 				ctx = ctxRules
 			case "expect":
 				if val != "" {
 					return nil, fmt.Errorf("manifest 第%d行: expect 不接受内联值", i+1)
 				}
+
 				ctx = ctxExpect
 			default:
 				return nil, fmt.Errorf("manifest 第%d行: 未知键 %q", i+1, key)
@@ -115,6 +128,7 @@ func ParseManifest(src string) (*Case, error) {
 				if err != nil {
 					return nil, fmt.Errorf("manifest 第%d行: exitCode 须为整数", i+1)
 				}
+
 				c.Expect.ExitCode = n
 			case "stdout":
 				if val != "|" {
@@ -122,6 +136,7 @@ func ParseManifest(src string) (*Case, error) {
 					c.Expect.Stdout = val
 					continue
 				}
+
 				ctx = ctxStdoutBlock
 				blockIndent = -1
 				// 下一非空行的缩进即块缩进
@@ -130,9 +145,12 @@ func ParseManifest(src string) (*Case, error) {
 					if strings.TrimSpace(r2) == "" {
 						continue
 					}
+
 					blockIndent = len(r2) - len(strings.TrimLeft(r2, " "))
+
 					break
 				}
+
 				if blockIndent < 0 {
 					return nil, fmt.Errorf("manifest 第%d行: stdout 块标量为空", i+1)
 				}
@@ -142,6 +160,7 @@ func ParseManifest(src string) (*Case, error) {
 				if val != "" {
 					return nil, fmt.Errorf("manifest 第%d行: diagnostics 不接受内联值", i+1)
 				}
+
 				ctx = ctxDiag
 			default:
 				return nil, fmt.Errorf("manifest 第%d行: expect 下未知键 %q", i+1, key)
@@ -153,13 +172,17 @@ func ParseManifest(src string) (*Case, error) {
 					if err := diagField(diag, key, val, i+1); err != nil {
 						return nil, err
 					}
+
 					continue
 				}
+
 				return nil, fmt.Errorf("manifest 第%d行: diagnostics 项须以 \"- \" 开头", i+1)
 			}
+
 			if diag != nil {
 				c.Expect.Diagnostics = append(c.Expect.Diagnostics, *diag)
 			}
+
 			diag = &DiagExpect{}
 			// key/val 已由外层 cutKey 切好（key 形如 "- code"），直接取字段
 			if err := diagField(diag, strings.TrimPrefix(key, "- "), val, i+1); err != nil {
@@ -169,6 +192,7 @@ func ParseManifest(src string) (*Case, error) {
 			return nil, fmt.Errorf("manifest 第%d行: 形态不支持", i+1)
 		}
 	}
+
 	if ctx == ctxDiag && diag != nil {
 		c.Expect.Diagnostics = append(c.Expect.Diagnostics, *diag)
 	}
@@ -177,14 +201,17 @@ func ParseManifest(src string) (*Case, error) {
 	if c.Name == "" || c.Category == "" {
 		return nil, errors.New("manifest 缺 name/category")
 	}
+
 	switch c.Mode {
 	case "run":
 		if c.Expect.ExitCode != 0 {
 			return nil, errors.New("run 模式 exitCode 必须为 0（v0.8 不比对运行时错误文本）")
 		}
+
 		if c.Expect.Stderr != "" {
 			return nil, errors.New("run 模式 stderr 必须为空串")
 		}
+
 		if !strings.HasSuffix(c.Expect.Stdout, "\n") || strings.Contains(c.Expect.Stdout, "\n\n") {
 			return nil, errors.New("run 模式 stdout 须为块标量且无空行")
 		}
@@ -195,6 +222,7 @@ func ParseManifest(src string) (*Case, error) {
 	default:
 		return nil, fmt.Errorf("mode 须为 run|check（得到 %q）", c.Mode)
 	}
+
 	return c, nil
 }
 
@@ -211,10 +239,12 @@ func diagField(d *DiagExpect, key, val string, lineNo int) error {
 		if err != nil {
 			return fmt.Errorf("manifest 第%d行: line 须为整数", lineNo)
 		}
+
 		d.Line = n
 	default:
 		return fmt.Errorf("manifest 第%d行: 诊断项未知键 %q", lineNo, key)
 	}
+
 	return nil
 }
 
@@ -224,19 +254,23 @@ func cutKey(s string) (string, string, bool) {
 	if i <= 0 {
 		return "", "", false
 	}
+
 	key := strings.TrimSpace(s[:i])
 	val := strings.TrimSpace(s[i+1:])
 	// 行尾注释（值不在引号内时）
 	if j := strings.Index(val, " #"); j >= 0 && !strings.HasPrefix(val, "\"") {
 		val = strings.TrimSpace(val[:j])
 	}
+
 	if strings.HasPrefix(val, "\"") && strings.HasSuffix(val, "\"") && len(val) >= 2 {
 		var err error
+
 		val, err = unquote(val)
 		if err != nil {
 			return key, val, true
 		}
 	}
+
 	return key, val, true
 }
 
@@ -245,12 +279,15 @@ func unquote(s string) (string, error) {
 	if s == `""` {
 		return "", nil
 	}
+
 	if !strings.HasPrefix(s, "\"") || !strings.HasSuffix(s, "\"") || len(s) < 2 {
 		return "", fmt.Errorf("仅支持双引号标量（得到 %q）", s)
 	}
+
 	inner := s[1 : len(s)-1]
 	if strings.Contains(inner, "\\") {
 		return "", fmt.Errorf("标量不支持转义（得到 %q）", s)
 	}
+
 	return inner, nil
 }

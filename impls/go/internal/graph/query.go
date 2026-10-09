@@ -38,10 +38,13 @@ func (g *Graph) Callees(id, depth int) []ImpactItem {
 func (g *Graph) callBFS(id int, reverse bool, depth int) []ImpactItem {
 	visited := map[int]bool{id: true}
 	level := []int{id}
+
 	var out []ImpactItem
+
 	d := 0
 	for len(level) > 0 && (depth < 0 || d < depth) {
 		var next []int
+
 		for _, cur := range level {
 			var edges []Edge
 			if reverse {
@@ -49,26 +52,33 @@ func (g *Graph) callBFS(id int, reverse bool, depth int) []ImpactItem {
 			} else {
 				edges = g.Out(cur)
 			}
+
 			for _, e := range edges {
 				if e.Kind != EdgeCall {
 					continue
 				}
+
 				other := e.From
 				if !reverse {
 					other = e.To
 				}
+
 				if visited[other] {
 					continue
 				}
+
 				visited[other] = true
 				next = append(next, other)
 				out = append(out, ImpactItem{From: other, Transitive: d+1 > 1})
 			}
 		}
+
 		level = next
 		d++
 	}
+
 	sortImpactItems(out)
+
 	return out
 }
 
@@ -84,6 +94,7 @@ func (g *Graph) Impact(id, depth int) Impact {
 	if n, ok := g.Nodes[id]; ok {
 		imp.Symbol = n
 	}
+
 	seen := map[int]bool{id: true}
 
 	// 直接影响：全部入边
@@ -91,6 +102,7 @@ func (g *Graph) Impact(id, depth int) Impact {
 		if e.From == 0 {
 			continue
 		}
+
 		imp.Direct = append(imp.Direct, ImpactItem{From: e.From, Kind: e.Kind, Span: e.Span})
 		if e.Kind == EdgeCall && !seen[e.From] {
 			seen[e.From] = true
@@ -100,6 +112,7 @@ func (g *Graph) Impact(id, depth int) Impact {
 
 	// 传递影响：沿调用边反向逐层
 	level := []int{}
+
 	for _, e := range g.In(id) {
 		if e.Kind == EdgeCall && e.From > 0 && !seen[e.From] {
 			// 理论不可达（上面已标记），防御性保留
@@ -111,14 +124,17 @@ func (g *Graph) Impact(id, depth int) Impact {
 			level = append(level, e.From)
 		}
 	}
+
 	d := 1
 	for len(level) > 0 && (depth < 0 || d < depth) {
 		var next []int
+
 		for _, cur := range level {
 			for _, e := range g.In(cur) {
 				if e.From == 0 || seen[e.From] {
 					continue
 				}
+
 				seen[e.From] = true
 				next = append(next, e.From)
 				imp.EffectWatch = append(imp.EffectWatch, e.From)
@@ -126,21 +142,25 @@ func (g *Graph) Impact(id, depth int) Impact {
 				imp.Transitive = appendUniqueItem(imp.Transitive, it)
 			}
 		}
+
 		level = next
 		d++
 	}
 
 	// 模块集合
 	mods := map[string]bool{}
+
 	for _, it := range append(append([]ImpactItem(nil), imp.Direct...), imp.Transitive...) {
 		if n, ok := g.Nodes[it.From]; ok && n.Module != "" {
 			mods[n.Module] = true
 		}
 	}
+
 	imp.Modules = sortedKeys(mods)
 	sortImpactItems(imp.Direct)
 	sort.Slice(imp.Transitive, func(i, j int) bool { return imp.Transitive[i].From < imp.Transitive[j].From })
 	sort.Slice(imp.EffectWatch, func(i, j int) bool { return imp.EffectWatch[i] < imp.EffectWatch[j] })
+
 	return imp
 }
 
@@ -159,6 +179,7 @@ func appendUniqueItem(items []ImpactItem, it ImpactItem) []ImpactItem {
 			return items
 		}
 	}
+
 	return append(items, it)
 }
 
@@ -167,7 +188,9 @@ func sortedKeys(m map[string]bool) []string {
 	for k := range m {
 		out = append(out, k)
 	}
+
 	sort.Strings(out)
+
 	return out
 }
 
@@ -178,11 +201,15 @@ func (g *Graph) FileDep(module string) (FileDep, bool) {
 		if imports, ok := g.FileImports[module]; ok {
 			return FileDep{Module: module, Imports: imports}, true
 		}
+
 		return FileDep{}, false
 	}
+
 	if imports, ok := g.FileImports[module]; ok || g.hasFile(module) {
 		dep := FileDep{Module: module}
+
 		dep.Imports = append([]string(nil), imports...)
+
 		set := map[string]bool{}
 		for _, d := range g.FileDependsOn[module] {
 			if !set[d] {
@@ -190,11 +217,14 @@ func (g *Graph) FileDep(module string) (FileDep, bool) {
 				dep.DependsOn = append(dep.DependsOn, d)
 			}
 		}
+
 		if dep.DependsOn == nil {
 			dep.DependsOn = []string{}
 		}
+
 		return dep, true
 	}
+
 	return FileDep{}, false
 }
 
@@ -204,5 +234,6 @@ func (g *Graph) hasFile(module string) bool {
 			return true
 		}
 	}
+
 	return false
 }

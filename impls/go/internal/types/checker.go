@@ -62,6 +62,7 @@ func Check(prog []syntax.Stmt, res *semantic.Result) *Result {
 		},
 	}
 	c.walk(prog)
+
 	return c.out
 }
 
@@ -85,6 +86,7 @@ func (c *checker) walk(prog []syntax.Stmt) {
 			c.fnBody(d, c.res.DeclSyms[d], nil)
 		}
 	}
+
 	for _, s := range prog {
 		if d, ok := s.(*syntax.FnDecl); ok && d.Recv != nil {
 			c.fnBody(d, c.methodSym(d), c.methodStructType(d))
@@ -97,8 +99,10 @@ func (c *checker) walk(prog []syntax.Stmt) {
 			*syntax.ExternDecl, *syntax.ImportStmt:
 			continue
 		}
+
 		c.stmt(s)
 	}
+
 	c.popScope()
 }
 
@@ -107,9 +111,11 @@ func (c *checker) methodSym(d *syntax.FnDecl) *semantic.Symbol {
 	if !ok {
 		return nil
 	}
+
 	if st := c.lookupTypeSym(nt.Name); st != nil {
 		return st.Methods[d.Name]
 	}
+
 	return nil
 }
 
@@ -118,9 +124,11 @@ func (c *checker) methodStructType(d *syntax.FnDecl) *Type {
 	if !ok {
 		return Unknown
 	}
+
 	if st := c.lookupTypeSym(nt.Name); st != nil {
 		return StructOf(st)
 	}
+
 	return Unknown
 }
 
@@ -130,22 +138,28 @@ func (c *checker) fnBody(d *syntax.FnDecl, sym *semantic.Symbol, recvTy *Type) {
 	c.scopes = []map[string]*Type{{}}
 	c.tps = c.tparamsOf(d.TypeParams)
 	sig := c.fnSignature(d)
+
 	c.fnRet = nil
 	if d.Ret != nil {
 		c.fnRet = sig.Ret // 注解只解析一次（fnSignature 内），错误不重复报
 	}
+
 	c.inFn = true
 
 	if d.Recv != nil {
 		c.scopes[0][d.Recv.Name] = recvTy
 	}
+
 	c.declareParams(d, sym, recvTy)
+
 	if sym != nil {
 		c.out.FnTy[sym.ID] = sig
 	}
+
 	for _, s := range d.Body {
 		c.stmt(s)
 	}
+
 	c.fnRet, c.inFn, c.scopes, c.tps = savedRet, savedInFn, savedScopes, savedTps
 }
 
@@ -156,6 +170,7 @@ func (c *checker) declareParams(d *syntax.FnDecl, sym *semantic.Symbol, recvTy *
 	if sym != nil {
 		psyms = c.res.FnParams[sym.ID]
 	}
+
 	pi := 0
 	if d.Recv != nil {
 		if pi < len(psyms) {
@@ -163,14 +178,18 @@ func (c *checker) declareParams(d *syntax.FnDecl, sym *semantic.Symbol, recvTy *
 			pi++
 		}
 	}
+
 	for _, p := range d.Params {
 		var pt *Type
+
 		if p.Typ == nil {
 			c.errf(d.Line, E3007, "参数 %s 缺少类型注解", p.Name)
+
 			pt = Unknown
 		} else {
 			pt = c.resolveTypeEx(p.Typ, c.tparamsOf(d.TypeParams))
 		}
+
 		c.scopes[0][p.Name] = pt
 		if p.Name != "_" && pi < len(psyms) {
 			c.out.SymTy[psyms[pi].ID] = pt
@@ -182,18 +201,23 @@ func (c *checker) declareParams(d *syntax.FnDecl, sym *semantic.Symbol, recvTy *
 // fnSignature fn/方法的函数类型（参数注解缺失 → Unknown 占位）.
 func (c *checker) fnSignature(d *syntax.FnDecl) *Type {
 	tps := c.tparamsOf(d.TypeParams)
+
 	var ps []*Type
+
 	for _, p := range d.Params {
 		if p.Typ == nil {
 			ps = append(ps, Unknown)
 			continue
 		}
+
 		ps = append(ps, c.resolveTypeEx(p.Typ, tps))
 	}
+
 	var ret *Type = Unknown
 	if d.Ret != nil {
 		ret = c.resolveTypeEx(d.Ret, tps)
 	}
+
 	return FnOf(ps, ret)
 }
 
@@ -202,27 +226,33 @@ func (c *checker) tparamsOf(names []string) map[string]bool {
 	for _, n := range names {
 		m[n] = true
 	}
+
 	return m
 }
 
 func (c *checker) letStmt(d *syntax.LetStmt) {
 	sym := c.res.DeclSyms[d]
+
 	var ty *Type
 	if t, ok := d.Init.(*syntax.TryEx); ok {
 		ty = c.inferTry(t)
 	} else {
 		ty = c.infer(d.Init)
 	}
+
 	if d.Typ != nil {
 		anno := c.typeExOf(d.Typ, nil)
 		if !Assignable(anno, ty) {
 			c.errf(d.Line, E3001, "不能把 %s 绑定为注解类型 %s", ty.String(), anno.String())
 		}
+
 		ty = anno
 	}
+
 	if sym != nil {
 		c.out.SymTy[sym.ID] = ty
 	}
+
 	c.defineVar(d.Name, ty)
 }
 
@@ -250,6 +280,7 @@ func (c *checker) stmt(s syntax.Stmt) {
 	case *syntax.IfStmt:
 		c.requireBool(st.Cond, "if 条件")
 		c.block(st.Then)
+
 		if st.Else != nil {
 			c.block(st.Else)
 		}
@@ -260,7 +291,9 @@ func (c *checker) stmt(s syntax.Stmt) {
 
 	case *syntax.ForInStmt:
 		ty := c.infer(st.Iter)
+
 		var elem *Type
+
 		switch {
 		case ty.Kind == KSlice:
 			elem = ty.Elem
@@ -274,11 +307,14 @@ func (c *checker) stmt(s syntax.Stmt) {
 			elem = Unknown
 		default:
 			c.errf(st.Line, E3010, "%s 不可迭代", ty.String())
+
 			elem = Unknown
 		}
+
 		if sym := c.res.DeclSyms[st]; sym != nil {
 			c.out.SymTy[sym.ID] = elem
 		}
+
 		c.pushScope()
 		c.defineVar(st.Var, elem)
 		c.stmts(st.Body)
@@ -320,6 +356,7 @@ func (c *checker) assign(st *syntax.AssignStmt) {
 	} else {
 		valTy = c.infer(st.Val)
 	}
+
 	switch tgt := st.Target.(type) {
 	case *syntax.Ident:
 		tgtTy, _ := c.lookupVar(tgt.Name)
@@ -327,16 +364,19 @@ func (c *checker) assign(st *syntax.AssignStmt) {
 			c.checkCompound(st, tgtTy, valTy)
 			return
 		}
+
 		if !Assignable(tgtTy, valTy) {
 			c.errf(st.Line, E3001, "不能把 %s 赋给 %s", valTy.String(), tgtTy.String())
 		}
 	case *syntax.FieldEx:
 		objTy := c.infer(tgt.Obj)
+
 		fTy := c.fieldType(objTy, tgt.Name, tgt.Line)
 		if st.Op != syntax.Assign {
 			c.checkCompound(st, fTy, valTy)
 			return
 		}
+
 		if !Assignable(fTy, valTy) {
 			c.errf(st.Line, E3001, "不能把 %s 赋给字段 %s（%s）", valTy.String(), tgt.Name, fTy.String())
 		}
@@ -344,11 +384,13 @@ func (c *checker) assign(st *syntax.AssignStmt) {
 		objTy := c.infer(tgt.Obj)
 		idxTy := c.infer(tgt.Idx)
 		c.checkIndexKey(objTy, idxTy, tgt.Line)
+
 		elemTy := c.indexElemTy(objTy, tgt.Line)
 		if st.Op != syntax.Assign {
 			c.checkCompound(st, elemTy, valTy)
 			return
 		}
+
 		if !Assignable(elemTy, valTy) {
 			c.errf(st.Line, E3001, "不能把 %s 赋给容器元素（%s）", valTy.String(), elemTy.String())
 		}
@@ -360,16 +402,21 @@ func (c *checker) checkCompound(st *syntax.AssignStmt, tgtTy, valTy *Type) {
 	if !IsConcrete(tgtTy) || !IsConcrete(valTy) {
 		return
 	}
+
 	if tgtTy.Kind == KSlice {
 		if st.Op == syntax.PlusAssign && valTy.Kind == KSlice {
 			return
 		}
+
 		c.errf(st.Line, E3001, "数组 %s 需要数组右值，得到 %s", opName(st.Op), valTy.String())
+
 		return
 	}
+
 	if tgtTy.Kind == valTy.Kind && (IsNumeric(tgtTy) || tgtTy.Kind == KString) {
 		return
 	}
+
 	c.errf(st.Line, E3002, "%s 与 %s 不可做 %s（无隐式转换）", tgtTy.String(), valTy.String(), opName(st.Op))
 }
 
@@ -377,22 +424,27 @@ func (c *checker) returnStmt(st *syntax.ReturnStmt) {
 	if !c.inFn {
 		return // resolver 已报 E2008
 	}
+
 	if st.Val == nil {
 		if c.fnRet != nil && c.fnRet.Kind == KResult {
 			c.errf(st.Line, E3006, "Result 函数的 return 须为 Ok(...) 或 Err(...)")
 		} else if c.fnRet != nil && IsConcrete(c.fnRet) {
 			c.errf(st.Line, E3001, "注解为 %s 的函数不能裸 return", c.fnRet.String())
 		}
+
 		return
 	}
+
 	if t, ok := st.Val.(*syntax.TryEx); ok {
 		c.inferTry(t)
 		return
 	}
+
 	if c.fnRet != nil && c.fnRet.Kind == KResult {
 		c.inferResultReturn(st, c.fnRet)
 		return
 	}
+
 	valTy := c.infer(st.Val)
 	if c.fnRet != nil && IsConcrete(c.fnRet) && !Assignable(c.fnRet, valTy) {
 		c.errf(st.Line, E3001, "返回 %s 与注解 %s 不匹配", valTy.String(), c.fnRet.String())
@@ -404,14 +456,18 @@ func (c *checker) inferResultReturn(st *syntax.ReturnStmt, ret *Type) {
 	if !ok {
 		c.errf(st.Line, E3006, "Result 函数的 return 须为 Ok(...) 或 Err(...)")
 		c.infer(st.Val)
+
 		return
 	}
+
 	id, ok := call.Callee.(*syntax.Ident)
 	if !ok || (id.Name != "Ok" && id.Name != "Err") || len(call.Args) != 1 {
 		c.errf(st.Line, E3006, "Result 函数的 return 须为 Ok(...) 或 Err(...)")
 		c.infer(st.Val)
+
 		return
 	}
+
 	argTy := c.infer(call.Args[0])
 	if id.Name == "Ok" {
 		if !Assignable(ResultOk(ret), argTy) {
@@ -420,5 +476,6 @@ func (c *checker) inferResultReturn(st *syntax.ReturnStmt, ret *Type) {
 	} else if !Assignable(ResultErr(ret), argTy) {
 		c.errf(st.Line, E3001, "Err(%s) 与返回类型 %s 不匹配", argTy.String(), ret.String())
 	}
+
 	c.out.ExprTy[st.Val] = ret
 }

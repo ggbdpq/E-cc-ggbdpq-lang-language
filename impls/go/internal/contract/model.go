@@ -58,6 +58,7 @@ func SpanJSON(sp syntax.Span) *Span {
 	if sp.File == "" && sp.Start.Offset == 0 && sp.End.Offset == 0 {
 		return nil // 未盖章节点不输出
 	}
+
 	return &Span{
 		File:  sp.File,
 		Start: Position{Offset: sp.Start.Offset, Line: sp.Start.Line, Column: sp.Start.Col},
@@ -149,6 +150,7 @@ type CheckJSON struct {
 // diagJSON semantic 诊断 → 契约诊断（行级 Span：整行区间）.
 func diagJSON(d semantic.Diagnostic) Diagnostic {
 	span := Span{File: "", Start: Position{Offset: 0, Line: d.Line, Column: 1}, End: Position{Offset: 0, Line: d.Line, Column: 1}}
+
 	return Diagnostic{
 		Code:         d.Code,
 		RuleID:       RuleOf(d.Code),
@@ -162,6 +164,7 @@ func diagJSON(d semantic.Diagnostic) Diagnostic {
 // typesDiagJSON types 诊断 → 契约诊断.
 func typesDiagJSON(d types.Diagnostic) Diagnostic {
 	span := Span{Start: Position{Offset: 0, Line: d.Line, Column: 1}, End: Position{Offset: 0, Line: d.Line, Column: 1}}
+
 	return Diagnostic{
 		Code:         d.Code,
 		RuleID:       RuleOf(d.Code),

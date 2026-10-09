@@ -25,13 +25,17 @@ func ListDir(root string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	var out []string
+
 	for _, e := range entries {
 		if !e.IsDir() && strings.HasSuffix(e.Name(), ".lang-go") {
 			out = append(out, e.Name())
 		}
 	}
+
 	sort.Strings(out)
+
 	return out, nil
 }
 
@@ -44,9 +48,13 @@ func PlanFile(src string) []edit.TextEdit {
 		text  []rune // 不含换行
 		start int    // 行首 rune 偏移
 	}
+
 	rs := []rune(src)
+
 	var lines []lineR
+
 	cur := lineR{start: 0}
+
 	for _, r := range rs {
 		if r == '\n' {
 			lines = append(lines, cur)
@@ -55,12 +63,15 @@ func PlanFile(src string) []edit.TextEdit {
 			cur.text = append(cur.text, r)
 		}
 	}
+
 	if len(cur.text) > 0 || len(lines) == 0 {
 		lines = append(lines, cur)
 	}
+
 	srcRunes := len(rs)
 
 	seenImports := map[string]bool{}
+
 	var removals [][2]int // [start, end) rune 区间
 
 	for _, ln := range lines {
@@ -77,10 +88,12 @@ func PlanFile(src string) []edit.TextEdit {
 		if strings.HasPrefix(trimmedAll, "import ") {
 			dup := seenImports[trimmedAll]
 			seenImports[trimmedAll] = true
+
 			unused := false
 			if name := importName(trimmedAll); name != "" && !referencedIn(src, name) {
 				unused = true
 			}
+
 			if dup || unused {
 				removals = append(removals, [2]int{ln.start, ln.start + len([]rune(text)) + 1}) // 含换行
 			}
@@ -91,6 +104,7 @@ func PlanFile(src string) []edit.TextEdit {
 		if r[1] > srcRunes {
 			r[1] = srcRunes // 末行无换行时收缩到 EOF
 		}
+
 		if r[0] < r[1] {
 			edits = append(edits, edit.TextEdit{StartOffset: r[0], EndOffset: r[1]})
 		}
@@ -99,11 +113,13 @@ func PlanFile(src string) []edit.TextEdit {
 	// EOF 换行：缺失且无触及 EOF 的删除时插入
 	if !strings.HasSuffix(src, "\n") && src != "" {
 		touchEOF := false
+
 		for _, e := range edits {
 			if e.EndOffset == srcRunes {
 				touchEOF = true
 			}
 		}
+
 		if !touchEOF {
 			edits = append(edits, edit.TextEdit{StartOffset: srcRunes, EndOffset: srcRunes, Replacement: "\n"})
 		}
@@ -111,24 +127,29 @@ func PlanFile(src string) []edit.TextEdit {
 
 	// Apply 约定：按 StartOffset 降序
 	sort.Slice(edits, func(i, j int) bool { return edits[i].StartOffset > edits[j].StartOffset })
+
 	return edits
 }
 
 // importName 从 import 行提取 "./x" 的 x.
 func importName(line string) string {
 	i := strings.Index(line, `"`)
+
 	j := strings.LastIndex(line, `"`)
 	if i < 0 || j <= i {
 		return ""
 	}
+
 	target := line[i+1 : j]
 	if !strings.HasPrefix(target, "./") {
 		return ""
 	}
+
 	p := strings.TrimPrefix(target, "./")
 	if k := strings.LastIndex(p, "/"); k >= 0 {
 		p = p[k+1:]
 	}
+
 	return p
 }
 
@@ -139,10 +160,12 @@ func referencedIn(src string, name string) bool {
 		if strings.HasPrefix(strings.TrimSpace(line), "import ") {
 			continue
 		}
+
 		if strings.Contains(line, name) {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -152,24 +175,30 @@ func PlanDir(root string) (edit.WorkspaceEdit, error) {
 	if err != nil {
 		return edit.WorkspaceEdit{}, fmt.Errorf("读目录失败: %w", err)
 	}
+
 	ws := edit.WorkspaceEdit{Edits: []edit.TextEdit{}, Preconditions: []edit.Precondition{}}
+
 	for _, rel := range files {
 		bs, err := os.ReadFile(filepath.Join(root, rel))
 		if err != nil {
 			return ws, fmt.Errorf("读 %s: %w", rel, err)
 		}
+
 		edits := PlanFile(string(bs))
 		if len(edits) == 0 {
 			continue
 		}
+
 		for i := range edits {
 			edits[i].File = rel
 		}
+
 		ws.Edits = append(ws.Edits, edits...)
 		ws.Preconditions = append(ws.Preconditions, edit.Precondition{
 			File:     rel,
 			FileHash: edit.HashBytes(bs),
 		})
 	}
+
 	return ws, nil
 }

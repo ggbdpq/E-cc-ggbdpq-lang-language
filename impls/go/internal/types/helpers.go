@@ -20,6 +20,7 @@ func opName(k syntax.Kind) string {
 	case syntax.Assign:
 		return "="
 	}
+
 	return "?"
 }
 

@@ -24,12 +24,15 @@ func Format(src string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	f := &fmtter{cm: &commentTracker{all: syntax.ScanComments(src)}}
 	f.stmts(prog, 0)
 	f.flushRemaining(0)
+
 	if len(f.lines) == 0 {
 		return "", nil
 	}
+
 	return strings.Join(f.lines, "\n") + "\n", nil
 }
 
@@ -50,6 +53,7 @@ func (t *commentTracker) peek() (syntax.Comment, bool) {
 	if t.pos < len(t.all) {
 		return t.all[t.pos], true
 	}
+
 	return syntax.Comment{}, false
 }
 
@@ -60,10 +64,12 @@ func (f *fmtter) flushLeading(start int, indent int) {
 		if !ok || c.Span.Start.Offset >= start {
 			return
 		}
+
 		f.cm.pos++
 		if c.Line()-f.lastSrcLine >= 2 {
 			f.lines = append(f.lines, "")
 		}
+
 		f.lines = append(f.lines, strings.Repeat("    ", indent)+c.Text)
 		f.lastSrcLine = c.Line()
 	}
@@ -76,10 +82,12 @@ func (f *fmtter) flushTrailing(endOffset, endLine int) {
 		if !ok || c.Line() != endLine || c.Span.Start.Offset < endOffset {
 			return
 		}
+
 		f.cm.pos++
 		if len(f.lines) == 0 {
 			f.lines = append(f.lines, "")
 		}
+
 		f.lines[len(f.lines)-1] += "  " + c.Text
 		f.lastSrcLine = c.Line()
 	}
@@ -92,10 +100,12 @@ func (f *fmtter) flushRemaining(indent int) {
 		if !ok {
 			return
 		}
+
 		f.cm.pos++
 		if c.Line()-f.lastSrcLine >= 2 {
 			f.lines = append(f.lines, "")
 		}
+
 		f.lines = append(f.lines, strings.Repeat("    ", indent)+c.Text)
 		f.lastSrcLine = c.Line()
 	}
@@ -117,6 +127,7 @@ func spanned(st syntax.Stmt) syntax.Span {
 	if sp, ok := st.(syntax.Spanned); ok {
 		return *sp.NodeSpan()
 	}
+
 	return syntax.Span{}
 }
 
@@ -128,6 +139,7 @@ func (f *fmtter) stmts(list []syntax.Stmt, indent int) {
 		f.stmt(s, indent)
 		f.flushTrailing(sp.End.Offset, sp.End.Line)
 	}
+
 	f.flushRemaining(indent)
 }
 
@@ -138,14 +150,17 @@ func (f *fmtter) stmt(s syntax.Stmt, indent int) {
 		if st.Mutable {
 			kw = "var"
 		}
+
 		anno := ""
 		if st.Typ != nil {
 			anno = ": " + typ(st.Typ)
 		}
+
 		f.w(indent, kw+" "+st.Name+anno+" = "+f.expr(st.Init, 0, indent))
 
 	case *syntax.AssignStmt:
 		op := "="
+
 		switch st.Op {
 		case syntax.PlusAssign:
 			op = "+="
@@ -156,6 +171,7 @@ func (f *fmtter) stmt(s syntax.Stmt, indent int) {
 		case syntax.SlashAssign:
 			op = "/="
 		}
+
 		f.w(indent, f.expr(st.Target, 0, indent)+" "+op+" "+f.expr(st.Val, 0, indent))
 
 	case *syntax.ExprStmt:
@@ -195,14 +211,17 @@ func (f *fmtter) stmt(s syntax.Stmt, indent int) {
 	case *syntax.StructDecl:
 		generic := genericParams(st.TypeParams)
 		f.w(indent, "struct "+st.Name+generic+" {")
+
 		for _, fd := range st.Fields {
 			f.w(indent+1, fd.Name+": "+typ(fd.Typ))
 		}
+
 		f.w(indent, "}")
 
 	case *syntax.EnumDecl:
 		generic := genericParams(st.TypeParams)
 		f.w(indent, "enum "+st.Name+generic+" {")
+
 		for _, c := range st.Cases {
 			if len(c.Payloads) == 0 {
 				f.w(indent+1, c.Name)
@@ -211,9 +230,11 @@ func (f *fmtter) stmt(s syntax.Stmt, indent int) {
 				for i, p := range c.Payloads {
 					ps[i] = typ(p)
 				}
+
 				f.w(indent+1, c.Name+"("+strings.Join(ps, ", ")+")")
 			}
 		}
+
 		f.w(indent, "}")
 
 	case *syntax.ImportStmt:
@@ -221,9 +242,11 @@ func (f *fmtter) stmt(s syntax.Stmt, indent int) {
 
 	case *syntax.ExternDecl:
 		f.w(indent, "extern "+strconv.Quote(st.Host)+" {")
+
 		for _, fn := range st.Fns {
 			f.w(indent+1, fnSig(fn))
 		}
+
 		f.w(indent, "}")
 
 	default:
@@ -245,13 +268,16 @@ func (f *fmtter) elseTail(st *syntax.IfStmt, indent int) {
 			f.w(indent, "} else if "+f.expr(nested.Cond, 0, indent)+" {")
 			f.stmts(nested.Then, indent+1)
 			f.elseTail(nested, indent)
+
 			return
 		}
 	}
+
 	if len(st.Else) > 0 {
 		f.w(indent, "} else {")
 		f.stmts(st.Else, indent+1)
 	}
+
 	f.w(indent, "}")
 }
 
@@ -259,11 +285,13 @@ func genericParams(tps []string) string {
 	if len(tps) == 0 {
 		return ""
 	}
+
 	return "[" + strings.Join(tps, ", ") + "]"
 }
 
 func fnSig(d *syntax.FnDecl) string {
 	var ps []string
+
 	for _, p := range d.Params {
 		if p.Typ == nil {
 			ps = append(ps, p.Name)
@@ -271,10 +299,12 @@ func fnSig(d *syntax.FnDecl) string {
 			ps = append(ps, p.Name+": "+typ(p.Typ))
 		}
 	}
+
 	sig := "fn " + d.Name + genericParams(d.TypeParams) + "(" + strings.Join(ps, ", ") + ")"
 	if d.Ret != nil {
 		sig += ": " + typ(d.Ret)
 	}
+
 	return sig
 }
 
@@ -282,7 +312,9 @@ func (f *fmtter) fnDecl(st *syntax.FnDecl, indent int) {
 	if st.Recv != nil {
 		// 接收者无冒号（Go 风格，spec §3.1）
 		recv := "(" + st.Recv.Name + " " + typ(st.Recv.Typ) + ")"
+
 		var ps []string
+
 		for _, p := range st.Params {
 			if p.Typ == nil {
 				ps = append(ps, p.Name)
@@ -290,14 +322,17 @@ func (f *fmtter) fnDecl(st *syntax.FnDecl, indent int) {
 				ps = append(ps, p.Name+": "+typ(p.Typ))
 			}
 		}
+
 		sig := "fn " + recv + "." + st.Name + "(" + strings.Join(ps, ", ") + ")"
 		if st.Ret != nil {
 			sig += ": " + typ(st.Ret)
 		}
+
 		f.w(indent, sig+" {")
 	} else {
 		f.w(indent, fnSig(st)+" {")
 	}
+
 	f.stmts(st.Body, indent+1)
 	f.w(indent, "}")
 }
@@ -310,10 +345,12 @@ func typ(t syntax.TypeEx) string {
 		if len(tt.Args) == 0 {
 			return tt.Name
 		}
+
 		as := make([]string, len(tt.Args))
 		for i, a := range tt.Args {
 			as[i] = typ(a)
 		}
+
 		return tt.Name + "[" + strings.Join(as, ", ") + "]"
 	case *syntax.ArrType:
 		return "[" + typ(tt.Elem) + "]"
@@ -326,12 +363,15 @@ func typ(t syntax.TypeEx) string {
 		for _, p := range tt.Params {
 			ps = append(ps, typ(p))
 		}
+
 		sig := "fn(" + strings.Join(ps, ", ") + ")"
 		if tt.Ret != nil {
 			sig += ": " + typ(tt.Ret)
 		}
+
 		return sig
 	}
+
 	return "?"
 }
 
@@ -354,6 +394,7 @@ func precOf(k syntax.Kind) int {
 	case syntax.Star, syntax.Slash, syntax.Percent, syntax.Amp, syntax.Shl, syntax.Shr:
 		return 7
 	}
+
 	return 0
 }
 
@@ -364,6 +405,7 @@ func exprPrec(e syntax.Expr) int {
 	case *syntax.Unary:
 		return 8
 	}
+
 	return 9
 }
 
@@ -373,6 +415,7 @@ func (f *fmtter) expr(e syntax.Expr, minPrec, indent int) string {
 	if exprPrec(e) < minPrec {
 		return "(" + s + ")"
 	}
+
 	return s
 }
 
@@ -386,6 +429,7 @@ func (f *fmtter) exprRaw(e syntax.Expr, indent int) string {
 		if !strings.ContainsAny(s, ".eE") {
 			s += ".0"
 		}
+
 		return s
 	case *syntax.StrLit:
 		return quoteStr(x.Val)
@@ -405,6 +449,7 @@ func (f *fmtter) exprRaw(e syntax.Expr, indent int) string {
 			syntax.Or: "||", syntax.Amp: "&", syntax.BitOr: "|", syntax.Xor: "^",
 			syntax.Shl: "<<", syntax.Shr: ">>", syntax.Dot2: "..",
 		}[x.Op]
+
 		return f.expr(x.L, p, indent) + " " + op + " " + f.expr(x.R, p+1, indent)
 	case *syntax.RangeEx:
 		return f.expr(x.Lo, 5, indent) + ".." + f.expr(x.Hi, 6, indent)
@@ -413,6 +458,7 @@ func (f *fmtter) exprRaw(e syntax.Expr, indent int) string {
 		for _, a := range x.Args {
 			as = append(as, f.expr(a, 0, indent))
 		}
+
 		return f.expr(x.Callee, 9, indent) + "(" + strings.Join(as, ", ") + ")"
 	case *syntax.IndexEx:
 		return f.expr(x.Obj, 9, indent) + "[" + f.expr(x.Idx, 0, indent) + "]"
@@ -427,29 +473,36 @@ func (f *fmtter) exprRaw(e syntax.Expr, indent int) string {
 		for _, fl := range x.Fields {
 			fs = append(fs, fl.Name+": "+f.expr(fl.Val, 0, indent))
 		}
+
 		return x.TypeName + "{" + strings.Join(fs, ", ") + "}"
 	case *syntax.MapLit:
 		var kvs []string
 		for _, it := range x.Items {
 			kvs = append(kvs, f.expr(it.Key, 0, indent)+": "+f.expr(it.Val, 0, indent))
 		}
+
 		return "{" + strings.Join(kvs, ", ") + "}"
 	case *syntax.ArrLit:
 		var is []string
 		for _, el := range x.Items {
 			is = append(is, f.expr(el, 0, indent))
 		}
+
 		return "[" + strings.Join(is, ", ") + "]"
 	case *syntax.MatchEx:
 		var b strings.Builder
 		b.WriteString("match " + f.expr(x.Scrut, 0, indent) + " {\n")
+
 		for _, arm := range x.Arms {
 			b.WriteString(strings.Repeat("    ", indent+1) + f.pat(arm.Pat) + " => " + f.expr(arm.Body, 0, indent+1) + "\n")
 		}
+
 		b.WriteString(strings.Repeat("    ", indent) + "}")
+
 		return b.String()
 	case *syntax.FnLit:
 		var ps []string
+
 		for _, p := range x.Params {
 			if p.Typ == nil {
 				ps = append(ps, p.Name)
@@ -457,16 +510,20 @@ func (f *fmtter) exprRaw(e syntax.Expr, indent int) string {
 				ps = append(ps, p.Name+": "+typ(p.Typ))
 			}
 		}
+
 		sig := "fn(" + strings.Join(ps, ", ") + ")"
 		if x.Ret != nil {
 			sig += ": " + typ(x.Ret)
 		}
+
 		f2 := &fmtter{lines: []string{}, cm: f.cm}
 		f2.w(0, sig+" {")
 		f2.stmts(x.Body, indent+1)
 		f2.w(indent, "}")
+
 		return strings.Join(f2.lines, "\n")
 	}
+
 	return "?"
 }
 
@@ -482,12 +539,15 @@ func (f *fmtter) pat(p syntax.Pat) string {
 		if len(pp.Subs) == 0 {
 			return pp.Name
 		}
+
 		ss := make([]string, len(pp.Subs))
 		for i, s := range pp.Subs {
 			ss[i] = f.pat(s)
 		}
+
 		return pp.Name + "(" + strings.Join(ss, ", ") + ")"
 	}
+
 	return "?"
 }
 
@@ -495,6 +555,7 @@ func (f *fmtter) pat(p syntax.Pat) string {
 func quoteStr(s string) string {
 	var b strings.Builder
 	b.WriteByte('"')
+
 	for _, r := range s {
 		switch r {
 		case '\n':
@@ -511,6 +572,8 @@ func quoteStr(s string) string {
 			b.WriteRune(r)
 		}
 	}
+
 	b.WriteByte('"')
+
 	return b.String()
 }

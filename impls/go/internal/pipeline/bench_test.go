@@ -42,6 +42,7 @@ func itoa(n int) string { return strconv.Itoa(n) }
 func benchCorpus(work int) string {
 	var b strings.Builder
 	b.WriteString(benchCorpusHead)
+
 	for i := 0; i < work; i++ {
 		b.WriteString("fn work" + itoa(i) + "(i: int): int {\n")
 		b.WriteString("    let p = build(i)\n")
@@ -52,15 +53,19 @@ func benchCorpus(work int) string {
 		b.WriteString("    return acc\n")
 		b.WriteString("}\n")
 	}
+
 	b.WriteString("fn main() {\n    var acc = 0\n")
+
 	for i := 0; i < work; i++ {
 		b.WriteString("    acc += work" + itoa(i) + "(" + itoa(i) + ")\n")
 	}
+
 	b.WriteString("    println(acc)\n")
 	b.WriteString("    let m = {\"a\": 1, \"b\": 2, \"c\": 3}\n")
 	b.WriteString("    println(keys(m), values(m))\n")
 	b.WriteString("    println(jsonStringify(m))\n")
 	b.WriteString("}\n")
+
 	return b.String()
 }
 
@@ -68,16 +73,20 @@ func benchSrc() string { return benchCorpus(20) }
 
 func benchProg(b *testing.B) []syntax.Stmt {
 	b.Helper()
+
 	prog, err := syntax.Parse(benchSrc())
 	if err != nil {
 		b.Fatal(err)
 	}
+
 	return prog
 }
 
 func BenchmarkLex(b *testing.B) {
 	src := benchSrc()
+
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		if _, err := syntax.Lex(src); err != nil {
 			b.Fatal(err)
@@ -87,7 +96,9 @@ func BenchmarkLex(b *testing.B) {
 
 func BenchmarkParse(b *testing.B) {
 	src := benchSrc()
+
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		if _, err := syntax.Parse(src); err != nil {
 			b.Fatal(err)
@@ -98,6 +109,7 @@ func BenchmarkParse(b *testing.B) {
 func BenchmarkAnalyze(b *testing.B) {
 	prog := benchProg(b)
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		if _, err := AnalyzeStmts(prog); err != nil {
 			b.Fatal(err)
@@ -107,14 +119,19 @@ func BenchmarkAnalyze(b *testing.B) {
 
 func BenchmarkIRInterp(b *testing.B) {
 	prog := benchProg(b)
+
 	a, err := AnalyzeStmts(prog)
 	if err != nil {
 		b.Fatal(err)
 	}
+
 	var sink strings.Builder
+
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		sink.Reset()
+
 		if err := irinterp.New(&sink).Run(a.Prog); err != nil {
 			b.Fatal(err)
 		}
@@ -123,10 +140,14 @@ func BenchmarkIRInterp(b *testing.B) {
 
 func BenchmarkASTInterp(b *testing.B) {
 	prog := benchProg(b)
+
 	var sink strings.Builder
+
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		sink.Reset()
+
 		if err := interp.New(&sink).Run(prog); err != nil {
 			b.Fatal(err)
 		}
@@ -135,11 +156,14 @@ func BenchmarkASTInterp(b *testing.B) {
 
 func BenchmarkGenGo(b *testing.B) {
 	prog := benchProg(b)
+
 	a, err := AnalyzeStmts(prog)
 	if err != nil {
 		b.Fatal(err)
 	}
+
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		if _, err := gen.Transpile(a.Prog); err != nil {
 			b.Fatal(err)
@@ -149,11 +173,14 @@ func BenchmarkGenGo(b *testing.B) {
 
 func BenchmarkGenJS(b *testing.B) {
 	prog := benchProg(b)
+
 	a, err := AnalyzeStmts(prog)
 	if err != nil {
 		b.Fatal(err)
 	}
+
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		if _, err := genjs.TranspileJS(a.Prog); err != nil {
 			b.Fatal(err)

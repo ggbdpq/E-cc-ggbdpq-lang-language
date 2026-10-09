@@ -11,10 +11,12 @@ import (
 
 func resolve(t *testing.T, src string) *Result {
 	t.Helper()
+
 	prog, err := syntax.Parse(src)
 	if err != nil {
 		t.Fatalf("解析失败: %v", err)
 	}
+
 	return Resolve(prog)
 }
 
@@ -23,11 +25,13 @@ func codes(res *Result) []string {
 	for _, d := range res.Diags {
 		out = append(out, d.Code)
 	}
+
 	return out
 }
 
 func wantCodes(t *testing.T, res *Result, want ...string) {
 	t.Helper()
+
 	got := codes(res)
 	if strings.Join(got, ",") != strings.Join(want, ",") {
 		t.Fatalf("诊断码 = %v, 期望 %v\n诊断: %v", got, want, res.Diags)
@@ -166,10 +170,12 @@ func Test全局前向引用报未定义(t *testing.T) {
 func TestSymbolId稳定(t *testing.T) {
 	src := "struct P { x: int }\nfn main() {\nlet p = P{x: 1}\nprintln(p.x)\n}"
 	a := resolve(t, src)
+
 	b := resolve(t, src)
 	if len(a.Symbols) == 0 || len(a.Symbols) != len(b.Symbols) {
 		t.Fatalf("符号数不稳定: %d vs %d", len(a.Symbols), len(b.Symbols))
 	}
+
 	for i := range a.Symbols {
 		if a.Symbols[i].ID != b.Symbols[i].ID || a.Symbols[i].Name != b.Symbols[i].Name {
 			t.Fatalf("符号 %d 不稳定: %+v vs %+v", i, a.Symbols[i], b.Symbols[i])
@@ -182,26 +188,32 @@ func Test引用绑定正确(t *testing.T) {
 	wantCodes(t, res)
 	// main 里的 f 引用应绑定到 KFn 符号
 	var fSym *Symbol
+
 	for _, s := range res.Symbols {
 		if s.Name == "f" && s.Kind == KFn {
 			fSym = s
 		}
 	}
+
 	if fSym == nil {
 		t.Fatalf("未找到 f 符号")
 	}
+
 	found := false
+
 	for expr, sym := range res.Refs {
 		if id, ok := expr.(*syntax.Ident); ok && id.Name == "f" && sym == fSym {
 			found = true
 		}
 	}
+
 	if !found {
 		t.Fatalf("Ident f 未绑定到 fn 符号")
 	}
 	// CasePat + 子模式 BindPat 都应进 PatRefs（预载 Ok/Err 各带一个绑定）
 	res = resolve(t, "fn g(): Result[int, error] { return Ok(1) }\nfn main() {\nmatch g() {\nOk(v) => println(v)\nErr(e) => println(e.msg)\n}\n}")
 	wantCodes(t, res)
+
 	if len(res.PatRefs) != 4 {
 		t.Fatalf("PatRefs = %d, 期望 4（2 构造器 + 2 绑定）", len(res.PatRefs))
 	}
@@ -215,6 +227,7 @@ func Test内建与预载符号可见(t *testing.T) {
     println(e.msg)
 }`)
 	wantCodes(t, res)
+
 	if res.Builtin["println"] == nil || res.Builtin["error"] == nil || res.Builtin["http"] == nil {
 		t.Fatalf("预载符号缺失")
 	}

@@ -25,68 +25,86 @@ import (
 
 func transpile(t *testing.T, src string) string {
 	t.Helper()
+
 	p, err := pipeline.Compile(src)
 	if err != nil {
 		t.Fatalf("前端管线失败: %v", err)
 	}
+
 	out, err := Transpile(p)
 	if err != nil {
 		t.Fatalf("转译失败: %v", err)
 	}
+
 	return out
 }
 
 func transpileStmts(t *testing.T, prog []syntax.Stmt) string {
 	t.Helper()
+
 	p, err := pipeline.CompileStmts(prog)
 	if err != nil {
 		t.Fatalf("前端管线失败: %v", err)
 	}
+
 	out, err := Transpile(p)
 	if err != nil {
 		t.Fatalf("转译失败: %v", err)
 	}
+
 	return out
 }
 
 func sortLines(s string) string {
 	lines := strings.Split(strings.TrimRight(s, "\n"), "\n")
 	sort.Strings(lines)
+
 	return strings.Join(lines, "\n")
 }
 
 func interpRun(t *testing.T, src string) string {
 	t.Helper()
+
 	prog, err := syntax.Parse(src)
 	if err != nil {
 		t.Fatalf("解析失败: %v", err)
 	}
+
 	var out bytes.Buffer
 	if err := interp.New(&out).Run(prog); err != nil {
 		t.Fatalf("解释器运行失败: %v", err)
 	}
+
 	return out.String()
 }
 
 func goRun(t *testing.T, goSrc string) string {
 	t.Helper()
+
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "main.go"), []byte(goSrc), 0o644); err != nil {
 		t.Fatalf("写文件失败: %v", err)
 	}
+
 	build := exec.Command("go", "build", "-o", "out.exe", "main.go")
+
 	build.Dir = dir
 	if bt, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("生成的 Go 代码编译失败: %v\n%s\n=== 生成的源码 ===\n%s", err, bt, goSrc)
 	}
+
 	run := exec.Command("./out.exe")
 	run.Dir = dir
+
 	var stdout bytes.Buffer
+
 	run.Stdout = &stdout
+
 	run.Stderr = os.Stderr
 	if err := run.Run(); err != nil {
 		t.Fatalf("生成的程序运行失败: %v\n=== 生成的源码 ===\n%s", err, goSrc)
 	}
+
 	return stdout.String()
 }
 
@@ -96,6 +114,7 @@ func goRun(t *testing.T, goSrc string) string {
 
 func Test前端约束_参数必须注解(t *testing.T) {
 	_, err := pipeline.Compile("fn f(a) { }")
+
 	diags := pipeline.Diagnostics(err)
 	if len(diags) == 0 || diags[0].Code != "E3007" {
 		t.Fatalf("无注解参数应报 E3007，得到: %v", err)
@@ -110,6 +129,7 @@ fn g(): Result[int, error] {
     return Ok(f()? + 1)
 }
 fn main() { }`)
+
 	diags := pipeline.Diagnostics(err)
 	if len(diags) == 0 || diags[0].Code != "E3005" {
 		t.Fatalf("? 嵌在表达式里应报 E3005，得到: %v", err)
@@ -125,6 +145,7 @@ fn g() {
     println(n)
 }
 fn main() { }`)
+
 	diags := pipeline.Diagnostics(err)
 	if len(diags) == 0 || diags[0].Code != "E3005" {
 		t.Fatalf("void 函数用 ? 应报 E3005，得到: %v", err)
@@ -142,6 +163,7 @@ fn f(e: E): int {
     }
 }
 fn main() { }`)
+
 	diags := pipeline.Diagnostics(err)
 	if len(diags) == 0 || diags[0].Code != "E4001" {
 		t.Fatalf("缺 case 应报 E4001，得到: %v", err)
@@ -167,33 +189,43 @@ func Test等价_M4移植(t *testing.T) {
 	if testing.Short() {
 		t.Skip("short 模式跳过 go build")
 	}
+
 	prog, _, err := load.Program(filepath.Join("..", "..", "m4"), false)
 	if err != nil {
 		t.Fatalf("装载 m4 失败: %v", err)
 	}
+
 	var out bytes.Buffer
 	if err := interp.New(&out).Run(prog); err != nil {
 		t.Fatalf("解释器运行失败: %v", err)
 	}
+
 	want := out.String()
+
 	got := goRun(t, transpileStmts(t, prog))
 	if want != got {
 		t.Fatalf("解释器与 →Go 输出不一致\n=== 解释器 ===\n%q\n=== Go 编译执行 ===\n%q", want, got)
 	}
+
 	fixtureBytes, err := os.ReadFile(filepath.Join("..", "..", "m4", "gofixture.expected.txt"))
 	if err != nil {
 		t.Fatalf("读 gofixture.expected.txt: %v", err)
 	}
+
 	var fixtureLines []string
+
 	started := false
+
 	for _, line := range strings.Split(string(fixtureBytes), "\n") {
 		if strings.HasPrefix(line, "MD5|") {
 			started = true
 		}
+
 		if started {
 			fixtureLines = append(fixtureLines, line)
 		}
 	}
+
 	fixture := strings.Join(fixtureLines, "\n")
 	if got != fixture {
 		t.Fatalf("与 Go 原版 fixture 不一致\n=== gofixture ===\n%q\n=== langGo（→Go）===\n%q", fixture, got)
@@ -205,6 +237,7 @@ func Test等价_示例程序(t *testing.T) {
 	if testing.Short() {
 		t.Skip("short 模式跳过 go build")
 	}
+
 	for _, name := range []string{"hello", "shapes", "result", "closures", "json", "compound", "tour", "channel"} {
 		name := name
 		t.Run(name, func(t *testing.T) {
@@ -212,8 +245,10 @@ func Test等价_示例程序(t *testing.T) {
 			if err != nil {
 				t.Fatalf("读示例失败: %v", err)
 			}
+
 			src := string(srcBytes)
 			want := interpRun(t, src)
+
 			got := goRun(t, transpile(t, src))
 			if got != want {
 				t.Fatalf("输出不一致\n=== 解释器 ===\n%q\n=== Go 编译执行 ===\n%q", want, got)
@@ -226,8 +261,10 @@ func Test等价_示例程序(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+
 		src := string(srcBytes)
 		want := sortLines(interpRun(t, src))
+
 		got := sortLines(goRun(t, transpile(t, src)))
 		if got != want {
 			t.Fatalf("行集合不一致\n=== 解释器 ===\n%q\n=== Go 编译执行 ===\n%q", want, got)
@@ -244,6 +281,7 @@ func TestRecv阻塞语义(t *testing.T) {
 	if testing.Short() {
 		t.Skip("short 模式跳过 go build")
 	}
+
 	src := prelude + `
 func main() {
 	ch := langGoNewChan()
@@ -259,6 +297,7 @@ func main() {
 	fmt.Println("OK", r.v)
 }
 `
+
 	got := goRun(t, src)
 	if got != "OK 42\n" {
 		t.Fatalf("recv 应阻塞等到延迟 send 的值，实际输出 %q（ERR=非阻塞旧实现）", got)
@@ -271,6 +310,7 @@ func Test等价_NaN比较与int饱和(t *testing.T) {
 	if testing.Short() {
 		t.Skip("short 模式跳过 go build")
 	}
+
 	src := `fn main() {
     var big = 1.0
     for i in 0..400 {
@@ -287,6 +327,7 @@ func Test等价_NaN比较与int饱和(t *testing.T) {
 	if want != "0 9223372036854775807 -9223372036854775808\nfalse true\nfalse false false false\nfalse false\n" {
 		t.Fatalf("解释器输出与 ADR-0006 手算口径不符，实际 %q", want)
 	}
+
 	got := goRun(t, transpile(t, src))
 	if got != want {
 		t.Fatalf("输出不一致\n=== 解释器 ===\n%q\n=== Go 编译执行 ===\n%q", want, got)
@@ -299,6 +340,7 @@ func TestPrelude_langGoInt饱和与RelNaN(t *testing.T) {
 	if testing.Short() {
 		t.Skip("short 模式跳过 go build")
 	}
+
 	src := prelude + `
 func main() {
 	nan := math.NaN()
@@ -311,6 +353,7 @@ func main() {
 }
 `
 	got := goRun(t, src)
+
 	want := "0 9223372036854775807 -9223372036854775808 9223372036854775807 0 2\n" +
 		"false false false false\nfalse false\ntrue true\n"
 	if got != want {

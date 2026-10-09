@@ -8,14 +8,18 @@ func TestSpan盖章(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(prog) != 1 {
 		t.Fatalf("stmt 数异常")
 	}
+
 	fn := prog[0].(*FnDecl)
+
 	sp := fn.NodeSpan()
 	if sp.Start.Line != 1 || sp.Start.Col != 1 {
 		t.Fatalf("fn 起始 = %v, 期望 1:1", sp.Start)
 	}
+
 	if sp.End.Line != 4 {
 		t.Fatalf("fn 终止行 = %v, 期望 4（'}' 所在行）", sp.End)
 	}
@@ -24,6 +28,7 @@ func TestSpan盖章(t *testing.T) {
 	if let.Sp.Start.Line != 2 || let.Sp.Start.Col != 5 {
 		t.Fatalf("let 起始 = %v, 期望 2:5", let.Sp.Start)
 	}
+
 	if let.Sp.Start.Offset != 16 {
 		t.Fatalf("let offset = %v, 期望 16", let.Sp.Start.Offset)
 	}

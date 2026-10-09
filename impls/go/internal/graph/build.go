@@ -25,8 +25,12 @@ func (g *Graph) collectRefs(prog []syntax.Stmt, res *semantic.Result) {
 	// 预扫：赋值目标集合（write）与调用位置集合（call）
 	c.writeSet = map[*syntax.Ident]bool{}
 	c.callsSet = map[*syntax.Ident]bool{}
-	var scanStmt func(syntax.Stmt)
-	var scanExpr func(syntax.Expr)
+
+	var (
+		scanStmt func(syntax.Stmt)
+		scanExpr func(syntax.Expr)
+	)
+
 	scanStmt = func(s syntax.Stmt) {
 		if x, ok := s.(*syntax.AssignStmt); ok {
 			if id, ok := x.Target.(*syntax.Ident); ok {
@@ -34,6 +38,7 @@ func (g *Graph) collectRefs(prog []syntax.Stmt, res *semantic.Result) {
 			}
 		}
 	}
+
 	scanExpr = func(e syntax.Expr) {
 		if x, ok := e.(*syntax.CallEx); ok {
 			if id, ok := x.Callee.(*syntax.Ident); ok {
@@ -56,6 +61,7 @@ func (c *refCtx) stmt(s syntax.Stmt) {
 			c.file = f
 		}
 	}
+
 	switch x := s.(type) {
 	case *syntax.LetStmt:
 		c.expr(x.Init)
@@ -86,9 +92,11 @@ func (c *refCtx) stmt(s syntax.Stmt) {
 		if sym, ok := c.res.DeclSyms[x]; ok {
 			c.fnID = int(sym.ID)
 		}
+
 		for _, st := range x.Body {
 			c.stmt(st)
 		}
+
 		c.fnID = saved
 	case *syntax.ExternDecl, *syntax.StructDecl, *syntax.EnumDecl, *syntax.ImportStmt:
 	}
@@ -112,10 +120,12 @@ func (c *refCtx) expr(e syntax.Expr) {
 			if c.callsSet[t] && sym.Kind == semantic.KFn {
 				return
 			}
+
 			kind := EdgeReference
 			if c.writeSet[t] {
 				kind = EdgeWrite
 			}
+
 			sp := t.Sp
 			c.g.addEdge(Edge{From: c.fnID, To: int(sym.ID), Kind: kind, Span: &sp})
 		case *syntax.StructLit:
@@ -132,9 +142,11 @@ func (g *Graph) addEdge(e Edge) {
 	g.Edges = append(g.Edges, e)
 	idx := len(g.Edges) - 1
 	g.in[e.To] = append(g.in[e.To], idx)
+
 	g.out[e.From] = append(g.out[e.From], idx)
 	if e.From > 0 && e.To > 0 {
 		from := g.nodeModule(e.From)
+
 		to := g.nodeModule(e.To)
 		if from != "" && to != "" && from != to {
 			key := from + "\x00" + to
@@ -150,5 +162,6 @@ func (g *Graph) nodeModule(id int) string {
 	if n, ok := g.Nodes[id]; ok {
 		return n.Module
 	}
+
 	return ""
 }

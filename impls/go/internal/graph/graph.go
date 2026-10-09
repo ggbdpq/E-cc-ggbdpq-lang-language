@@ -72,6 +72,7 @@ func (g *Graph) In(id int) []Edge {
 	for _, i := range g.in[id] {
 		out = append(out, g.Edges[i])
 	}
+
 	return out
 }
 
@@ -81,6 +82,7 @@ func (g *Graph) Out(id int) []Edge {
 	for _, i := range g.out[id] {
 		out = append(out, g.Edges[i])
 	}
+
 	return out
 }
 
@@ -110,6 +112,7 @@ func Build(prog []syntax.Stmt, res *semantic.Result, ty *types.Result, h *hir.Pr
 		if sym.BuiltinMark {
 			continue
 		}
+
 		n := &Node{
 			ID:        int(sym.ID),
 			Kind:      kindStr(sym.Kind),
@@ -121,6 +124,7 @@ func Build(prog []syntax.Stmt, res *semantic.Result, ty *types.Result, h *hir.Pr
 			n.Span = *d.NodeSpan()
 			n.Module = n.Span.File
 		}
+
 		if ty != nil {
 			if t := ty.SymTy[sym.ID]; t != nil {
 				n.Type = t.String()
@@ -128,9 +132,11 @@ func Build(prog []syntax.Stmt, res *semantic.Result, ty *types.Result, h *hir.Pr
 				n.Type = t.String()
 			}
 		}
+
 		if sym.Kind == semantic.KStruct {
 			n.Fields = append(n.Fields, sym.Fields...)
 		}
+
 		g.Nodes[n.ID] = n
 		g.Order = append(g.Order, n.ID)
 	}
@@ -149,17 +155,20 @@ func Build(prog []syntax.Stmt, res *semantic.Result, ty *types.Result, h *hir.Pr
 		for _, gl := range h.Globals {
 			collectHIRStmt(gl, 0, g)
 		}
+
 		for _, f := range h.Fns {
 			owner := 0
 			if f.Sym != nil {
 				owner = int(f.Sym.ID)
 			}
+
 			collectHIRStmts(f.Body, owner, g)
 		}
 	}
 
 	// 4) reference / write / type 边（AST + resolver 引用表）+ 文件级 depends_on
 	g.collectRefs(prog, res)
+
 	return g
 }
 
@@ -168,6 +177,7 @@ func fileNames(files []load.FileInfo) []string {
 	for _, f := range files {
 		out = append(out, f.Path)
 	}
+
 	return out
 }
 
@@ -188,6 +198,7 @@ func kindStr(k semantic.Kind) string {
 	case semantic.KCtor:
 		return "constructor"
 	}
+
 	return "unknown"
 }
 
@@ -223,10 +234,13 @@ func collectHIRStmt(st hir.Stmt, from int, g *Graph) {
 		collectHIRStmts(x.Body, from, g)
 	case *hir.Spawn:
 		sp := syntax.Span{}
+
 		if x.Fn != nil {
 			g.addEdge(Edge{From: from, To: int(x.Fn.ID), Kind: EdgeSpawn})
+
 			_ = sp
 		}
+
 		for _, a := range x.Args {
 			collectHIRExpr(a, from, g)
 		}
@@ -248,9 +262,11 @@ func collectHIRExpr(e hir.Expr, from int, g *Graph) {
 		if x.Fn != nil {
 			g.addEdge(Edge{From: from, To: int(x.Fn.ID), Kind: EdgeCall, Span: &x.Sp})
 		}
+
 		if x.Callee != nil {
 			collectHIRExpr(x.Callee, from, g)
 		}
+
 		for _, a := range x.Args {
 			collectHIRExpr(a, from, g)
 		}
@@ -258,7 +274,9 @@ func collectHIRExpr(e hir.Expr, from int, g *Graph) {
 		if x.Method != nil {
 			g.addEdge(Edge{From: from, To: int(x.Method.ID), Kind: EdgeCall, Span: &x.Sp})
 		}
+
 		collectHIRExpr(x.Recv, from, g)
+
 		for _, a := range x.Args {
 			collectHIRExpr(a, from, g)
 		}
@@ -302,6 +320,7 @@ func collectHIRExpr(e hir.Expr, from int, g *Graph) {
 		}
 	case *hir.Match:
 		collectHIRExpr(x.Scrut, from, g)
+
 		for _, arm := range x.Arms {
 			collectHIRExpr(arm.Body, from, g)
 		}

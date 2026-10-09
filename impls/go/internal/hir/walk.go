@@ -8,6 +8,7 @@ func WalkProg(p *Prog, s func(Stmt), e func(Expr), pat func(Pat)) {
 	for _, g := range p.Globals {
 		WalkStmt(g, s, e, pat)
 	}
+
 	for _, f := range p.Fns {
 		WalkStmts(f.Body, s, e, pat)
 	}
@@ -25,6 +26,7 @@ func WalkStmt(st Stmt, s func(Stmt), e func(Expr), pat func(Pat)) {
 	if s != nil {
 		s(st)
 	}
+
 	switch x := st.(type) {
 	case *Let:
 		WalkExpr(x.Init, s, e, pat)
@@ -61,6 +63,7 @@ func WalkExpr(ex Expr, s func(Stmt), e func(Expr), pat func(Pat)) {
 	if e != nil {
 		e(ex)
 	}
+
 	switch x := ex.(type) {
 	case *Lit, *LocalRef, *FnRef, *BuiltinRef:
 	case *Ctor:
@@ -71,11 +74,13 @@ func WalkExpr(ex Expr, s func(Stmt), e func(Expr), pat func(Pat)) {
 		if x.Callee != nil {
 			WalkExpr(x.Callee, s, e, pat)
 		}
+
 		for _, a := range x.Args {
 			WalkExpr(a, s, e, pat)
 		}
 	case *MethodCall:
 		WalkExpr(x.Recv, s, e, pat)
+
 		for _, a := range x.Args {
 			WalkExpr(a, s, e, pat)
 		}
@@ -119,6 +124,7 @@ func WalkExpr(ex Expr, s func(Stmt), e func(Expr), pat func(Pat)) {
 		}
 	case *Match:
 		WalkExpr(x.Scrut, s, e, pat)
+
 		for _, arm := range x.Arms {
 			WalkPat(arm.Pat, s, e, pat)
 			WalkExpr(arm.Body, s, e, pat)
@@ -133,6 +139,7 @@ func WalkPat(p Pat, s func(Stmt), e func(Expr), pat func(Pat)) {
 	if pat != nil {
 		pat(p)
 	}
+
 	switch x := p.(type) {
 	case *LitPat:
 		WalkExpr(x.Val, s, e, pat)

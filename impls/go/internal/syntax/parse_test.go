@@ -11,14 +11,17 @@ import (
 
 func parseErr(t *testing.T, src string) *Error {
 	t.Helper()
+
 	_, err := Parse(src)
 	if err == nil {
 		t.Fatalf("期望解析错误但成功了\n源码:\n%s", src)
 	}
+
 	var pe *Error
 	if !errors.As(err, &pe) {
 		t.Fatalf("错误应为 *Error，得到: %v", err)
 	}
+
 	return pe
 }
 
@@ -59,6 +62,7 @@ func Test控制头禁止裸结构体字面量(t *testing.T) {
 	if _, err := Parse("if p { println(1) }"); err != nil {
 		t.Fatalf("条件位置的裸绑定不应误判为 struct 字面量: %v", err)
 	}
+
 	if _, err := Parse("while p { break }"); err != nil {
 		t.Fatalf("while 条件同理: %v", err)
 	}
@@ -111,10 +115,12 @@ func Test错误带源码摘录(t *testing.T) {
 	// Q22：错误信息附出错行内容，不用翻文件定位。
 	// EOF 场景行号是输入末尾之后（正确行为），摘录回退到最后非空行。
 	src := "let a = 1\nlet b = 2\nprintln(a +\n"
+
 	_, err := Parse(src)
 	if err == nil {
 		t.Fatal("应报错")
 	}
+
 	msg := err.Error()
 	if !strings.Contains(msg, "println(a +") {
 		t.Fatalf("错误应含源码行摘录: %v", msg)
@@ -124,6 +130,7 @@ func Test错误带源码摘录(t *testing.T) {
 	if err == nil {
 		t.Fatal("词法错误应报错")
 	}
+
 	if !strings.Contains(err.Error(), "let s =") {
 		t.Fatalf("词法错误应含源码行摘录: %v", err)
 	}

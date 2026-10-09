@@ -26,15 +26,20 @@ func Dir(dir string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	var files []string
+
 	for _, e := range entries {
 		name := e.Name()
 		if e.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
 			continue
 		}
+
 		files = append(files, filepath.Join(dir, name))
 	}
+
 	sort.Strings(files)
+
 	if len(files) == 0 {
 		return "", fmt.Errorf("%s: 无 .go 文件", dir)
 	}
@@ -43,27 +48,35 @@ func Dir(dir string) (string, error) {
 		name string
 		sig  string
 	}
-	var fns []fn
-	var skipped []string
+
+	var (
+		fns     []fn
+		skipped []string
+	)
+
 	fset := token.NewFileSet()
 	for _, f := range files {
 		file, err := parser.ParseFile(fset, f, nil, 0)
 		if err != nil {
 			return "", fmt.Errorf("%s: %w", filepath.Base(f), err)
 		}
+
 		for _, decl := range file.Decls {
 			fd, ok := decl.(*ast.FuncDecl)
 			if !ok || fd.Recv != nil || !fd.Name.IsExported() {
 				continue
 			}
+
 			sig, skip := goFuncToLangGo(fd)
 			if skip != "" {
 				skipped = append(skipped, fmt.Sprintf("%s(%s): %s", fd.Name.Name, paramNames(fd), skip))
 				continue
 			}
+
 			fns = append(fns, fn{name: fd.Name.Name, sig: sig})
 		}
 	}
+
 	if len(fns) == 0 {
 		return "", fmt.Errorf("%s: 无可绑定的导出函数", dir)
 	}
@@ -71,36 +84,46 @@ func Dir(dir string) (string, error) {
 	var b strings.Builder
 	b.WriteString("// extern \"go\" 声明草案 —— 由 langGo bind 生成，签名需人工审核后使用\n")
 	b.WriteString("// 绑定面仅是声明；实现需在 prelude/宿主侧另行提供\n")
+
 	if len(skipped) > 0 {
 		b.WriteString("// 跳过:\n")
+
 		for _, sk := range skipped {
 			b.WriteString("//   " + sk + "\n")
 		}
 	}
+
 	b.WriteString("extern \"go\" {\n")
+
 	for _, f := range fns {
 		b.WriteString("    " + f.sig + "\n")
 	}
+
 	b.WriteString("}\n")
+
 	return b.String(), nil
 }
 
 func paramNames(fd *ast.FuncDecl) string {
 	var names []string
+
 	for _, p := range fd.Type.Params.List {
 		for range p.Names {
 			names = append(names, "?")
 		}
 	}
+
 	if len(names) == 0 {
 		return ""
 	}
+
 	return strings.Join(names, ", ")
 }
 
 // goFuncToLangGo 单个导出函数 → langGo 声明；skip 非空表示不可绑定及原因.
 func goFuncToLangGo(fd *ast.FuncDecl) (sig, skip string) {
 	var params []string
+
 	list := fd.Type.Params.List
 	for i, field := range list {
 		typeName, ok := langGoType(field.Type)
@@ -112,12 +135,15 @@ func goFuncToLangGo(fd *ast.FuncDecl) (sig, skip string) {
 		if n == 0 {
 			n = 1
 		}
+
 		for j := 0; j < n; j++ {
 			name := "a" + strconv.Itoa(len(params)+1)
 			if j < len(field.Names) && field.Names[j] != nil {
 				name = field.Names[j].Name
 			}
+
 			_ = i
+
 			params = append(params, name+": "+typeName)
 		}
 	}
@@ -131,6 +157,7 @@ func goFuncToLangGo(fd *ast.FuncDecl) (sig, skip string) {
 		if !ok {
 			return "", "返回类型不支持: " + goTypeString(results.List[0].Type)
 		}
+
 		return fnSig(fd.Name.Name, params, typeName), ""
 	case len(results.List) == 2:
 		// (T, error) 惯例 → Result[T, error]
@@ -139,8 +166,10 @@ func goFuncToLangGo(fd *ast.FuncDecl) (sig, skip string) {
 			if !ok {
 				return "", "返回类型不支持: " + goTypeString(results.List[0].Type)
 			}
+
 			return fnSig(fd.Name.Name, params, "Result["+typeName+", error]"), ""
 		}
+
 		return "", "双返回值仅支持 (T, error)"
 	default:
 		return "", "多返回值（>2）"
@@ -152,6 +181,7 @@ func fnSig(name string, params []string, ret string) string {
 	if ret != "" {
 		sig += ": " + ret
 	}
+
 	return sig
 }
 
@@ -183,6 +213,7 @@ func langGoType(t ast.Expr) (string, bool) {
 		case "any", "interface{}":
 			return "any", true
 		}
+
 		return "", false
 	case *ast.ArrayType:
 		elem, ok := langGoType(x.Elt)
@@ -198,6 +229,7 @@ func langGoType(t ast.Expr) (string, bool) {
 	case *ast.MapType, *ast.ChanType, *ast.FuncType, *ast.StructType, *ast.InterfaceType:
 		return "", false
 	}
+
 	return "", false
 }
 
@@ -222,5 +254,6 @@ func goTypeString(t ast.Expr) string {
 	case *ast.ChanType:
 		return "chan"
 	}
+
 	return "?"
 }

@@ -38,41 +38,51 @@ func (it *Interp) preludeStdlib() {
 		if len(args) != 0 {
 			return nil, errors.New("makeChan 不需要参数")
 		}
+
 		return &ChanVal{}, nil
 	})
 	reg("send", func(it *Interp, args []Value) (Value, error) {
 		if len(args) != 2 {
 			return nil, fmt.Errorf("send 需要 2 个参数（ch, v），得到 %d 个", len(args))
 		}
+
 		ch, ok := args[0].(*ChanVal)
 		if !ok {
 			return nil, fmt.Errorf("send 需要通道，得到 %s", typeName(args[0]))
 		}
+
 		ch.Items = append(ch.Items, args[1])
+
 		return UnitVal{}, nil
 	})
 	reg("recv", func(it *Interp, args []Value) (Value, error) {
 		if len(args) != 1 {
 			return nil, fmt.Errorf("recv 需要 1 个参数（ch），得到 %d 个", len(args))
 		}
+
 		ch, ok := args[0].(*ChanVal)
 		if !ok {
 			return nil, fmt.Errorf("recv 需要通道，得到 %s", typeName(args[0]))
 		}
+
 		if len(ch.Items) == 0 {
 			return errResult(it, "channel 空"), nil
 		}
+
 		v := ch.Items[0]
 		ch.Items = ch.Items[1:]
+
 		return &EnumVal{Def: it.enums["Result"], Case: 0, Payloads: []Value{v}}, nil
 	})
 	reg("isNone", func(it *Interp, args []Value) (Value, error) {
 		if err := it.arity("isNone", args, 1); err != nil {
 			return nil, err
 		}
+
 		if ev, ok := args[0].(*EnumVal); ok {
 			return BoolVal(ev.Def.Name == "Option" && ev.Case == 1), nil
 		}
+
 		return BoolVal(false), nil
 	})
 }
@@ -83,16 +93,20 @@ func jsonParseBuiltin(it *Interp, args []Value) (Value, error) {
 	if err := it.arity("jsonParse", args, 1); err != nil {
 		return nil, err
 	}
+
 	s, ok := args[0].(StrVal)
 	if !ok {
 		return nil, fmt.Errorf("jsonParse 需要字符串，得到 %s", typeName(args[0]))
 	}
+
 	dec := json.NewDecoder(bytes.NewReader([]byte(s)))
 	dec.UseNumber()
+
 	var raw any
 	if err := dec.Decode(&raw); err != nil {
 		return nil, fmt.Errorf("JSON 解析失败: %w", err)
 	}
+
 	return jsonToValue(raw, it), nil
 }
 
@@ -109,26 +123,34 @@ func jsonToValue(raw any, it *Interp) Value {
 		if n, err := strconv.ParseInt(x.String(), 10, 64); err == nil {
 			return IntVal(n)
 		}
+
 		f, _ := strconv.ParseFloat(x.String(), 64)
+
 		return FloatVal(f)
 	case []any:
 		items := make([]Value, 0, len(x))
 		for _, el := range x {
 			items = append(items, jsonToValue(el, it))
 		}
+
 		return &ArrVal{Items: items}
 	case map[string]any:
 		m := &MapVal{}
+
 		keys := make([]string, 0, len(x))
 		for k := range x {
 			keys = append(keys, k)
 		}
+
 		sort.Strings(keys) // Go map 序随机，排序保证两端一致
+
 		for _, k := range keys {
 			_ = m.Set(StrVal(k), jsonToValue(x[k], it))
 		}
+
 		return m
 	}
+
 	return UnitVal{}
 }
 
@@ -149,6 +171,7 @@ func valueToJSON(v Value) (any, error) {
 		if x.Def.Name == "Option" && x.Case == 1 {
 			return nil, nil
 		}
+
 		return nil, fmt.Errorf("%s 不可 JSON 序列化", x.Def.Cases[x.Case])
 	case *ArrVal:
 		out := make([]any, 0, len(x.Items))
@@ -157,24 +180,31 @@ func valueToJSON(v Value) (any, error) {
 			if err != nil {
 				return nil, err
 			}
+
 			out = append(out, j)
 		}
+
 		return out, nil
 	case *MapVal:
 		out := map[string]any{}
+
 		for _, k := range x.Keys() {
 			ks, ok := k.(StrVal)
 			if !ok {
 				return nil, fmt.Errorf("JSON 对象键须为 string，得到 %s", typeName(k))
 			}
+
 			j, err := valueToJSON(mustGet(x, k))
 			if err != nil {
 				return nil, err
 			}
+
 			out[string(ks)] = j
 		}
+
 		return out, nil
 	}
+
 	return nil, fmt.Errorf("%s 不可 JSON 序列化", typeName(v))
 }
 
@@ -187,14 +217,17 @@ func jsonStringifyBuiltin(it *Interp, args []Value) (Value, error) {
 	if err := it.arity("jsonStringify", args, 1); err != nil {
 		return nil, err
 	}
+
 	j, err := valueToJSON(args[0])
 	if err != nil {
 		return nil, err
 	}
+
 	bs, err := json.Marshal(j) // map 键按字母序，两端确定
 	if err != nil {
 		return nil, fmt.Errorf("JSON 序列化失败: %w", err)
 	}
+
 	return StrVal(bs), nil
 }
 
@@ -207,19 +240,25 @@ func httpGet(it *Interp, args []Value) (Value, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("http.get 需要 2 个参数（url, headers），得到 %d 个", len(args))
 	}
+
 	url, ok := args[0].(StrVal)
 	if !ok {
 		return nil, fmt.Errorf("http.get 的 url 须为 string，得到 %s", typeName(args[0]))
 	}
+
 	var hdrs map[string]string
+
 	if _, isUnit := args[1].(UnitVal); !isUnit {
 		m, ok := args[1].(*MapVal)
 		if !ok {
 			return nil, fmt.Errorf("http.get 的 headers 须为 map[string]string，得到 %s", typeName(args[1]))
 		}
+
 		hdrs = map[string]string{}
+
 		for _, k := range m.Keys() {
 			ks, _ := k.(StrVal)
+
 			v, _ := m.Get(k)
 			if vs, ok := v.(StrVal); ok {
 				hdrs[string(ks)] = string(vs)
@@ -231,18 +270,22 @@ func httpGet(it *Interp, args []Value) (Value, error) {
 	if err != nil {
 		return errResult(it, "无效 URL: "+err.Error()), nil
 	}
+
 	for k, v := range hdrs {
 		req.Header.Set(k, v)
 	}
+
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return errResult(it, err.Error()), nil
 	}
 	defer resp.Body.Close()
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return errResult(it, "读响应失败: "+err.Error()), nil
 	}
+
 	return &EnumVal{
 		Def:      it.enums["Result"],
 		Case:     0,

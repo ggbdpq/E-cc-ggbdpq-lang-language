@@ -54,8 +54,12 @@ type fnDirect struct {
 func Effects(p *ir.Prog) []Effect {
 	// 收集函数单元
 	units := map[*ir.Fn]bool{}
-	var order []*ir.Fn
-	var walkFns func(list []ir.Stmt)
+
+	var (
+		order   []*ir.Fn
+		walkFns func(list []ir.Stmt)
+	)
+
 	walkFns = func(list []ir.Stmt) {
 		for _, s := range list {
 			if fd, ok := s.(*ir.FnDef); ok {
@@ -65,6 +69,7 @@ func Effects(p *ir.Prog) []Effect {
 			}
 		}
 	}
+
 	for _, f := range p.Fns {
 		units[f] = true
 		order = append(order, f)
@@ -73,15 +78,20 @@ func Effects(p *ir.Prog) []Effect {
 
 	direct := map[*ir.Fn]*fnDirect{}
 	symToUnit := map[*semantic.Symbol]*ir.Fn{}
+
 	for _, f := range order {
 		direct[f] = &fnDirect{self: map[string]bool{}}
 	}
+
 	type semanticSymbol = struct{}
+
 	_ = symToUnit
 	// 函数字面量：效果归属定义所在函数（当前单元）
-	var cur *ir.Fn
-	var visitStmts func(list []ir.Stmt)
-	var visitExpr func(e ir.Expr)
+	var (
+		cur        *ir.Fn
+		visitStmts func(list []ir.Stmt)
+		visitExpr  func(e ir.Expr)
+	)
 
 	addDirect := func(name string) {
 		if n, ok := builtinEffects[name]; ok {
@@ -102,12 +112,15 @@ func Effects(p *ir.Prog) []Effect {
 					direct[cur].callees = append(direct[cur].callees, u)
 				}
 			}
+
 			if x.Recv != nil {
 				visitExpr(x.Recv)
 			}
+
 			if x.Callee != nil {
 				visitExpr(x.Callee)
 			}
+
 			for _, a := range x.Args {
 				visitExpr(a)
 			}
@@ -149,15 +162,18 @@ func Effects(p *ir.Prog) []Effect {
 			}
 		case *ir.Match:
 			visitExpr(x.Scrut)
+
 			for _, arm := range x.Arms {
 				visitExpr(arm.Body)
 			}
 		case *ir.FnLit:
 			// 保守：字面量体的效果归当前单元（闭包定义处）
 			saved := cur
+
 			for _, st := range x.Body {
 				visitStmts([]ir.Stmt{st})
 			}
+
 			cur = saved
 		}
 	}
@@ -187,11 +203,13 @@ func Effects(p *ir.Prog) []Effect {
 				visitStmts(x.Body)
 			case *ir.Spawn:
 				direct[cur].self[EffSPAWN] = true
+
 				if x.Fn != nil {
 					if u, ok := symToUnit[x.Fn]; ok {
 						direct[cur].callees = append(direct[cur].callees, u)
 					}
 				}
+
 				for _, a := range x.Args {
 					visitExpr(a)
 				}
@@ -200,6 +218,7 @@ func Effects(p *ir.Prog) []Effect {
 			}
 		}
 	}
+
 	for _, f := range order {
 		cur = f
 		visitStmts(f.Body)
@@ -215,16 +234,19 @@ func Effects(p *ir.Prog) []Effect {
 	// fixpoint 传播
 	for changed := true; changed; {
 		changed = false
+
 		for _, f := range order {
 			d := direct[f]
 			for _, c := range d.callees {
 				if c == nil || c == f {
 					continue
 				}
+
 				cd := direct[c]
 				if cd == nil {
 					continue
 				}
+
 				for eff := range cd.self {
 					if !d.self[eff] {
 						d.self[eff] = true
@@ -237,11 +259,13 @@ func Effects(p *ir.Prog) []Effect {
 
 	// 输出（SymbolID 排序；预载/无名跳过）
 	var out []Effect
+
 	seen := map[*ir.Fn]bool{}
 	for _, f := range order {
 		if seen[f] || f.Sym == nil || f.Sym.BuiltinMark {
 			continue
 		}
+
 		seen[f] = true
 		out = append(out, Effect{
 			SymbolID: int(f.Sym.ID),
@@ -249,7 +273,9 @@ func Effects(p *ir.Prog) []Effect {
 			Effects:  orderedEffects(direct[f].self),
 		})
 	}
+
 	sortByID(out)
+
 	return out
 }
 
@@ -265,11 +291,13 @@ func orderedEffects(set map[string]bool) []string {
 	if len(set) == 0 {
 		return []string{EffPure}
 	}
+
 	out := make([]string, 0, len(set))
 	for _, e := range effectOrder {
 		if set[e] {
 			out = append(out, e)
 		}
 	}
+
 	return out
 }

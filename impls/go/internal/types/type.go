@@ -87,12 +87,14 @@ func ResultOk(t *Type) *Type {
 	if t.Kind == KResult && len(t.Params) == 1 {
 		return t.Params[0]
 	}
+
 	return Unknown
 }
 func ResultErr(t *Type) *Type {
 	if t.Kind == KResult && t.Ret != nil {
 		return t.Ret
 	}
+
 	return Unknown
 }
 
@@ -101,9 +103,11 @@ func Equal(a, b *Type) bool {
 	if a == b {
 		return true
 	}
+
 	if a == nil || b == nil || a.Kind != b.Kind {
 		return false
 	}
+
 	switch a.Kind {
 	case KSlice, KRef, KChan, KOption:
 		return Equal(a.Elem, b.Elem)
@@ -113,11 +117,13 @@ func Equal(a, b *Type) bool {
 		if len(a.Params) != len(b.Params) {
 			return false
 		}
+
 		for i := range a.Params {
 			if !Equal(a.Params[i], b.Params[i]) {
 				return false
 			}
 		}
+
 		return Equal(a.Ret, b.Ret)
 	case KResult:
 		return Equal(ResultOk(a), ResultOk(b)) && Equal(ResultErr(a), ResultErr(b))
@@ -144,12 +150,15 @@ func Assignable(to, from *Type) bool {
 	if to == nil || from == nil {
 		return true
 	}
+
 	if laxAny(to) || laxAny(from) {
 		return true
 	}
+
 	if to.Kind != from.Kind {
 		return false
 	}
+
 	switch to.Kind {
 	case KSlice, KRef, KChan, KOption:
 		return Assignable(to.Elem, from.Elem)
@@ -161,13 +170,16 @@ func Assignable(to, from *Type) bool {
 		if len(to.Params) != len(from.Params) {
 			return false
 		}
+
 		for i := range to.Params {
 			if !Assignable(from.Params[i], to.Params[i]) { // 参数逆协变
 				return false
 			}
 		}
+
 		return Assignable(to.Ret, from.Ret)
 	}
+
 	return Equal(to, from)
 }
 
@@ -184,6 +196,7 @@ func (t *Type) String() string {
 	if t == nil {
 		return "unknown"
 	}
+
 	switch t.Kind {
 	case KInvalid:
 		return "invalid"
@@ -220,10 +233,12 @@ func (t *Type) String() string {
 		for _, p := range t.Params {
 			ps = append(ps, p.String())
 		}
+
 		s := "fn(" + strings.Join(ps, ", ") + ")"
 		if t.Ret != nil && t.Ret.Kind != KUnit {
 			s += ": " + t.Ret.String()
 		}
+
 		return s
 	case KStruct:
 		return symName(t.Sym)
@@ -237,8 +252,10 @@ func (t *Type) String() string {
 		if t.Name != "" {
 			return t.Name
 		}
+
 		return symName(t.Sym)
 	}
+
 	return "?"
 }
 
@@ -246,5 +263,6 @@ func symName(s *semantic.Symbol) string {
 	if s == nil {
 		return "?"
 	}
+
 	return s.Name
 }

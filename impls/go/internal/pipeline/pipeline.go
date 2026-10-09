@@ -34,6 +34,7 @@ func (l ErrorList) Error() string {
 	if len(l) == 0 {
 		return "无诊断"
 	}
+
 	return l[0].Error()
 }
 
@@ -42,6 +43,7 @@ func Diagnostics(err error) []Diagnostic {
 	if diagnostics, ok := errors.AsType[ErrorList](err); ok {
 		return diagnostics
 	}
+
 	return nil
 }
 
@@ -51,6 +53,7 @@ func Parse(src string) ([]syntax.Stmt, error) {
 	if err != nil {
 		return nil, ErrorList{parseDiag(err)}
 	}
+
 	return prog, nil
 }
 
@@ -68,16 +71,19 @@ func Check(src string) ([]Diagnostic, error) {
 	if err != nil {
 		return []Diagnostic{parseDiag(err)}, ErrorList{parseDiag(err)}
 	}
+
 	res := semantic.Resolve(prog)
 	if res.HasErrors() {
 		diags := convertSemantic(res.Diags)
 		return diags, ErrorList(diags)
 	}
+
 	ty := types.Check(prog, res)
 	if ty.HasErrors() {
 		diags := convertTypes(ty.Diags)
 		return diags, ErrorList(diags)
 	}
+
 	return nil, nil
 }
 
@@ -97,6 +103,7 @@ func Analyze(src string) (*Analyzed, error) {
 		d := parseDiag(err)
 		return nil, ErrorList{d}
 	}
+
 	return AnalyzeStmts(prog)
 }
 
@@ -106,11 +113,14 @@ func AnalyzeStmts(prog []syntax.Stmt) (*Analyzed, error) {
 	if res.HasErrors() {
 		return nil, ErrorList(convertSemantic(res.Diags))
 	}
+
 	ty := types.Check(prog, res)
 	if ty.HasErrors() {
 		return nil, ErrorList(convertTypes(ty.Diags))
 	}
+
 	h := hir.Build(prog, res, ty)
+
 	return &Analyzed{AST: prog, Res: res, Ty: ty, HIR: h, Prog: ir.Lower(h)}, nil
 }
 
@@ -120,6 +130,7 @@ func Compile(src string) (*ir.Prog, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return a.Prog, nil
 }
 
@@ -130,11 +141,13 @@ func CheckStmts(prog []syntax.Stmt) ([]Diagnostic, error) {
 		diags := convertSemantic(res.Diags)
 		return diags, ErrorList(diags)
 	}
+
 	ty := types.Check(prog, res)
 	if ty.HasErrors() {
 		diags := convertTypes(ty.Diags)
 		return diags, ErrorList(diags)
 	}
+
 	return nil, nil
 }
 
@@ -144,6 +157,7 @@ func CompileStmts(prog []syntax.Stmt) (*ir.Prog, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return a.Prog, nil
 }
 
@@ -152,6 +166,7 @@ func convertSemantic(list []semantic.Diagnostic) []Diagnostic {
 	for _, d := range list {
 		out = append(out, Diagnostic{Code: d.Code, Msg: d.Msg, Line: d.Line})
 	}
+
 	return out
 }
 
@@ -160,6 +175,7 @@ func convertTypes(list []types.Diagnostic) []Diagnostic {
 	for _, d := range list {
 		out = append(out, Diagnostic{Code: d.Code, Msg: d.Msg, Line: d.Line})
 	}
+
 	return out
 }
 
@@ -170,5 +186,6 @@ func FormatDiags(diags []Diagnostic) string {
 		b.WriteString(d.Error())
 		b.WriteString("\n")
 	}
+
 	return strings.TrimRight(b.String(), "\n")
 }

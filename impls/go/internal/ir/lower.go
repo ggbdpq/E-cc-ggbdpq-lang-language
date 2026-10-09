@@ -12,31 +12,39 @@ import (
 // Lower 降级整个程序.
 func Lower(p *hir.Prog) *Prog {
 	l := &lowerer{out: &Prog{}, scopes: &scope{vars: map[string]*Local{}}}
+
 	for _, s := range p.Structs {
 		sd := &StructDecl{Name: s.Name, TypeParams: s.TypeParams}
 		for _, f := range s.Fields {
 			sd.Fields = append(sd.Fields, FieldDecl{Name: f.Name, Typ: f.Typ})
 		}
+
 		l.out.Structs = append(l.out.Structs, sd)
 	}
+
 	for _, e := range p.Enums {
 		ed := &EnumDecl{Name: e.Name, TypeParams: e.TypeParams}
 		for _, c := range e.Cases {
 			ed.Cases = append(ed.Cases, Case{Name: c.Name, Payloads: c.Payloads})
 		}
+
 		l.out.Enums = append(l.out.Enums, ed)
 	}
+
 	for _, g := range p.Globals {
 		lt := l.lowerLet(g)
 		l.out.Globals = append(l.out.Globals, lt)
 	}
+
 	for _, f := range p.Fns {
 		fn := l.lowerFn(f)
 		if f == p.Main {
 			l.out.Main = fn
 		}
+
 		l.out.Fns = append(l.out.Fns, fn)
 	}
+
 	return l.out
 }
 
@@ -51,6 +59,7 @@ func (s *scope) lookup(name string) *Local {
 			return v
 		}
 	}
+
 	return nil
 }
 
@@ -75,10 +84,12 @@ func (l *lowerer) local(hn *hir.Node, name string, mutable bool, t *types.Type) 
 	if t == nil {
 		t = types.Unknown
 	}
+
 	var sym *semantic.Symbol
 	if hn != nil {
 		sym = hn.Sym
 	}
+
 	return &Local{Name: name, Mutable: mutable, Typ: t, Sym: sym}
 }
 
@@ -102,14 +113,17 @@ func (l *lowerer) lowerFn(hf *hir.Fn) *Fn {
 		l.scopes.vars[recv.Name] = recv
 		fn.Recv = recv
 	}
+
 	for _, p := range hf.Params {
 		pl := l.local(nil, p.Name, false, p.Typ)
 		l.scopes.vars[p.Name] = pl
 		fn.Params = append(fn.Params, pl)
 	}
+
 	fn.Body = l.lowerStmts(hf.Body)
 	fn.Locals = l.locals
 	l.scopes, l.locals, l.inFn = savedScopes, savedLocals, savedInFn
+
 	return fn
 }
 
@@ -121,12 +135,14 @@ func (l *lowerer) lowerLet(hl *hir.Let) *Let {
 	if t == nil || t.Kind == types.KUnknown {
 		t = hir.Typ(hl.Init)
 	}
+
 	v := l.local(&hl.Node, name, hl.Mutable, t)
 	if name != "_" {
 		l.define(v)
 	} else {
 		v.Name = "_"
 	}
+
 	return &Let{Local: v, Init: init}
 }
 
@@ -135,6 +151,7 @@ func (l *lowerer) lowerStmts(list []hir.Stmt) []Stmt {
 	for _, s := range list {
 		out = append(out, l.lowerStmt(s))
 	}
+
 	return out
 }
 
@@ -158,6 +175,7 @@ func (l *lowerer) lowerStmt(s hir.Stmt) Stmt {
 		if st.Val != nil {
 			r.Val = l.lowerExpr(st.Val)
 		}
+
 		return r
 
 	case *hir.If:
@@ -175,10 +193,12 @@ func (l *lowerer) lowerStmt(s hir.Stmt) Stmt {
 
 	case *hir.ForIn:
 		l.push()
+
 		v := l.local(&st.Node, st.Var, false, st.VarType)
 		if st.Var != "_" {
 			l.scopes.vars[st.Var] = v
 		}
+
 		fn := &ForIn{
 			Var:  v,
 			Kind: iterKind(hir.Typ(st.Iter)),
@@ -186,6 +206,7 @@ func (l *lowerer) lowerStmt(s hir.Stmt) Stmt {
 			Body: l.lowerStmts(st.Body),
 		}
 		l.pop()
+
 		return fn
 
 	case *hir.Break:
@@ -198,14 +219,17 @@ func (l *lowerer) lowerStmt(s hir.Stmt) Stmt {
 		for _, a := range st.Args {
 			sp.Args = append(sp.Args, l.lowerExpr(a))
 		}
+
 		return sp
 
 	case *hir.FnStmt:
 		saved := l.saveFnCtx()
 		fn := l.lowerFn(st.Fn)
 		l.restoreFnCtx(saved)
+
 		return &FnDef{Fn: fn}
 	}
+
 	return nil
 }
 
@@ -213,6 +237,7 @@ func (l *lowerer) lowerBlock(list []hir.Stmt) []Stmt {
 	l.push()
 	out := l.lowerStmts(list)
 	l.pop()
+
 	return out
 }
 
@@ -232,6 +257,7 @@ func iterKind(t *types.Type) IterKind {
 	if t == nil {
 		return IterUnknown
 	}
+
 	switch t.Kind {
 	case types.KSlice:
 		return IterSlice
@@ -242,6 +268,7 @@ func iterKind(t *types.Type) IterKind {
 	case types.KRange:
 		return IterRange
 	}
+
 	return IterUnknown
 }
 
@@ -256,6 +283,7 @@ func (l *lowerer) lowerExpr(e hir.Expr) Expr {
 	switch x := e.(type) {
 	case *hir.Lit:
 		c := &Const{typ: *t}
+
 		switch x.Kind {
 		case hir.LitInt:
 			c.Kind = KInt
@@ -270,6 +298,7 @@ func (l *lowerer) lowerExpr(e hir.Expr) Expr {
 			c.Kind = KBool
 			c.B = x.B
 		}
+
 		return c
 
 	case *hir.LocalRef:
@@ -290,10 +319,12 @@ func (l *lowerer) lowerExpr(e hir.Expr) Expr {
 		for _, a := range x.Args {
 			n.Args = append(n.Args, l.lowerExpr(a))
 		}
+
 		return n
 
 	case *hir.Call:
 		n := &Call{typ: *t}
+
 		switch {
 		case x.Fn != nil:
 			n.Fn = x.Fn
@@ -302,9 +333,11 @@ func (l *lowerer) lowerExpr(e hir.Expr) Expr {
 		default:
 			n.Callee = l.lowerExpr(x.Callee)
 		}
+
 		for _, a := range x.Args {
 			n.Args = append(n.Args, l.lowerExpr(a))
 		}
+
 		return n
 
 	case *hir.MethodCall:
@@ -316,9 +349,11 @@ func (l *lowerer) lowerExpr(e hir.Expr) Expr {
 			// 字段函数值调用：callee = 字段读取
 			n.Callee = l.lowerExpr(&hir.Field{Node: x.Node, Obj: x.Recv, Name: x.Field})
 		}
+
 		for _, a := range x.Args {
 			n.Args = append(n.Args, l.lowerExpr(a))
 		}
+
 		return n
 
 	case *hir.Unary:
@@ -352,6 +387,7 @@ func (l *lowerer) lowerExpr(e hir.Expr) Expr {
 		for _, f := range x.Fields {
 			n.Fields = append(n.Fields, FieldValue{Name: f.Name, Val: l.lowerExpr(f.Val)})
 		}
+
 		return n
 
 	case *hir.MapLit:
@@ -360,6 +396,7 @@ func (l *lowerer) lowerExpr(e hir.Expr) Expr {
 			n.Keys = append(n.Keys, l.lowerExpr(x.Keys[i]))
 			n.Vals = append(n.Vals, l.lowerExpr(x.Vals[i]))
 		}
+
 		return n
 
 	case *hir.SliceLit:
@@ -367,6 +404,7 @@ func (l *lowerer) lowerExpr(e hir.Expr) Expr {
 		for _, el := range x.Elems {
 			n.Elems = append(n.Elems, l.lowerExpr(el))
 		}
+
 		return n
 
 	case *hir.Match:
@@ -375,8 +413,10 @@ func (l *lowerer) lowerExpr(e hir.Expr) Expr {
 			l.push()
 			irArm := Arm{Pat: l.lowerPat(arm.Pat), Body: l.lowerExpr(arm.Body)}
 			l.pop()
+
 			n.Arms = append(n.Arms, irArm)
 		}
+
 		return n
 
 	case *hir.FnLit:
@@ -387,17 +427,21 @@ func (l *lowerer) lowerExpr(e hir.Expr) Expr {
 		l.push()
 		l.locals = nil
 		l.inFn = true
+
 		n := &FnLit{Ret: x.Ret, typ: *t}
 		for _, p := range x.Params {
 			pl := l.local(&x.Node, p.Name, false, p.Typ)
 			l.scopes.vars[p.Name] = pl
 			n.Params = append(n.Params, pl)
 		}
+
 		n.Body = l.lowerStmts(x.Body)
 		n.Locals = l.locals
 		l.restoreFnCtx(saved)
+
 		return n
 	}
+
 	return nil
 }
 
@@ -410,6 +454,7 @@ func (l *lowerer) lowerPat(p hir.Pat) Pat {
 		if x.Name != "_" {
 			l.scopes.vars[x.Name] = v
 		}
+
 		return &BindPat{Name: x.Name, Typ: x.Typ, Local: v}
 	case *hir.LitPat:
 		return &LitPat{Val: l.lowerExpr(x.Val)}
@@ -418,7 +463,9 @@ func (l *lowerer) lowerPat(p hir.Pat) Pat {
 		for _, sp := range x.Subs {
 			n.Subs = append(n.Subs, l.lowerPat(sp))
 		}
+
 		return n
 	}
+
 	return &WildPat{}
 }

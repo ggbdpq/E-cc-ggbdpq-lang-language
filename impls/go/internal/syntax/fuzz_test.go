@@ -27,6 +27,7 @@ func FuzzLexParse(f *testing.F) {
 	for _, s := range seeds {
 		f.Add([]byte(s))
 	}
+
 	f.Fuzz(func(t *testing.T, data []byte) {
 		src := string(data)
 		_, _ = Lex(src)   // 不 panic 即可（错误合法）

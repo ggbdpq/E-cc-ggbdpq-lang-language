@@ -18,24 +18,30 @@ import (
 // corpus 仓库全部 .lang-go（相对 internal/format）.
 func corpus(t *testing.T) map[string]string {
 	t.Helper()
+
 	files := map[string]string{}
+
 	roots := []string{"../../../../examples", "../../../../m4"}
 	for _, root := range roots {
 		err := filepath.Walk(root, func(p string, info os.FileInfo, err error) error {
 			if err != nil || info.IsDir() || !strings.HasSuffix(p, ".lang-go") {
 				return nil
 			}
+
 			bs, err := os.ReadFile(p)
 			if err != nil {
 				return err
 			}
+
 			files[p] = string(bs)
+
 			return nil
 		})
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
+
 	return files
 }
 
@@ -64,7 +70,9 @@ func commentsSorted(src string) []string {
 	for _, c := range syntax.ScanComments(src) {
 		out = append(out, c.Text)
 	}
+
 	sort.Strings(out)
+
 	return out
 }
 
@@ -74,6 +82,7 @@ func Test注释100保留(t *testing.T) {
 	for name, src := range adversarial() {
 		all["对抗/"+name] = src
 	}
+
 	for name, src := range all {
 		name, src := name, src
 		t.Run(name, func(t *testing.T) {
@@ -81,6 +90,7 @@ func Test注释100保留(t *testing.T) {
 			if err != nil {
 				t.Fatalf("格式化失败: %v", err)
 			}
+
 			a, b := commentsSorted(src), commentsSorted(out)
 			if strings.Join(a, "\x00") != strings.Join(b, "\x00") {
 				t.Fatalf("注释丢失或改变\n=== 原 ===\n%v\n=== 格式化后 ===\n%v\n--- 输出 ---\n%s", a, b, out)
@@ -95,6 +105,7 @@ func Test格式化幂等对抗(t *testing.T) {
 	for name, src := range adversarial() {
 		all["对抗/"+name] = src
 	}
+
 	for name, src := range all {
 		name, src := name, src
 		t.Run(name, func(t *testing.T) {
@@ -102,10 +113,12 @@ func Test格式化幂等对抗(t *testing.T) {
 			if err != nil {
 				t.Fatalf("第一次格式化失败: %v", err)
 			}
+
 			twice, err := Format(once)
 			if err != nil {
 				t.Fatalf("第二次格式化失败: %v", err)
 			}
+
 			if once != twice {
 				t.Fatalf("不幂等\n=== 一次 ===\n%q\n=== 两次 ===\n%q", once, twice)
 			}
@@ -116,6 +129,7 @@ func Test格式化幂等对抗(t *testing.T) {
 // Test行尾注释原位保留 行尾注释必须留在同一代码行行尾（最小 diff 的关键样本）.
 func Test行尾注释原位保留(t *testing.T) {
 	src := "fn main() {\n    let x = 1 // 行尾注释\n    println(x)\n}"
+
 	out, err := Format(src)
 	if err != nil {
 		t.Fatal(err)
@@ -133,30 +147,37 @@ func Test语义等价(t *testing.T) {
 		if strings.Contains(name, "_test") {
 			continue
 		}
+
 		t.Run(name, func(t *testing.T) {
 			run := func() (string, error) {
 				prog, err := syntax.Parse(src)
 				if err != nil {
 					return "", err
 				}
+
 				var out bytes.Buffer
 				if err := interp.New(&out).Run(prog); err != nil {
 					return "", err
 				}
+
 				return out.String(), nil
 			}
+
 			want, err := run()
 			if err != nil {
 				t.Skipf("原程序运行失败（跳过）: %v", err)
 			}
+
 			formatted, err := Format(src)
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			got, err := run2(formatted)
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			if got != want {
 				t.Fatalf("格式化改变输出\n=== 前 ===\n%q\n=== 后 ===\n%q", want, got)
 			}
@@ -169,9 +190,11 @@ func run2(src string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	var out bytes.Buffer
 	if err := interp.New(&out).Run(prog); err != nil {
 		return "", err
 	}
+
 	return out.String(), nil
 }

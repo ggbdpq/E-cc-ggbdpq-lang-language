@@ -30,13 +30,16 @@ const (
 // Effects 推导全部函数效果（按 SymbolID 排序，效果按固定序去重）.
 func Effects(p *ir.Prog) []Effect {
 	ge := graph.Effects(p)
+
 	out := make([]Effect, 0, len(ge))
 	for _, e := range ge {
 		effs := e.Effects
 		if effs == nil {
 			effs = []string{}
 		}
+
 		out = append(out, Effect{SymbolID: e.SymbolID, Name: e.Name, Effects: effs})
 	}
+
 	return out
 }

@@ -39,10 +39,12 @@ func md5Sum(data []byte) [16]byte {
 	msgLen := len(data)
 	padded := make([]byte, 0, msgLen+72)
 	padded = append(padded, data...)
+
 	padded = append(padded, 0x80)
 	for len(padded)%64 != 56 {
 		padded = append(padded, 0)
 	}
+
 	var bitLen uint64 = uint64(msgLen) * 8
 	for i := 0; i < 8; i++ {
 		padded = append(padded, byte(bitLen>>(8*uint(i))))
@@ -56,9 +58,12 @@ func md5Sum(data []byte) [16]byte {
 			m[j] = uint32(padded[off+4*j]) | uint32(padded[off+4*j+1])<<8 |
 				uint32(padded[off+4*j+2])<<16 | uint32(padded[off+4*j+3])<<24
 		}
+
 		a, b, c, d := a0, b0, c0, d0
+
 		for i := 0; i < 64; i++ {
 			var f, g uint32
+
 			switch {
 			case i < 16:
 				f = (b & c) | (^b & d)
@@ -73,10 +78,12 @@ func md5Sum(data []byte) [16]byte {
 				f = c ^ (b | ^d)
 				g = uint32(7*i) % 16
 			}
+
 			f += a + md5K[i] + m[g]
 			a, d, c = d, c, b
 			b += bits.RotateLeft32(f, int(md5Shift[i]))
 		}
+
 		a0 += a
 		b0 += b
 		c0 += c
@@ -84,6 +91,7 @@ func md5Sum(data []byte) [16]byte {
 	}
 
 	var digest [16]byte
+
 	putLE := func(dst []byte, v uint32) {
 		dst[0] = byte(v)
 		dst[1] = byte(v >> 8)
@@ -94,17 +102,21 @@ func md5Sum(data []byte) [16]byte {
 	putLE(digest[4:8], b0)
 	putLE(digest[8:12], c0)
 	putLE(digest[12:16], d0)
+
 	return digest
 }
 
 func md5Hex(s string) string {
 	d := md5Sum([]byte(s))
+
 	const hexDigits = "0123456789abcdef"
+
 	out := make([]byte, 32)
 	for i, v := range d {
 		out[2*i] = hexDigits[v>>4]
 		out[2*i+1] = hexDigits[v&0xf]
 	}
+
 	return string(out)
 }
 
@@ -122,31 +134,39 @@ func keyOf(u string) string {
 	if i := strings.LastIndex(u, "/"); i >= 0 {
 		u = u[i+1:]
 	}
+
 	return u
 }
 
 func getMixinKey(img, sub string) string {
 	raw := img + sub
+
 	var sb strings.Builder
+
 	for i, idx := range mixinKeyEncTab {
 		if i >= 32 || idx >= len(raw) {
 			break
 		}
+
 		sb.WriteByte(raw[idx])
 	}
+
 	return sb.String()
 }
 
 func signWBI(params url.Values, wts int64, mixinKey string) url.Values {
 	p := url.Values{}
+
 	for k, vs := range params {
 		for _, v := range vs {
 			p.Add(stripSpecial(k), stripSpecial(v))
 		}
 	}
+
 	p.Set("wts", strconv.FormatInt(wts, 10))
 	wRid := md5Hex(p.Encode() + mixinKey)
 	p.Set("w_rid", wRid)
+
 	return p
 }
 
@@ -156,6 +176,7 @@ func stripSpecial(s string) string {
 		case '!', '\'', '(', ')', '*':
 			return -1
 		}
+
 		return r
 	}, s)
 }
@@ -188,6 +209,7 @@ func codecName(s dashStream) string {
 func pickCodec(streams []dashStream, pref string) dashStream {
 	score := func(s dashStream) int {
 		name := codecName(s)
+
 		switch strings.ToLower(pref) {
 		case "av1":
 			switch name {
@@ -218,12 +240,14 @@ func pickCodec(streams []dashStream, pref string) dashStream {
 			}
 		}
 	}
+
 	best := streams[0]
 	for _, s := range streams[1:] {
 		if score(s) < score(best) || (score(s) == score(best) && s.Bandwidth > best.Bandwidth) {
 			best = s
 		}
 	}
+
 	return best
 }
 
@@ -232,17 +256,21 @@ func fpsOf(fr string) int {
 	if fr == "" {
 		return 0
 	}
+
 	num, den, ok := strings.Cut(fr, "/")
 	n, err1 := strconv.ParseFloat(num, 64)
 	d := 1.0
+
 	if ok {
 		if v, err := strconv.ParseFloat(den, 64); err == nil && v > 0 {
 			d = v
 		}
 	}
+
 	if err1 != nil {
 		return 0
 	}
+
 	return int(n/d + 0.5)
 }
 
@@ -266,13 +294,16 @@ func parseArchives(data []byte) ([]refList, error) {
 	if err := unmarshal(data, &list); err != nil {
 		return nil, err
 	}
+
 	refs := make([]refList, 0, len(list.Archives))
 	for _, a := range list.Archives {
 		if a.BVID == "" {
 			continue
 		}
+
 		refs = append(refs, a)
 	}
+
 	return refs, nil
 }
 
@@ -284,13 +315,17 @@ func listKindOf(u *url.URL) (listTarget, error) {
 	if len(segs) < 2 {
 		return listTarget{}, errors.New("不是 UP主列表页链接")
 	}
+
 	mid := segs[0]
+
 	var kind, sid string
+
 	switch {
 	case segs[1] == "channel":
 		kind, sid = "season", u.Query().Get("sid")
 	case len(segs) >= 3 && segs[1] == "lists":
 		sid = segs[2]
+
 		kind = u.Query().Get("type")
 		if kind != "series" {
 			kind = "season"
@@ -298,9 +333,11 @@ func listKindOf(u *url.URL) (listTarget, error) {
 	default:
 		return listTarget{}, errors.New("不是合集/列表页链接（支持 channel/collectiondetail 与 lists）")
 	}
+
 	if sid == "" || mid == "" {
 		return listTarget{}, errors.New("列表链接缺少 id 参数")
 	}
+
 	return listTarget{Mid: mid, Kind: kind, SID: sid}, nil
 }
 
@@ -312,8 +349,10 @@ func main() {
 		if i%8 == 0 {
 			fmt.Println()
 		}
+
 		fmt.Printf("%d, ", md5K[i])
 	}
+
 	fmt.Println()
 
 	// MD5 RFC 1321 官方向量
@@ -412,9 +451,11 @@ func main() {
 			fmt.Printf("ARCHIVES|ERR|%v\n", err)
 			continue
 		}
+
 		for _, r := range refs {
 			fmt.Printf("ARCHIVES|%s|%s\n", r.BVID, r.Title)
 		}
+
 		fmt.Printf("ARCHIVESEND|%d\n", len(refs))
 	}
 
@@ -429,11 +470,13 @@ func main() {
 		"https://www.bilibili.com/video/BV1xx",
 	} {
 		u, _ := url.Parse(raw)
+
 		tgt, err := listKindOf(u)
 		if err != nil {
 			fmt.Printf("LISTKIND|%s|ERR|%v\n", raw, err)
 			continue
 		}
+
 		fmt.Printf("LISTKIND|%s|%s|%s|%s\n", raw, tgt.Mid, tgt.Kind, tgt.SID)
 	}
 }

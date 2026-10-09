@@ -20,6 +20,7 @@ func (e *Error) Error() string {
 	if e.Snippet == "" {
 		return fmt.Sprintf("第%d行: %s", e.Line, e.Msg)
 	}
+
 	return fmt.Sprintf("第%d行: %s\n  | %s", e.Line, e.Msg, e.Snippet)
 }
 
@@ -28,18 +29,23 @@ func lineSnippet(lines []string, line int) string {
 	if line < 1 {
 		line = 1
 	}
+
 	if line > len(lines) {
 		line = len(lines)
 	}
+
 	if line < 1 {
 		return ""
 	}
+
 	if t := strings.TrimSpace(lines[line-1]); t != "" {
 		return t
 	}
+
 	if line > 1 {
 		return strings.TrimSpace(lines[line-2])
 	}
+
 	return ""
 }
 
@@ -59,17 +65,23 @@ func Parse(src string) ([]Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	p := &Parser{toks: toks, lines: strings.Split(src, "\n"), lineStart: lineStarts(src), prevLine: 1}
+
 	var prog []Stmt
+
 	for {
 		p.skipNl()
+
 		if p.at(EOF) {
 			return prog, nil
 		}
+
 		s, err := p.parseTop()
 		if err != nil {
 			return nil, err
 		}
+
 		prog = append(prog, s)
 	}
 }
@@ -79,10 +91,12 @@ func (p *Parser) cur() Token { return p.toks[p.i] }
 func (p *Parser) next() Token {
 	t := p.toks[p.i]
 	p.prevEnd = t.End
+
 	p.prevLine = t.Line
 	if p.i < len(p.toks)-1 {
 		p.i++
 	}
+
 	return t
 }
 
@@ -91,12 +105,15 @@ func lineStarts(src string) []int {
 	starts := []int{0}
 	nl := rune(10) // '\n'
 	n := 0
+
 	for _, r := range src {
 		if r == nl {
 			starts = append(starts, n+1)
 		}
+
 		n++
 	}
+
 	return starts
 }
 
@@ -105,13 +122,16 @@ func (p *Parser) posAt(offset, line int) Position {
 	if line < 1 {
 		line = 1
 	}
+
 	if line > len(p.lineStart) {
 		line = len(p.lineStart)
 	}
+
 	col := offset - p.lineStart[line-1] + 1
 	if col < 1 {
 		col = 1
 	}
+
 	return Position{Offset: offset, Line: line, Col: col}
 }
 
@@ -134,8 +154,10 @@ func (p *Parser) accept(k Kind) bool {
 		p.prevEnd = t.End
 		p.prevLine = t.Line
 		p.i++
+
 		return true
 	}
+
 	return false
 }
 
@@ -152,7 +174,9 @@ func (p *Parser) expect(k Kind) (Token, error) {
 	if p.at(k) {
 		return p.next(), nil
 	}
+
 	t := p.cur()
+
 	return Token{}, p.errAt(t, "期望 %s，得到 %s", k, t.Kind)
 }
 
@@ -160,11 +184,14 @@ func (p *Parser) expectName() (string, error) {
 	if p.at(TokIdent) {
 		return p.next().Lit, nil
 	}
+
 	if p.at(TokUnderscore) {
 		p.next()
 		return "_", nil
 	}
+
 	t := p.cur()
+
 	return "", p.errAt(t, "期望标识符，得到 %s", t.Kind)
 }
 
@@ -179,55 +206,69 @@ func (p *Parser) parseTop() (Stmt, error) {
 	if msg, ok := reserved[t.Kind]; ok {
 		return nil, p.errAt(t, "保留字 %s 尚未启用（规划于 M3+）", msg)
 	}
+
 	switch t.Kind {
 	case KwImport:
 		p.next()
+
 		path, err := p.expect(TokStr)
 		if err != nil {
 			return nil, err
 		}
+
 		return &ImportStmt{Path: path.Lit, Line: t.Line, Sp: p.spanOf(t)}, nil
 	case KwExtern:
 		return p.parseExtern()
 	}
+
 	return p.parseStmt()
 }
 
 // parseExtern extern "host" { fn 签名（无函数体）... }.
 func (p *Parser) parseExtern() (Stmt, error) {
 	t := p.next() // extern
+
 	host, err := p.expect(TokStr)
 	if err != nil {
 		return nil, p.errAt(t, "extern 后须是宿主名字符串，如 extern \"go\"")
 	}
+
 	if _, err := p.expect(LBrace); err != nil {
 		return nil, err
 	}
+
 	decl := &ExternDecl{Host: host.Lit, Line: t.Line, Sp: p.spanOf(t)}
 	for {
 		p.skipNl()
+
 		if p.accept(RBrace) {
 			return decl, nil
 		}
+
 		if p.at(EOF) {
 			return nil, p.errAt(p.cur(), "extern 块未闭合")
 		}
+
 		fnTok, err2 := p.expect(KwFn)
 		if err2 != nil {
 			return nil, err2
 		}
+
 		name, err := p.expectName()
 		if err != nil {
 			return nil, err
 		}
+
 		tps, err := p.parseTypeParams()
 		if err != nil {
 			return nil, err
 		}
+
 		params, err := p.parseParams()
 		if err != nil {
 			return nil, err
 		}
+
 		var ret TypeEx
 		if p.accept(Colon) {
 			ret, err = p.parseType()
@@ -235,6 +276,7 @@ func (p *Parser) parseExtern() (Stmt, error) {
 				return nil, err
 			}
 		}
+
 		decl.Fns = append(decl.Fns, &FnDecl{
 			Name: name, TypeParams: tps, Params: params, Ret: ret, Line: fnTok.Line, Sp: p.spanOf(fnTok),
 		})
@@ -248,10 +290,12 @@ func (p *Parser) parseStmt() (Stmt, error) {
 	switch t.Kind {
 	case KwLet, KwVar:
 		p.next()
+
 		name, err := p.expectName()
 		if err != nil {
 			return nil, err
 		}
+
 		var typ TypeEx
 		if p.accept(Colon) {
 			typ, err = p.parseType()
@@ -259,25 +303,32 @@ func (p *Parser) parseStmt() (Stmt, error) {
 				return nil, err
 			}
 		}
+
 		if _, err := p.expect(Assign); err != nil {
 			return nil, err
 		}
+
 		init, err := p.parseExpr(0)
 		if err != nil {
 			return nil, err
 		}
+
 		return &LetStmt{Name: name, Mutable: t.Kind == KwVar, Typ: typ, Init: init, Line: t.Line, Sp: p.spanOf(t)}, nil
 
 	case KwReturn:
 		p.next()
+
 		var val Expr
+
 		if !p.at(Newline) && !p.at(RBrace) && !p.at(EOF) {
 			var err error
+
 			val, err = p.parseExpr(0)
 			if err != nil {
 				return nil, err
 			}
 		}
+
 		return &ReturnStmt{Val: val, Line: t.Line, Sp: p.spanOf(t)}, nil
 
 	case KwIf:
@@ -288,53 +339,67 @@ func (p *Parser) parseStmt() (Stmt, error) {
 		p.noStruct++
 		cond, err := p.parseExpr(0)
 		p.noStruct--
+
 		if err != nil {
 			return nil, err
 		}
+
 		body, err := p.parseBlock()
 		if err != nil {
 			return nil, err
 		}
+
 		return &WhileStmt{Cond: cond, Body: body, Line: t.Line, Sp: p.spanOf(t)}, nil
 
 	case KwFor:
 		p.next()
+
 		name, err := p.expectName()
 		if err != nil {
 			return nil, err
 		}
+
 		if _, err := p.expect(KwIn); err != nil {
 			return nil, err
 		}
+
 		p.noStruct++
 		iter, err := p.parseExpr(0)
 		p.noStruct--
+
 		if err != nil {
 			return nil, err
 		}
+
 		body, err := p.parseBlock()
 		if err != nil {
 			return nil, err
 		}
+
 		return &ForInStmt{Var: name, Iter: iter, Body: body, Line: t.Line, Sp: p.spanOf(t)}, nil
 
 	case KwGo:
 		p.next()
+
 		callee, err := p.parseExpr(0)
 		if err != nil {
 			return nil, err
 		}
+
 		call, ok := callee.(*CallEx)
 		if !ok {
 			return nil, p.errAt(t, "go 的目标须是函数调用")
 		}
+
 		return &GoStmt{Call: call, Line: t.Line, Sp: p.spanOf(t)}, nil
 
 	case KwBreak, KwContinue:
 		p.next()
+
 		if t.Kind == KwBreak {
 			return &BreakStmt{Line: t.Line, Sp: p.spanOf(t)}, nil
 		}
+
 		return &ContinueStmt{Line: t.Line, Sp: p.spanOf(t)}, nil
 
 	case KwFn:
@@ -351,28 +416,35 @@ func (p *Parser) parseStmt() (Stmt, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		if p.accept(Assign) {
 			if err := checkTarget(e); err != nil {
 				return nil, err
 			}
+
 			v, err := p.parseExpr(0)
 			if err != nil {
 				return nil, err
 			}
+
 			return &AssignStmt{Target: e, Val: v, Op: Assign, Line: t.Line, Sp: p.spanOf(t)}, nil
 		}
+
 		for _, op := range []Kind{PlusAssign, MinusAssign, StarAssign, SlashAssign} {
 			if p.accept(op) {
 				if err := checkTarget(e); err != nil {
 					return nil, err
 				}
+
 				v, err := p.parseExpr(0)
 				if err != nil {
 					return nil, err
 				}
+
 				return &AssignStmt{Target: e, Val: v, Op: op, Line: t.Line, Sp: p.spanOf(t)}, nil
 			}
 		}
+
 		return &ExprStmt{X: e, Line: t.Line, Sp: p.spanOf(t)}, nil
 	}
 }
@@ -396,31 +468,39 @@ func (p *Parser) parseIf() (Stmt, error) {
 	p.noStruct++
 	cond, err := p.parseExpr(0)
 	p.noStruct--
+
 	if err != nil {
 		return nil, err
 	}
+
 	then, err := p.parseBlock()
 	if err != nil {
 		return nil, err
 	}
+
 	st := &IfStmt{Cond: cond, Then: then, Line: t.Line, Sp: p.spanOf(t)}
 	p.skipNl()
+
 	if p.accept(KwElse) {
 		if p.at(KwIf) {
 			els, err := p.parseIf()
 			if err != nil {
 				return nil, err
 			}
+
 			st.Else = []Stmt{els}
 		} else {
 			els, err := p.parseBlock()
 			if err != nil {
 				return nil, err
 			}
+
 			st.Else = els
 		}
 	}
+
 	st.Sp = p.spanOf(t)
+
 	return st, nil
 }
 
@@ -428,19 +508,25 @@ func (p *Parser) parseBlock() ([]Stmt, error) {
 	if _, err := p.expect(LBrace); err != nil {
 		return nil, err
 	}
+
 	var stmts []Stmt
+
 	for {
 		p.skipNl()
+
 		if p.accept(RBrace) {
 			return stmts, nil
 		}
+
 		if p.at(EOF) {
 			return nil, p.errAt(p.cur(), "块未闭合，缺少 }")
 		}
+
 		s, err := p.parseStmt()
 		if err != nil {
 			return nil, err
 		}
+
 		stmts = append(stmts, s)
 	}
 }
@@ -449,35 +535,45 @@ func (p *Parser) parseBlock() ([]Stmt, error) {
 
 func (p *Parser) parseFnDecl() (Stmt, error) {
 	t := p.next() // fn
+
 	var recv *Param
+
 	if p.accept(LParen) {
 		rname, err := p.expectName()
 		if err != nil {
 			return nil, err
 		}
+
 		if p.at(Amp) {
 			return nil, p.errAt(p.cur(), "v0 暂不支持指针接收者")
 		}
+
 		rtyp, err := p.parseType()
 		if err != nil {
 			return nil, err
 		}
+
 		if _, err := p.expect(RParen); err != nil {
 			return nil, err
 		}
+
 		if _, err := p.expect(Dot); err != nil {
 			return nil, err
 		}
+
 		recv = &Param{Name: rname, Typ: rtyp}
 	}
+
 	name, err := p.expectName()
 	if err != nil {
 		return nil, err
 	}
+
 	decl, err := p.parseFuncRest(t, recv, name)
 	if err != nil {
 		return nil, err
 	}
+
 	return decl, nil
 }
 
@@ -486,10 +582,12 @@ func (p *Parser) parseFuncRest(startTok Token, recv *Param, name string) (*FnDec
 	if err != nil {
 		return nil, err
 	}
+
 	params, err := p.parseParams()
 	if err != nil {
 		return nil, err
 	}
+
 	var ret TypeEx
 	if p.accept(Colon) {
 		ret, err = p.parseType()
@@ -497,10 +595,12 @@ func (p *Parser) parseFuncRest(startTok Token, recv *Param, name string) (*FnDec
 			return nil, err
 		}
 	}
+
 	body, err := p.parseBlock()
 	if err != nil {
 		return nil, err
 	}
+
 	return &FnDecl{Name: name, Recv: recv, TypeParams: tps, Params: params, Ret: ret, Body: body, Line: startTok.Line, Sp: p.spanOf(startTok)}, nil
 }
 
@@ -508,20 +608,26 @@ func (p *Parser) parseTypeParams() ([]string, error) {
 	if !p.accept(LBracket) {
 		return nil, nil
 	}
+
 	var tps []string
+
 	for {
 		name, err := p.expectName()
 		if err != nil {
 			return nil, err
 		}
+
 		tps = append(tps, name)
+
 		if !p.accept(Comma) {
 			break
 		}
 	}
+
 	if _, err := p.expect(RBracket); err != nil {
 		return nil, err
 	}
+
 	return tps, nil
 }
 
@@ -529,7 +635,9 @@ func (p *Parser) parseParams() ([]Param, error) {
 	if _, err := p.expect(LParen); err != nil {
 		return nil, err
 	}
+
 	var params []Param
+
 	for !p.at(RParen) {
 		name, err := p.expectName()
 		if err != nil {
@@ -543,83 +651,109 @@ func (p *Parser) parseParams() ([]Param, error) {
 				return nil, err
 			}
 		}
+
 		params = append(params, Param{Name: name, Typ: typ})
+
 		if !p.accept(Comma) {
 			break
 		}
 	}
+
 	if _, err := p.expect(RParen); err != nil {
 		return nil, err
 	}
+
 	return params, nil
 }
 
 func (p *Parser) parseStruct() (Stmt, error) {
 	t := p.next() // struct
+
 	name, err := p.expectName()
 	if err != nil {
 		return nil, err
 	}
+
 	tps, err := p.parseTypeParams()
 	if err != nil {
 		return nil, err
 	}
+
 	if _, err := p.expect(LBrace); err != nil {
 		return nil, err
 	}
+
 	var fields []Param
+
 	for {
 		p.skipNl()
+
 		if p.accept(RBrace) {
 			break
 		}
+
 		if p.at(EOF) {
 			return nil, p.errAt(p.cur(), "struct 未闭合")
 		}
+
 		fname, err := p.expectName()
 		if err != nil {
 			return nil, err
 		}
+
 		if _, err := p.expect(Colon); err != nil {
 			return nil, err
 		}
+
 		typ, err := p.parseType()
 		if err != nil {
 			return nil, err
 		}
+
 		fields = append(fields, Param{Name: fname, Typ: typ})
+
 		p.skipNl()
 		p.accept(Comma)
 	}
+
 	return &StructDecl{Name: name, TypeParams: tps, Fields: fields, Line: t.Line, Sp: p.spanOf(t)}, nil
 }
 
 func (p *Parser) parseEnum() (Stmt, error) {
 	t := p.next() // enum
+
 	name, err := p.expectName()
 	if err != nil {
 		return nil, err
 	}
+
 	tps, err := p.parseTypeParams()
 	if err != nil {
 		return nil, err
 	}
+
 	if _, err := p.expect(LBrace); err != nil {
 		return nil, err
 	}
+
 	var cases []EnumCase
+
 	for {
 		p.skipNl()
+
 		if p.accept(RBrace) {
 			break
 		}
+
 		if p.at(EOF) {
 			return nil, p.errAt(p.cur(), "enum 未闭合")
 		}
+
 		cn, err := p.expectName()
 		if err != nil {
 			return nil, err
 		}
+
 		case_ := EnumCase{Name: cn, Line: p.cur().Line}
 		if p.accept(LParen) {
 			for !p.at(RParen) {
@@ -627,19 +761,25 @@ func (p *Parser) parseEnum() (Stmt, error) {
 				if err != nil {
 					return nil, err
 				}
+
 				case_.Payloads = append(case_.Payloads, typ)
+
 				if !p.accept(Comma) {
 					break
 				}
 			}
+
 			if _, err := p.expect(RParen); err != nil {
 				return nil, err
 			}
 		}
+
 		cases = append(cases, case_)
+
 		p.skipNl()
 		p.accept(Comma)
 	}
+
 	return &EnumDecl{Name: name, TypeParams: tps, Cases: cases, Line: t.Line, Sp: p.spanOf(t)}, nil
 }
 
@@ -650,94 +790,123 @@ func (p *Parser) parseType() (TypeEx, error) {
 	switch t.Kind {
 	case KwChan: // chan[T] 通道类型（decisions #59）
 		p.next()
+
 		if !p.accept(LBracket) {
 			return nil, p.errAt(t, "chan 需要 elem 类型参数，如 chan[int]")
 		}
+
 		elem, err := p.parseType()
 		if err != nil {
 			return nil, err
 		}
+
 		if _, err := p.expect(RBracket); err != nil {
 			return nil, err
 		}
+
 		return &NamedType{Name: "chan", Args: []TypeEx{elem}}, nil
 	case Amp:
 		p.next()
+
 		elem, err := p.parseType()
 		if err != nil {
 			return nil, err
 		}
+
 		return &PtrType{Elem: elem}, nil
 	case KwFn: // 函数类型：fn(int, string): bool
 		p.next()
+
 		if _, err := p.expect(LParen); err != nil {
 			return nil, err
 		}
+
 		ft := &FnType{}
+
 		for !p.at(RParen) {
 			pt, err := p.parseType()
 			if err != nil {
 				return nil, err
 			}
+
 			ft.Params = append(ft.Params, pt)
+
 			if !p.accept(Comma) {
 				break
 			}
 		}
+
 		if _, err := p.expect(RParen); err != nil {
 			return nil, err
 		}
+
 		if p.accept(Colon) {
 			ret, err := p.parseType()
 			if err != nil {
 				return nil, err
 			}
+
 			ft.Ret = ret
 		}
+
 		return ft, nil
 	case LBracket:
 		p.next()
+
 		elem, err := p.parseType()
 		if err != nil {
 			return nil, err
 		}
+
 		if _, err := p.expect(RBracket); err != nil {
 			return nil, err
 		}
+
 		return &ArrType{Elem: elem}, nil
 	case TokIdent:
 		p.next()
+
 		if t.Lit == "map" && p.at(LBracket) {
 			p.next()
+
 			k, err := p.parseType()
 			if err != nil {
 				return nil, err
 			}
+
 			if _, err := p.expect(RBracket); err != nil {
 				return nil, err
 			}
+
 			v, err := p.parseType()
 			if err != nil {
 				return nil, err
 			}
+
 			return &MapType{Key: k, Val: v}, nil
 		}
+
 		nt := &NamedType{Name: t.Lit}
+
 		if p.accept(LBracket) {
 			for !p.at(RBracket) {
 				a, err := p.parseType()
 				if err != nil {
 					return nil, err
 				}
+
 				nt.Args = append(nt.Args, a)
+
 				if !p.accept(Comma) {
 					break
 				}
 			}
+
 			if _, err := p.expect(RBracket); err != nil {
 				return nil, err
 			}
 		}
+
 		return nt, nil
 	default:
 		return nil, p.errAt(t, "期望类型，得到 %s", t.Kind)
@@ -765,6 +934,7 @@ func precOf(k Kind) int {
 		// 对齐 Go：* / % << >> & 同级
 		return 7
 	}
+
 	return 0
 }
 
@@ -773,17 +943,22 @@ func (p *Parser) parseExpr(minPrec int) (Expr, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	for {
 		t := p.cur()
+
 		prec := precOf(t.Kind)
 		if prec == 0 || prec < minPrec {
 			return left, nil
 		}
+
 		p.next()
+
 		right, err := p.parseExpr(prec + 1)
 		if err != nil {
 			return nil, err
 		}
+
 		if t.Kind == Dot2 {
 			left = &RangeEx{Lo: left, Hi: right, Line: t.Line, Sp: p.spanOf(t)}
 		} else {
@@ -797,12 +972,15 @@ func (p *Parser) parseUnary() (Expr, error) {
 	switch t.Kind {
 	case Minus, Not, Amp:
 		p.next()
+
 		x, err := p.parseUnary()
 		if err != nil {
 			return nil, err
 		}
+
 		return &Unary{Op: t.Kind, X: x, Line: t.Line, Sp: p.spanOf(t)}, nil
 	}
+
 	return p.parsePostfix()
 }
 
@@ -811,65 +989,86 @@ func (p *Parser) parsePostfix() (Expr, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	for {
 		t := p.cur()
 		switch t.Kind {
 		case LParen: // 调用
 			p.next()
+
 			var args []Expr
+
 			for {
 				p.skipNl()
+
 				if p.at(RParen) {
 					break
 				}
+
 				a, err := p.parseExpr(0)
 				if err != nil {
 					return nil, err
 				}
+
 				args = append(args, a)
+
 				p.skipNl()
+
 				if !p.accept(Comma) {
 					break
 				}
 			}
+
 			p.skipNl()
+
 			if _, err := p.expect(RParen); err != nil {
 				return nil, err
 			}
+
 			x = &CallEx{Callee: x, Args: args, Line: t.Line, Sp: p.spanOf(t)}
 		case LBracket: // 索引或切片
 			p.next()
 			p.skipNl()
+
 			lo, err := p.parseExpr(0)
 			if err != nil {
 				return nil, err
 			}
+
 			if p.accept(Colon) {
 				if p.at(RBracket) {
 					return nil, p.errAt(p.cur(), "切片需要上界（v0 不支持开区间切片）")
 				}
+
 				hi, err := p.parseExpr(0)
 				if err != nil {
 					return nil, err
 				}
+
 				p.skipNl()
+
 				if _, err := p.expect(RBracket); err != nil {
 					return nil, err
 				}
+
 				x = &SliceEx{Obj: x, Lo: lo, Hi: hi, Line: t.Line, Sp: p.spanOf(t)}
 			} else {
 				p.skipNl()
+
 				if _, err := p.expect(RBracket); err != nil {
 					return nil, err
 				}
+
 				x = &IndexEx{Obj: x, Idx: lo, Line: t.Line, Sp: p.spanOf(t)}
 			}
 		case Dot:
 			p.next()
+
 			name, err := p.expect(TokIdent)
 			if err != nil {
 				return nil, err
 			}
+
 			x = &FieldEx{Obj: x, Name: name.Lit, Line: t.Line, Sp: p.spanOf(t)}
 		case Question:
 			p.next()
@@ -885,17 +1084,21 @@ func (p *Parser) parsePrimary() (Expr, error) {
 	switch t.Kind {
 	case TokInt:
 		p.next()
+
 		v, err := strconv.ParseInt(t.Lit, 10, 64)
 		if err != nil {
 			return nil, p.errAt(t, "整数溢出: %s", t.Lit)
 		}
+
 		return &IntLit{Val: v, Line: t.Line, Sp: p.spanOf(t)}, nil
 	case TokFloat:
 		p.next()
+
 		v, err := strconv.ParseFloat(t.Lit, 64)
 		if err != nil {
 			return nil, p.errAt(t, "非法浮点数: %s", t.Lit)
 		}
+
 		return &FloatLit{Val: v, Line: t.Line, Sp: p.spanOf(t)}, nil
 	case TokStr:
 		p.next()
@@ -905,9 +1108,11 @@ func (p *Parser) parsePrimary() (Expr, error) {
 		return &BoolLit{Val: t.Kind == KwTrue, Line: t.Line, Sp: p.spanOf(t)}, nil
 	case TokIdent:
 		p.next()
+
 		if p.at(LBrace) && p.noStruct == 0 {
 			return p.parseStructLit(t)
 		}
+
 		return &Ident{Name: t.Lit, Line: t.Line, Sp: p.spanOf(t)}, nil
 	case LParen:
 		p.next()
@@ -915,70 +1120,96 @@ func (p *Parser) parsePrimary() (Expr, error) {
 		p.noStruct = 0
 		x, err := p.parseExpr(0)
 		p.noStruct = saved
+
 		if err != nil {
 			return nil, err
 		}
+
 		p.skipNl()
+
 		if _, err := p.expect(RParen); err != nil {
 			return nil, err
 		}
+
 		return x, nil
 	case LBracket: // 数组字面量
 		p.next()
+
 		var items []Expr
+
 		for {
 			p.skipNl()
+
 			if p.at(RBracket) {
 				break
 			}
+
 			e, err := p.parseExpr(0)
 			if err != nil {
 				return nil, err
 			}
+
 			items = append(items, e)
+
 			p.skipNl()
+
 			if !p.accept(Comma) {
 				break
 			}
 		}
+
 		p.skipNl()
+
 		if _, err := p.expect(RBracket); err != nil {
 			return nil, err
 		}
+
 		return &ArrLit{Items: items, Line: t.Line, Sp: p.spanOf(t)}, nil
 	case LBrace: // 映射字面量
 		p.next()
+
 		var items []MapItem
+
 		for {
 			p.skipNl()
+
 			if p.accept(RBrace) {
 				break
 			}
+
 			if p.at(EOF) {
 				return nil, p.errAt(p.cur(), "映射字面量未闭合")
 			}
+
 			key, err := p.parseExpr(0)
 			if err != nil {
 				return nil, err
 			}
+
 			if _, err := p.expect(Colon); err != nil {
 				return nil, err
 			}
+
 			val, err := p.parseExpr(0)
 			if err != nil {
 				return nil, err
 			}
+
 			items = append(items, MapItem{Key: key, Val: val})
+
 			p.skipNl()
 			p.accept(Comma)
 		}
+
 		return &MapLit{Items: items, Line: t.Line, Sp: p.spanOf(t)}, nil
 	case KwFn: // 匿名函数
 		p.next()
+
 		fn, err := p.parseFuncRest(t, nil, "")
 		if err != nil {
 			return nil, err
 		}
+
 		return &FnLit{TypeParams: fn.TypeParams, Params: fn.Params, Ret: fn.Ret, Body: fn.Body, Line: t.Line, Sp: p.spanOf(t)}, nil
 	case KwMatch:
 		return p.parseMatch()
@@ -991,31 +1222,42 @@ func (p *Parser) parsePrimary() (Expr, error) {
 
 func (p *Parser) parseStructLit(startTok Token) (Expr, error) {
 	name, line := startTok.Lit, startTok.Line
+
 	p.next() // {
+
 	var fields []FieldLit
+
 	for {
 		p.skipNl()
+
 		if p.accept(RBrace) {
 			break
 		}
+
 		if p.at(EOF) {
 			return nil, p.errAt(p.cur(), "struct 字面量未闭合")
 		}
+
 		fname, err := p.expect(TokIdent)
 		if err != nil {
 			return nil, err
 		}
+
 		if _, err := p.expect(Colon); err != nil {
 			return nil, err
 		}
+
 		val, err := p.parseExpr(0)
 		if err != nil {
 			return nil, err
 		}
+
 		fields = append(fields, FieldLit{Name: fname.Lit, Val: val})
+
 		p.skipNl()
 		p.accept(Comma)
 	}
+
 	return &StructLit{TypeName: name, Fields: fields, Line: line, Sp: p.spanOf(startTok)}, nil
 }
 
@@ -1024,39 +1266,53 @@ func (p *Parser) parseMatch() (Expr, error) {
 	p.noStruct++
 	scrut, err := p.parseExpr(0)
 	p.noStruct--
+
 	if err != nil {
 		return nil, err
 	}
+
 	if _, err := p.expect(LBrace); err != nil {
 		return nil, err
 	}
+
 	var arms []Arm
+
 	for {
 		p.skipNl()
+
 		if p.accept(RBrace) {
 			break
 		}
+
 		if p.at(EOF) {
 			return nil, p.errAt(p.cur(), "match 未闭合")
 		}
+
 		armLine := p.cur().Line
+
 		pat, err := p.parsePattern()
 		if err != nil {
 			return nil, err
 		}
+
 		if _, err := p.expect(Arrow); err != nil {
 			return nil, err
 		}
+
 		body, err := p.parseExpr(0)
 		if err != nil {
 			return nil, err
 		}
+
 		arms = append(arms, Arm{Pat: pat, Body: body, Line: armLine})
+
 		if p.at(Newline) || p.at(RBrace) {
 			continue
 		}
+
 		return nil, p.errAt(p.cur(), "match 分支之间需要换行")
 	}
+
 	return &MatchEx{Scrut: scrut, Arms: arms, Line: t.Line, Sp: p.spanOf(t)}, nil
 }
 
@@ -1071,30 +1327,38 @@ func (p *Parser) parsePattern() (Pat, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		return &LitPat{Val: e, Line: t.Line, Sp: p.spanOf(t)}, nil
 	case TokIdent:
 		p.next()
+
 		if p.accept(LParen) {
 			var subs []Pat
+
 			for !p.at(RParen) {
 				sp, err := p.parsePattern()
 				if err != nil {
 					return nil, err
 				}
+
 				subs = append(subs, sp)
+
 				if !p.accept(Comma) {
 					break
 				}
 			}
+
 			if _, err := p.expect(RParen); err != nil {
 				return nil, err
 			}
+
 			return &CasePat{Name: t.Lit, Subs: subs, Line: t.Line, Sp: p.spanOf(t)}, nil
 		}
 		// 大写开头按 case 引用，小写为绑定（spec §3.5）
 		if unicode.IsUpper(rune(t.Lit[0])) {
 			return &CasePat{Name: t.Lit, Line: t.Line, Sp: p.spanOf(t)}, nil
 		}
+
 		return &BindPat{Name: t.Lit, Line: t.Line, Sp: p.spanOf(t)}, nil
 	default:
 		return nil, p.errAt(t, "非法模式，得到 %s", t.Kind)

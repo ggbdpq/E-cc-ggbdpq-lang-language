@@ -15,21 +15,26 @@ import (
 
 func runBoth(t *testing.T, src string) (string, string) {
 	t.Helper()
+
 	prog, err := syntax.Parse(src)
 	if err != nil {
 		t.Fatalf("解析失败: %v", err)
 	}
+
 	irp, err := pipeline.CompileStmts(prog)
 	if err != nil {
 		t.Fatalf("编译失败: %v", err)
 	}
+
 	var ib, ab bytes.Buffer
 	if err := New(&ib).Run(irp); err != nil {
 		t.Fatalf("irinterp 执行失败: %v", err)
 	}
+
 	if err := interp.New(&ab).Run(prog); err != nil {
 		t.Fatalf("interp 执行失败: %v", err)
 	}
+
 	return ib.String(), ab.String()
 }
 
@@ -186,6 +191,7 @@ func (w failingOutput) Write([]byte) (int, error) { return 0, w.err }
 
 func TestRunPropagatesOutputError(t *testing.T) {
 	t.Parallel()
+
 	tests := []struct{ name, source string }{
 		{name: "print", source: `fn main() { print("hello") }`},
 		{name: "println", source: `fn main() { println("hello") }`},
@@ -193,10 +199,12 @@ func TestRunPropagatesOutputError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+
 			prog, err := pipeline.Compile(tt.source)
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			want := errors.New("output unavailable")
 			if err := New(failingOutput{err: want}).Run(prog); !errors.Is(err, want) {
 				t.Fatalf("Run() error = %v, want output unavailable", err)

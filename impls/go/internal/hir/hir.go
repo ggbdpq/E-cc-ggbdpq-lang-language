@@ -95,6 +95,7 @@ func Typ(e Expr) *types.Type {
 	if e == nil || e.Meta() == nil || e.Meta().Typ == nil {
 		return types.Unknown
 	}
+
 	return e.Meta().Typ
 }
 

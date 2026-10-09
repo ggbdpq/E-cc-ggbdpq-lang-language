@@ -38,6 +38,7 @@ func diagsJSON(diags []pipeline.Diagnostic) CheckJSON {
 			Help:         "",
 		})
 	}
+
 	return out
 }
 
@@ -46,6 +47,7 @@ func lineSpan(line int) *Span {
 	if line < 1 {
 		line = 0
 	}
+
 	return &Span{
 		Start: Position{Line: line, Column: 1},
 		End:   Position{Line: line, Column: 1},

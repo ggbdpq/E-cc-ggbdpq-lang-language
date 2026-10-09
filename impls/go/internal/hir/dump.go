@@ -16,19 +16,24 @@ import (
 func Dump(p *Prog) string {
 	d := &dumper{}
 	d.w("prog")
+
 	for _, s := range p.Structs {
 		d.dumpStruct(s, 1)
 	}
+
 	for _, e := range p.Enums {
 		d.dumpEnum(e, 1)
 	}
+
 	for _, g := range p.Globals {
 		d.stmt(g, 1)
 	}
+
 	for _, f := range p.Fns {
 		d.fnHeader(f, 1)
 		d.stmts(f.Body, 2)
 	}
+
 	return d.b.String()
 }
 
@@ -42,6 +47,7 @@ func symTag(s *semantic.Symbol) string {
 	if s == nil {
 		return ""
 	}
+
 	return fmt.Sprintf(" sym#%d", int(s.ID))
 }
 
@@ -49,16 +55,20 @@ func tt(t *types.Type) string {
 	if t == nil {
 		return "?"
 	}
+
 	return t.String()
 }
 
 func (d *dumper) dumpStruct(s *StructDecl, ind int) {
 	pad := strings.Repeat("  ", ind)
+
 	tp := ""
 	if len(s.TypeParams) > 0 {
 		tp = "[" + strings.Join(s.TypeParams, ", ") + "]"
 	}
+
 	d.w(pad + fmt.Sprintf("struct %s%s %s", s.Name, tp, symTag(s.Sym)))
+
 	for _, f := range s.Fields {
 		d.w(pad + "  field " + f.Name + " @" + tt(f.Typ))
 	}
@@ -66,39 +76,49 @@ func (d *dumper) dumpStruct(s *StructDecl, ind int) {
 
 func (d *dumper) dumpEnum(e *EnumDecl, ind int) {
 	pad := strings.Repeat("  ", ind)
+
 	tp := ""
 	if len(e.TypeParams) > 0 {
 		tp = "[" + strings.Join(e.TypeParams, ", ") + "]"
 	}
+
 	d.w(pad + fmt.Sprintf("enum %s%s %s", e.Name, tp, symTag(e.Sym)))
+
 	for _, c := range e.Cases {
 		var ps []string
 		for _, p := range c.Payloads {
 			ps = append(ps, "@"+tt(p))
 		}
+
 		d.w(pad + "  case " + c.Name + "(" + strings.Join(ps, ", ") + ")" + symTag(c.Sym))
 	}
 }
 
 func (d *dumper) fnHeader(f *Fn, ind int) {
 	pad := strings.Repeat("  ", ind)
+
 	tp := ""
 	if len(f.TypeParams) > 0 {
 		tp = "[" + strings.Join(f.TypeParams, ", ") + "]"
 	}
+
 	ret := ""
 	if f.Ret != nil {
 		ret = " @" + tt(f.Ret)
 	}
+
 	head := "fn "
 	if f.Recv != nil {
 		head += "(" + f.Recv.Name + " @" + tt(f.Recv.Typ) + ") "
 	}
+
 	var ps []string
 	for _, p := range f.Params {
 		ps = append(ps, p.Name+" @"+tt(p.Typ))
 	}
+
 	d.w(pad + fmt.Sprintf("%s%s%s(%s)%s %s", head, f.Name, tp, strings.Join(ps, ", "), ret, symTag(f.Sym)))
+
 	if f.Extern {
 		d.w(pad + "  extern " + strconv.Quote(f.ExternHost))
 	}
@@ -112,12 +132,14 @@ func (d *dumper) stmts(list []Stmt, ind int) {
 
 func (d *dumper) stmt(s Stmt, ind int) {
 	pad := strings.Repeat("  ", ind)
+
 	switch st := s.(type) {
 	case *Let:
 		kw := "let"
 		if st.Mutable {
 			kw = "var"
 		}
+
 		d.w(pad + "(" + kw + " " + st.Name + " @" + tt(Typ(st.Init)) + symTag(st.Sym) + ")")
 		d.expr(st.Init, ind+1)
 	case *Assign:
@@ -133,12 +155,14 @@ func (d *dumper) stmt(s Stmt, ind int) {
 			d.w(pad + "(return)")
 			return
 		}
+
 		d.w(pad + "(return @" + tt(Typ(st.Val)) + ")")
 		d.expr(st.Val, ind+1)
 	case *If:
 		d.w(pad + "(if)")
 		d.expr(st.Cond, ind+1)
 		d.stmts(st.Then, ind+1)
+
 		if len(st.Else) > 0 {
 			d.w(pad + "  else")
 			d.stmts(st.Else, ind+1)
@@ -160,7 +184,9 @@ func (d *dumper) stmt(s Stmt, ind int) {
 		if st.Fn != nil {
 			name = st.Fn.Name
 		}
+
 		d.w(pad + "(go " + name + symTag(st.Fn) + ")")
+
 		for _, a := range st.Args {
 			d.expr(a, ind+1)
 		}
@@ -174,9 +200,11 @@ func opStr(k interface{ String() string }) string { return k.String() }
 
 func (d *dumper) expr(e Expr, ind int) {
 	pad := strings.Repeat("  ", ind)
+
 	switch x := e.(type) {
 	case *Lit:
 		var v string
+
 		switch x.Kind {
 		case LitInt:
 			v = strconv.FormatInt(x.I64, 10)
@@ -187,6 +215,7 @@ func (d *dumper) expr(e Expr, ind int) {
 		case LitBool:
 			v = strconv.FormatBool(x.B)
 		}
+
 		d.w(pad + "(lit " + v + " @" + tt(Typ(x)) + ")")
 	case *LocalRef:
 		d.w(pad + "(local " + x.Name + symTag(x.Sym) + " @" + tt(Typ(x)) + ")")
@@ -196,6 +225,7 @@ func (d *dumper) expr(e Expr, ind int) {
 		d.w(pad + "(builtin-ref " + x.Name + " @" + tt(Typ(x)) + ")")
 	case *Ctor:
 		d.w(pad + "(ctor " + x.CtorSym.Name + symTag(x.CtorSym) + " @" + tt(Typ(x)) + ")")
+
 		for _, a := range x.Args {
 			d.expr(a, ind+1)
 		}
@@ -209,6 +239,7 @@ func (d *dumper) expr(e Expr, ind int) {
 			d.w(pad + "(callv @" + tt(Typ(x)) + ")")
 			d.expr(x.Callee, ind+1)
 		}
+
 		for _, a := range x.Args {
 			d.expr(a, ind+1)
 		}
@@ -218,7 +249,9 @@ func (d *dumper) expr(e Expr, ind int) {
 		} else {
 			d.w(pad + "(callfield ." + x.Field + " @" + tt(Typ(x)) + ")")
 		}
+
 		d.expr(x.Recv, ind+1)
+
 		for _, a := range x.Args {
 			d.expr(a, ind+1)
 		}
@@ -261,24 +294,29 @@ func (d *dumper) expr(e Expr, ind int) {
 		if x.Sym != nil {
 			name = x.Sym.Name
 		}
+
 		d.w(pad + "(struct " + name + symTag(x.Sym) + " @" + tt(Typ(x)) + ")")
+
 		for _, f := range x.Fields {
 			d.w(pad + "  ." + f.Name)
 			d.expr(f.Val, ind+1)
 		}
 	case *MapLit:
 		d.w(pad + "(map @" + tt(Typ(x)) + ")")
+
 		for i := range x.Keys {
 			d.expr(x.Keys[i], ind+1)
 			d.expr(x.Vals[i], ind+1)
 		}
 	case *SliceLit:
 		d.w(pad + "(arr @" + tt(Typ(x)) + ")")
+
 		for _, el := range x.Elems {
 			d.expr(el, ind+1)
 		}
 	case *Match:
 		kind := "literal"
+
 		switch x.Kind {
 		case 1:
 			kind = "enum"
@@ -287,8 +325,10 @@ func (d *dumper) expr(e Expr, ind int) {
 		case 3:
 			kind = "option"
 		}
+
 		d.w(pad + "(match " + kind + " @" + tt(Typ(x)) + ")")
 		d.expr(x.Scrut, ind+1)
+
 		for _, arm := range x.Arms {
 			d.w(pad + "  arm @" + tt(Typ(arm.Body)))
 			d.pat(arm.Pat, ind+2)
@@ -299,10 +339,12 @@ func (d *dumper) expr(e Expr, ind int) {
 		for _, p := range x.Params {
 			ps = append(ps, p.Name+" @"+tt(p.Typ))
 		}
+
 		ret := ""
 		if x.Ret != nil {
 			ret = " @" + tt(x.Ret)
 		}
+
 		d.w(pad + "(fnlit(" + strings.Join(ps, ", ") + ")" + ret + ")")
 		d.stmts(x.Body, ind+1)
 	}
@@ -310,6 +352,7 @@ func (d *dumper) expr(e Expr, ind int) {
 
 func (d *dumper) pat(p Pat, ind int) {
 	pad := strings.Repeat("  ", ind)
+
 	switch pt := p.(type) {
 	case *WildPat:
 		d.w(pad + "_")
@@ -323,7 +366,9 @@ func (d *dumper) pat(p Pat, ind int) {
 		if pt.Ctor != nil {
 			name = pt.Ctor.Name
 		}
+
 		d.w(pad + "(ctorpat " + name + symTag(pt.Ctor) + ")")
+
 		for _, sp := range pt.Subs {
 			d.pat(sp, ind+1)
 		}

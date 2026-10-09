@@ -13,24 +13,30 @@ import (
 
 func TestConformanceSuite(t *testing.T) {
 	_, thisFile, _, _ := runtime.Caller(0)
+
 	root := filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "..", "conformance")
 	if _, err := os.Stat(root); err != nil {
 		t.Fatalf("conformance 套件目录缺失: %s（%v）", root, err)
 	}
+
 	results, fails, err := RunSuite(root)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(results) == 0 {
 		t.Fatal("套件为空——case 未入库")
 	}
+
 	var bad []string
+
 	for _, r := range results {
 		if !r.OK {
 			status := "FAIL"
 			if r.Skipped {
 				status = "SKIP"
 			}
+
 			bad = append(bad, "  "+status+" "+r.Category+"/"+r.Name+": "+r.Note)
 		}
 	}
@@ -38,11 +44,13 @@ func TestConformanceSuite(t *testing.T) {
 	if fails > 0 {
 		t.Fatalf("套件 %d/%d 未通过:\n%s", fails, len(results), strings.Join(bad, "\n"))
 	}
+
 	for _, r := range results {
 		if r.Skipped {
 			t.Logf("SKIP %s/%s: %s", r.Category, r.Name, r.Note)
 		}
 	}
+
 	t.Logf("conformance 套件 %d case 全部通过", len(results))
 }
 
@@ -58,6 +66,7 @@ func TestParseManifest受限子集拒绝(t *testing.T) {
 			t.Errorf("应拒绝: %q", bad)
 		}
 	}
+
 	ok := "name: x\ncategory: y\nmode: run\nexpect:\n  exitCode: 0\n  stdout: |\n    hello\n  stderr: \"\"\n"
 	if _, err := ParseManifest(ok); err != nil {
 		t.Errorf("合法 manifest 应通过: %v", err)

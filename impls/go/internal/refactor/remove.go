@@ -24,26 +24,31 @@ func SafeRemoveCheck(prog []syntax.Stmt, res *semantic.Result, target *semantic.
 	if target.Kind != semantic.KFn && target.Kind != semantic.KVar {
 		return RemoveCheck{}, fmt.Errorf("safe remove 仅支持顶层 fn 与全局变量（目标 kind=%s）", kindName(target.Kind))
 	}
+
 	if target.Extern {
 		return RemoveCheck{}, errors.New("extern 声明不支持 safe remove")
 	}
 
 	// 声明节点必须可定位（fn / 全局 let）
 	var found bool
+
 	switch target.Decl.(type) {
 	case *syntax.FnDecl, *syntax.LetStmt:
 		found = true
 	}
+
 	if !found {
 		return RemoveCheck{}, errors.New("未找到声明节点")
 	}
 
 	// 引用计数：除定义外的全部 Ident 引用
 	refCount := 0
+
 	var sites []string
 	for _, st := range prog {
 		collectRemoveRefs(st, res, target, &refCount, &sites)
 	}
+
 	return RemoveCheck{
 		Removable: refCount == 0,
 		Reason:    fmt.Sprintf("%d 处引用", refCount),
@@ -67,19 +72,23 @@ func collectRemoveRefs(st syntax.Stmt, res *semantic.Result, target *semantic.Sy
 		}
 	case *syntax.IfStmt:
 		walkRemoveExpr(x.Cond, res, target, count, sites)
+
 		for _, s := range x.Then {
 			collectRemoveRefs(s, res, target, count, sites)
 		}
+
 		for _, s := range x.Else {
 			collectRemoveRefs(s, res, target, count, sites)
 		}
 	case *syntax.WhileStmt:
 		walkRemoveExpr(x.Cond, res, target, count, sites)
+
 		for _, s := range x.Body {
 			collectRemoveRefs(s, res, target, count, sites)
 		}
 	case *syntax.ForInStmt:
 		walkRemoveExpr(x.Iter, res, target, count, sites)
+
 		for _, s := range x.Body {
 			collectRemoveRefs(s, res, target, count, sites)
 		}
@@ -99,6 +108,7 @@ func walkRemoveExpr(e syntax.Expr, res *semantic.Result, target *semantic.Symbol
 		if id, ok := x.(*syntax.Ident); ok {
 			if sym := res.Refs[id]; sym != nil && sym.ID == target.ID {
 				*count++
+
 				*sites = append(*sites, formatRefSite(id.Sp))
 			}
 		}
@@ -113,14 +123,17 @@ func SafeRemoveSpan(prog []syntax.Stmt, res *semantic.Result, target *semantic.S
 		if !ok {
 			return syntax.Span{}, errors.New("未找到函数声明节点")
 		}
+
 		return d.Sp, nil
 	case semantic.KVar:
 		st := findLetStmt(prog, res, target)
 		if st == nil {
 			return syntax.Span{}, errors.New("未找到绑定声明")
 		}
+
 		return st.Sp, nil
 	}
+
 	return syntax.Span{}, errors.New("不支持的定义定位")
 }
 
@@ -130,10 +143,12 @@ func SafeRemoveEdits(prog []syntax.Stmt, srcs Sources, res *semantic.Result, tar
 	if err != nil {
 		return nil, err
 	}
+
 	end := span.End.Offset
 	if r := []rune(srcs.Source(span.File)); end < len(r) && r[end] == '\n' {
 		end++
 	}
+
 	return []edit.TextEdit{{
 		File:        span.File,
 		StartOffset: span.Start.Offset,
@@ -146,5 +161,6 @@ func formatRefSite(sp syntax.Span) string {
 	if sp.File == "" {
 		return fmt.Sprintf("%d:%d", sp.Start.Line, sp.Start.Col)
 	}
+
 	return fmt.Sprintf("%s:%d:%d", sp.File, sp.Start.Line, sp.Start.Col)
 }
