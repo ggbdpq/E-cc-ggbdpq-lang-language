@@ -10,6 +10,7 @@ package conformance
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -174,7 +175,7 @@ func backendFail(res *CaseResult, toolName string, err error) bool {
 		return false
 	}
 	res.Note = err.Error()
-	if _, ok := err.(errSkipped); ok {
+	if _, ok := errors.AsType[errSkipped](err); ok {
 		res.Skipped = true
 	}
 	return true
@@ -264,7 +265,7 @@ func tool(dir string, timeout time.Duration, name string, args ...string) error 
 	cmd.Dir = dir
 	bs, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("%v: %s", err, strings.TrimSpace(string(bs)))
+		return fmt.Errorf("%w: %s", err, strings.TrimSpace(string(bs)))
 	}
 	return nil
 }
@@ -279,7 +280,7 @@ func runCapture(dir string, name string, args ...string) (string, string, error)
 	cmd.Stdout = &out
 	cmd.Stderr = &errBuf
 	if err := cmd.Run(); err != nil {
-		return "", "", fmt.Errorf("%v: %s", err, strings.TrimSpace(errBuf.String()))
+		return "", "", fmt.Errorf("%w: %s", err, strings.TrimSpace(errBuf.String()))
 	}
 	return out.String(), errBuf.String(), nil
 }

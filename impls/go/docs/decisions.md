@@ -224,3 +224,5 @@ null、异常、宏、继承、隐式数值转换、包管理器、LSP、调试�
 ## 错误传播边界（2026-10-10）
 
 `irinterp.Machine.Run` 的输出写入失败沿既有 error 返回边界传播，与 AST 参考解释器一致。`genjs.TranspileJS` 的控制流块复用 `emitBlock` 的错误返回；任一块转译失败即停止，不把残缺 JS 当作成功产物。标准库表驱动回归分别通过源码 → `Run` 和源码 → `TranspileJS` 验证这两个公开边界。
+
+诊断提取通过 `errors.As` 读取包装后的 `ErrorList`；JSON 内建与后端进程错误采用 `%w` 保留宿主错误链。调用方可识别失败类型，可见文案继续使用原有上下文，不改语言诊断码或 HTTP Result 边界。

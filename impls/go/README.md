@@ -56,3 +56,5 @@ m4/gofixture/        linkpull 原版逐字拷贝的对照 fixture 生成器
 ## 执行与转译失败
 
 IR 解释器的 `print` / `println` 会把输出设备写入错误返回给调用方；JS 转译器在 `if`、`else`、`while` 块内遇到转译错误时返回错误与空产物，和顶层语句保持一致。
+
+诊断与 JSON 内建的错误链保留：`pipeline.Diagnostics` 可读取包装后的诊断，JSON 解析和序列化失败可用 `errors.As` 识别宿主错误类型；现有可见错误文案保持不变。

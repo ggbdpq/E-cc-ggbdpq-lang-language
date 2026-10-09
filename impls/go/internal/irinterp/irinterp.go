@@ -13,6 +13,7 @@
 package irinterp
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -819,7 +820,7 @@ func (m *Machine) callFnVal(fv *irFnVal, args []interp.Value) (interp.Value, err
 func (m *Machine) execBody(body []ir.Stmt, f *frame) (interp.Value, error) {
 	s, err := m.execStmts(body, f)
 	if err != nil {
-		if te, ok := err.(*tryErr); ok {
+		if te, ok := errors.AsType[*tryErr](err); ok {
 			return te.val, nil
 		}
 		return nil, err

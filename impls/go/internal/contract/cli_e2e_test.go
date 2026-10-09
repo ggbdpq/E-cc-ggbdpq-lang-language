@@ -6,6 +6,7 @@ package contract
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -21,7 +22,7 @@ func runCLI(t *testing.T, dir string, args ...string) (string, int) {
 	out, err := cmd.CombinedOutput()
 	code := 0
 	if err != nil {
-		if ee, ok := err.(*exec.ExitError); ok {
+		if ee, ok := errors.AsType[*exec.ExitError](err); ok {
 			code = ee.ExitCode()
 		} else {
 			t.Fatalf("执行失败: %v\n%s", err, out)

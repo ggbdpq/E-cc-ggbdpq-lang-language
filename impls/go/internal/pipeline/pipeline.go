@@ -5,6 +5,7 @@ package pipeline
 // E3xxx-E4xxx 类型与模式）。
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -38,8 +39,8 @@ func (l ErrorList) Error() string {
 
 // Diagnostics 将聚合转为切片
 func Diagnostics(err error) []Diagnostic {
-	if l, ok := err.(ErrorList); ok {
-		return l
+	if diagnostics, ok := errors.AsType[ErrorList](err); ok {
+		return diagnostics
 	}
 	return nil
 }
@@ -54,7 +55,7 @@ func Parse(src string) ([]syntax.Stmt, error) {
 }
 
 func parseDiag(err error) Diagnostic {
-	if pe, ok := err.(*syntax.Error); ok {
+	if pe, ok := errors.AsType[*syntax.Error](err); ok {
 		return Diagnostic{Code: "E1001", Msg: pe.Msg, Line: pe.Line}
 	}
 	// 词法错误（syntax 内部类型）：取整段文本

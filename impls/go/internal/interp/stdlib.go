@@ -90,7 +90,7 @@ func jsonParseBuiltin(it *Interp, args []Value) (Value, error) {
 	dec.UseNumber()
 	var raw any
 	if err := dec.Decode(&raw); err != nil {
-		return nil, fmt.Errorf("JSON 解析失败: %v", err)
+		return nil, fmt.Errorf("JSON 解析失败: %w", err)
 	}
 	return jsonToValue(raw, it), nil
 }
@@ -192,7 +192,7 @@ func jsonStringifyBuiltin(it *Interp, args []Value) (Value, error) {
 	}
 	bs, err := json.Marshal(j) // map 键按字母序，两端确定
 	if err != nil {
-		return nil, fmt.Errorf("JSON 序列化失败: %v", err)
+		return nil, fmt.Errorf("JSON 序列化失败: %w", err)
 	}
 	return StrVal(bs), nil
 }
