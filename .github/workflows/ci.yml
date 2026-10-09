@@ -14,6 +14,8 @@ jobs:
       pull-requests: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
           go-version: '1.22'
@@ -23,12 +25,29 @@ jobs:
       - name: go vet
         working-directory: impls/go
         run: go vet ./...
+      - name: 准备增量 lint 后备基线
+        id: lint-config
+        working-directory: impls/go
+        run: |
+          config="$(mktemp .golangci-ci.XXXXXX)"
+          mv "$config" "$config.yml"
+          sed '/^issues:$/a\
+            new-from-rev: 630905f6ac10a7fb691d5cf08249fa9ee68c805f
+          ' .golangci.yml > "$config.yml"
+          printf 'path=%s\n' "$config.yml" >> "$GITHUB_OUTPUT"
       - name: golangci-lint（仅新增问题）
         uses: golangci/golangci-lint-action@v9
         with:
           version: v2.14.0
           only-new-issues: true
           working-directory: impls/go
+          args: --config=${{ steps.lint-config.outputs.path }}
+      - name: 清理本次 lint 临时配置
+        if: always() && steps.lint-config.outputs.path != ''
+        working-directory: impls/go
+        env:
+          LINT_CONFIG: ${{ steps.lint-config.outputs.path }}
+        run: rm -- "$LINT_CONFIG"
       - name: go test
         working-directory: impls/go
         run: go test ./... -count=1

@@ -36,6 +36,8 @@ v0.1 CLI 不接收路径参数：`lang-go run` 固定运行当前目录的 `main
 
 本地运行 `go build ./...`、`go vet ./...`、`go test ./...` 与 `~/go/bin/golangci-lint run ./...`（v2.14.0，含存量问题）。根仓库 CI 的 Go job 运行 vet 与增量 lint；lint 只阻挡 PR/push diff 新增的问题，存量按类别逐步清理。
 
+CI 仅在临时配置中加入固定基线 `630905f`：事件 diff 可用时由 action 优先过滤；新分支首推或 API 取 diff 失败时，比较采纳前基线之后的变更，避免退回全量存量门禁。原 `.golangci.yml` 保持本地完整检查口径。
+
 ## 目录
 
 ```
