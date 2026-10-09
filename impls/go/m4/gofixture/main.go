@@ -286,15 +286,16 @@ func listKindOf(u *url.URL) (listTarget, error) {
 	}
 	mid := segs[0]
 	var kind, sid string
-	if segs[1] == "channel" {
+	switch {
+	case segs[1] == "channel":
 		kind, sid = "season", u.Query().Get("sid")
-	} else if len(segs) >= 3 && segs[1] == "lists" {
+	case len(segs) >= 3 && segs[1] == "lists":
 		sid = segs[2]
 		kind = u.Query().Get("type")
 		if kind != "series" {
 			kind = "season"
 		}
-	} else {
+	default:
 		return listTarget{}, errors.New("不是合集/列表页链接（支持 channel/collectiondetail 与 lists）")
 	}
 	if sid == "" || mid == "" {
