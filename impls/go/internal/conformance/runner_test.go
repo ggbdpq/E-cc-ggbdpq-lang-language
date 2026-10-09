@@ -26,9 +26,8 @@ func TestConformanceSuite(t *testing.T) {
 	}
 	var bad []string
 	for _, r := range results {
-		status := "ok"
 		if !r.OK {
-			status = "FAIL"
+			status := "FAIL"
 			if r.Skipped {
 				status = "SKIP"
 			}
