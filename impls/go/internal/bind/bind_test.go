@@ -5,14 +5,13 @@ package bind
 // 2) 产物合法性：草案可被 syntax.Parse 解析、可被 →Go 转译器接受。
 
 import (
+	"lang-go/internal/gen"
+	"lang-go/internal/pipeline"
+	"lang-go/internal/syntax"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"lang-go/internal/gen"
-	"lang-go/internal/pipeline"
-	"lang-go/internal/syntax"
 )
 
 func writePkg(t *testing.T, dir string, files map[string]string) {

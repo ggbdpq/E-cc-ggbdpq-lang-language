@@ -4,13 +4,12 @@ package types
 // corpus（examples + m4 + selftest）是「现有合法程序零误杀」的回归门。
 
 import (
+	"lang-go/internal/semantic"
+	"lang-go/internal/syntax"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"lang-go/internal/semantic"
-	"lang-go/internal/syntax"
 )
 
 func checkSrc(t *testing.T, src string) (*Result, *semantic.Result) {

@@ -12,7 +12,6 @@ import (
 	"lang-go/internal/semantic"
 	"lang-go/internal/syntax"
 	"lang-go/internal/types"
-
 	"lang-go/internal/version"
 )
 

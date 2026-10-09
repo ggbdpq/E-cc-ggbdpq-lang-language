@@ -4,15 +4,14 @@ package refactor
 // organize imports、safe remove 可行性。
 
 import (
-	"sort"
-	"strings"
-	"testing"
-
 	"lang-go/internal/edit"
 	"lang-go/internal/hir"
 	"lang-go/internal/pipeline"
 	"lang-go/internal/semantic"
 	"lang-go/internal/syntax"
+	"sort"
+	"strings"
+	"testing"
 )
 
 type renameCtx struct {

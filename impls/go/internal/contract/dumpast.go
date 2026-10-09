@@ -4,11 +4,10 @@ package contract
 // nodeId 为契约层按先序分配的稳定编号（同一源码同一结果）。
 
 import (
-	"strconv"
-
 	"lang-go/internal/semantic"
 	"lang-go/internal/syntax"
 	"lang-go/internal/types"
+	"strconv"
 )
 
 type astBuilder struct {

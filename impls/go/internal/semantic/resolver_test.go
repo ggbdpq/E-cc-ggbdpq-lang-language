@@ -3,10 +3,9 @@ package semantic
 // Resolver 测试缝：Resolve(prog) 的诊断码与符号/引用绑定（公开行为，不测内部结构）。
 
 import (
+	"lang-go/internal/syntax"
 	"strings"
 	"testing"
-
-	"lang-go/internal/syntax"
 )
 
 func resolve(t *testing.T, src string) *Result {

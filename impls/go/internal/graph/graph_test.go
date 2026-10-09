@@ -4,12 +4,11 @@ package graph
 // 方法调用、跨模块 depends_on、影子不串边。
 
 import (
-	"os"
-	"testing"
-
 	"lang-go/internal/load"
 	"lang-go/internal/pipeline"
 	"lang-go/internal/syntax"
+	"os"
+	"testing"
 )
 
 func buildSrc(t *testing.T, src string) (*Graph, *pipeline.Analyzed) {

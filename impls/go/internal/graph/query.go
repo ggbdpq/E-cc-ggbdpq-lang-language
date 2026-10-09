@@ -5,9 +5,8 @@ package graph
 // 不宣称完整证明）。depth < 0 表示不限层。
 
 import (
-	"sort"
-
 	"lang-go/internal/syntax"
+	"sort"
 )
 
 // ImpactItem 一条影响证据.

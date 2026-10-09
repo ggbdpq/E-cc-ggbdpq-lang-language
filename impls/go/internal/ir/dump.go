@@ -3,11 +3,10 @@ package ir
 // Dump 渲染 Core IR（snapshot 测试锁定；v0.4 dump ir 协议复用）。
 
 import (
-	"strconv"
-	"strings"
-
 	"lang-go/internal/semantic"
 	"lang-go/internal/types"
+	"strconv"
+	"strings"
 )
 
 // Dump 渲染 IR.

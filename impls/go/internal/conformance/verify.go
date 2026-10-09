@@ -8,12 +8,6 @@ package conformance
 import (
 	"bytes"
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
-	"time"
-
 	"lang-go/internal/gen"
 	"lang-go/internal/genjs"
 	"lang-go/internal/graph"
@@ -22,6 +16,11 @@ import (
 	"lang-go/internal/irinterp"
 	"lang-go/internal/load"
 	"lang-go/internal/pipeline"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"time"
 )
 
 // Stage 单阶段结果.

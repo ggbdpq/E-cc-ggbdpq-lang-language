@@ -12,14 +12,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"sort"
-	"strconv"
-	"strings"
-	"time"
-
 	"lang-go/internal/contract"
 	"lang-go/internal/gen"
 	"lang-go/internal/genjs"
@@ -28,6 +20,13 @@ import (
 	"lang-go/internal/load"
 	"lang-go/internal/pipeline"
 	"lang-go/internal/syntax"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
 )
 
 // CaseResult 单 case 执行结果.
@@ -313,7 +312,7 @@ func tool(dir string, timeout time.Duration, name string, args ...string) error 
 }
 
 // runCapture 执行命令并分别捕获 stdout/stderr（exitCode 非 0 视为失败）.
-func runCapture(dir string, name string, args ...string) (string, string, error) {
+func runCapture(dir, name string, args ...string) (string, string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 

@@ -9,12 +9,11 @@ package gen
 import (
 	"fmt"
 	"go/format"
-	"strconv"
-	"strings"
-
 	"lang-go/internal/ir"
 	"lang-go/internal/semantic"
 	"lang-go/internal/types"
+	"strconv"
+	"strings"
 )
 
 // Transpile IR → Go 源码.
@@ -268,7 +267,7 @@ func isAny(t *types.Type) bool {
 }
 
 // maybeWrap 在 any 与具体类型交界处插 langGoTo 断言.
-func (g *gen) maybeWrap(target *types.Type, got string, expr string) string {
+func (g *gen) maybeWrap(target *types.Type, got, expr string) string {
 	if target != nil && !isAny(target) && got == "any" {
 		return "langGoTo[" + goTypeOf(target) + "](" + expr + ")"
 	}

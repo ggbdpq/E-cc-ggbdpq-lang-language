@@ -3,12 +3,11 @@ package hir
 // HIR 测试缝：Build 产出的 dump golden snapshot + 关键脱糖行为 + NodeID 稳定性。
 
 import (
-	"os"
-	"testing"
-
 	"lang-go/internal/semantic"
 	"lang-go/internal/syntax"
 	"lang-go/internal/types"
+	"os"
+	"testing"
 )
 
 func buildSrc(t *testing.T, src string) *Prog {

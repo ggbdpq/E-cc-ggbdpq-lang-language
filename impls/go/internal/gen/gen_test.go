@@ -10,17 +10,16 @@ package gen
 
 import (
 	"bytes"
+	"lang-go/internal/interp"
+	"lang-go/internal/load"
+	"lang-go/internal/pipeline"
+	"lang-go/internal/syntax"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
-
-	"lang-go/internal/interp"
-	"lang-go/internal/load"
-	"lang-go/internal/pipeline"
-	"lang-go/internal/syntax"
 )
 
 func transpile(t *testing.T, src string) string {

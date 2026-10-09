@@ -149,8 +149,10 @@ type ForIn struct {
 	Body    []Stmt
 }
 
-type Break struct{ Node }
-type Continue struct{ Node }
+type (
+	Break    struct{ Node }
+	Continue struct{ Node }
+)
 
 // Spawn go <fn 调用>（目标已由 resolver 约束为顶层 fn）.
 type Spawn struct {

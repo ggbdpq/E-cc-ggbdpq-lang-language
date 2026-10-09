@@ -146,8 +146,10 @@ type ForIn struct {
 	Body []Stmt
 }
 
-type Break struct{}
-type Continue struct{}
+type (
+	Break    struct{}
+	Continue struct{}
+)
 
 // Spawn go 语句（目标为顶层 fn）.
 type Spawn struct {

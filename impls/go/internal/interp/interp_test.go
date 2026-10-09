@@ -4,11 +4,10 @@ package interp_test
 
 import (
 	"bytes"
-	"strings"
-	"testing"
-
 	"lang-go/internal/interp"
 	"lang-go/internal/syntax"
+	"strings"
+	"testing"
 )
 
 func runSrc(t *testing.T, src string) (string, error) {

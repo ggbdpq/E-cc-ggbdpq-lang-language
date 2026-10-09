@@ -5,11 +5,10 @@ package hir
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
-
 	"lang-go/internal/semantic"
 	"lang-go/internal/types"
+	"strconv"
+	"strings"
 )
 
 // Dump 渲染 HIR.

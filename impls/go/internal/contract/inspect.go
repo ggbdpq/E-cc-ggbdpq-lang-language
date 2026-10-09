@@ -3,12 +3,11 @@ package contract
 // inspect.go：symbols / refs / type 查询（数据源 semantic + types + AST）
 
 import (
-	"sort"
-
 	"lang-go/internal/load"
 	"lang-go/internal/semantic"
 	"lang-go/internal/syntax"
 	"lang-go/internal/types"
+	"sort"
 )
 
 // kindStr 符号类别 → 契约字符串.

@@ -3,13 +3,12 @@ package ir
 // IR 测试缝：Lower 产出的 dump golden snapshot + 降级不变量。
 
 import (
-	"os"
-	"testing"
-
 	"lang-go/internal/hir"
 	"lang-go/internal/semantic"
 	"lang-go/internal/syntax"
 	"lang-go/internal/types"
+	"os"
+	"testing"
 )
 
 func lowerSrc(t *testing.T, src string) *Prog {

@@ -6,16 +6,15 @@ package genjs
 
 import (
 	"bytes"
+	"lang-go/internal/interp"
+	"lang-go/internal/load"
+	"lang-go/internal/pipeline"
+	"lang-go/internal/syntax"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"lang-go/internal/interp"
-	"lang-go/internal/load"
-	"lang-go/internal/pipeline"
-	"lang-go/internal/syntax"
 )
 
 func transpileJS(t *testing.T, prog []syntax.Stmt) string {

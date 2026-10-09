@@ -5,14 +5,13 @@ package format
 
 import (
 	"bytes"
+	"lang-go/internal/interp"
+	"lang-go/internal/syntax"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
-
-	"lang-go/internal/interp"
-	"lang-go/internal/syntax"
 )
 
 // corpus 仓库全部 .lang-go（相对 internal/format）.

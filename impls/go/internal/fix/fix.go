@@ -11,12 +11,11 @@ package fix
 
 import (
 	"fmt"
+	"lang-go/internal/edit"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
-
-	"lang-go/internal/edit"
 )
 
 // ListDir 列出目录内全部 .lang-go 文件（模块根相对路径，/ 分隔，依文件名序）.
@@ -155,7 +154,7 @@ func importName(line string) string {
 
 // referencedIn 保守判定：源码（除 import 行自身——那会命中目标名）任何位置
 // 出现该名字即视为被引用。宁可漏删不误删。
-func referencedIn(src string, name string) bool {
+func referencedIn(src, name string) bool {
 	for _, line := range strings.Split(src, "\n") {
 		if strings.HasPrefix(strings.TrimSpace(line), "import ") {
 			continue

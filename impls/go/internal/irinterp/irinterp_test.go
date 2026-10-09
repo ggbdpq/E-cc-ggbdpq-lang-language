@@ -6,11 +6,10 @@ package irinterp
 import (
 	"bytes"
 	"errors"
-	"testing"
-
 	"lang-go/internal/interp"
 	"lang-go/internal/pipeline"
 	"lang-go/internal/syntax"
+	"testing"
 )
 
 func runBoth(t *testing.T, src string) (string, string) {

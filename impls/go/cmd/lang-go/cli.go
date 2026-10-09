@@ -9,12 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
-	"sort"
-	"strconv"
-	"strings"
-
 	"lang-go/internal/bind"
 	"lang-go/internal/conformance"
 	"lang-go/internal/contract"
@@ -29,6 +23,11 @@ import (
 	"lang-go/internal/pipeline"
 	"lang-go/internal/refactor"
 	"lang-go/internal/syntax"
+	"os"
+	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
 )
 
 func hasFlag(args []string, flag string) bool {

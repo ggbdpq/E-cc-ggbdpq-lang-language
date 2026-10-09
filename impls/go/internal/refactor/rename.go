@@ -12,7 +12,6 @@ package refactor
 import (
 	"errors"
 	"fmt"
-
 	"lang-go/internal/edit"
 	"lang-go/internal/hir"
 	"lang-go/internal/semantic"

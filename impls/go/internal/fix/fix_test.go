@@ -3,13 +3,12 @@ package fix
 // safe fix 测试缝：每类修复的正反用例 + 事务闭环（plan → apply → 验证）。
 
 import (
+	"lang-go/internal/edit"
+	"lang-go/internal/syntax"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"lang-go/internal/edit"
-	"lang-go/internal/syntax"
 )
 
 func apply(t *testing.T, src string) string {

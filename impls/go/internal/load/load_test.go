@@ -3,12 +3,11 @@ package load
 // 测试缝：Program 的装载行为——import 展开、菱形去重、环检测、containment。
 
 import (
+	"lang-go/internal/syntax"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"lang-go/internal/syntax"
 )
 
 func write(t *testing.T, dir, name, content string) {

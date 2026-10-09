@@ -4,11 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"lang-go/internal/prelude"
 	"math"
 	"strconv"
 	"strings"
-
-	"lang-go/internal/prelude"
 )
 
 // prelude 预载代数类型（Option/Result/error，spec §3.6）与内建函数（spec §4）.

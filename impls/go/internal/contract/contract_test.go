@@ -6,12 +6,11 @@ package contract
 import (
 	"bytes"
 	"encoding/json"
+	"lang-go/internal/graph"
+	"lang-go/internal/pipeline"
 	"os"
 	"path/filepath"
 	"testing"
-
-	"lang-go/internal/graph"
-	"lang-go/internal/pipeline"
 )
 
 const sampleSrc = `struct Point {

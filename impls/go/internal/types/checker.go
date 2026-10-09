@@ -9,7 +9,6 @@ package types
 
 import (
 	"fmt"
-
 	"lang-go/internal/semantic"
 	"lang-go/internal/syntax"
 )

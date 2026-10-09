@@ -9,12 +9,11 @@ package genjs
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
-
 	"lang-go/internal/ir"
 	"lang-go/internal/semantic"
 	"lang-go/internal/types"
+	"strconv"
+	"strings"
 )
 
 // TranspileJS IR → JS 源码.

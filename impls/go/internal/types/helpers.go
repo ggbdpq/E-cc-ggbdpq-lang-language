@@ -1,9 +1,8 @@
 package types
 
 import (
-	"strings"
-
 	"lang-go/internal/syntax"
+	"strings"
 )
 
 // opName 复合赋值运算符的诊断名.

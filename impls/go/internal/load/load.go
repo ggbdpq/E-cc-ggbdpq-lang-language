@@ -7,12 +7,11 @@ package load
 
 import (
 	"fmt"
+	"lang-go/internal/syntax"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
-
-	"lang-go/internal/syntax"
 )
 
 // FileInfo 文件装载信息（v0.4 inspect dependencies）.
@@ -241,7 +240,7 @@ func (l *loader) expand(stmts []syntax.Stmt, fromDir string) ([]syntax.Stmt, err
 }
 
 // resolve 规范化 + containment + 环/去重判定.
-func (l *loader) resolve(rel string, fromDir string, line int) (string, bool, error) {
+func (l *loader) resolve(rel, fromDir string, line int) (string, bool, error) {
 	target := filepath.Clean(filepath.Join(fromDir, rel))
 
 	ap, err := filepath.Abs(target)

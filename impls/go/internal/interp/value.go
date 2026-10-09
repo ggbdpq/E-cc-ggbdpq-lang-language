@@ -2,10 +2,9 @@ package interp
 
 import (
 	"fmt"
+	"lang-go/internal/syntax"
 	"strconv"
 	"strings"
-
-	"lang-go/internal/syntax"
 )
 
 // Value 的具体类型：
@@ -13,11 +12,13 @@ import (
 // *ArrVal/*MapVal/*StructVal/*EnumVal/*Closure/*Builtin/*PtrVal 为指针（共享/引用语义）。
 type Value interface{}
 
-type IntVal int64
-type FloatVal float64
-type BoolVal bool
-type StrVal string
-type UnitVal struct{}
+type (
+	IntVal   int64
+	FloatVal float64
+	BoolVal  bool
+	StrVal   string
+	UnitVal  struct{}
+)
 
 type RangeVal struct{ Lo, Hi int64 }
 

@@ -5,13 +5,12 @@ package contract
 // 由契约层按先序编号，且不含 span（span 见 dump.hir，文档化于 agent-protocol）。
 
 import (
-	"strconv"
-
 	"lang-go/internal/hir"
 	"lang-go/internal/ir"
 	"lang-go/internal/semantic"
 	"lang-go/internal/syntax"
 	"lang-go/internal/types"
+	"strconv"
 )
 
 func typeStr(t interface{ String() string }) string {

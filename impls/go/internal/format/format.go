@@ -12,10 +12,9 @@ package format
 // 语义等价、确定性输出。
 
 import (
+	"lang-go/internal/syntax"
 	"strconv"
 	"strings"
-
-	"lang-go/internal/syntax"
 )
 
 // Format 把源码格式化为规范形态.
@@ -58,7 +57,7 @@ func (t *commentTracker) peek() (syntax.Comment, bool) {
 }
 
 // flushLeading 冲刷 start 之前的**整行**注释（行尾注释留在流里给 flushTrailing）.
-func (f *fmtter) flushLeading(start int, indent int) {
+func (f *fmtter) flushLeading(start, indent int) {
 	for {
 		c, ok := f.cm.peek()
 		if !ok || c.Span.Start.Offset >= start {

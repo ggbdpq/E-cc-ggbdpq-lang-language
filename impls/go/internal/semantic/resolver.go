@@ -5,7 +5,6 @@ package semantic
 
 import (
 	"fmt"
-
 	"lang-go/internal/syntax"
 )
 

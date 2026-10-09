@@ -5,15 +5,14 @@ package pipeline
 // 基线记录：specs/performance.md（仅记录量级与回归参照，不做极致优化）。
 
 import (
-	"strconv"
-	"strings"
-	"testing"
-
 	"lang-go/internal/gen"
 	"lang-go/internal/genjs"
 	"lang-go/internal/interp"
 	"lang-go/internal/irinterp"
 	"lang-go/internal/syntax"
+	"strconv"
+	"strings"
+	"testing"
 )
 
 // 声明唯一，规模经 N 个工作函数扩展（避免重复定义 E2001）.

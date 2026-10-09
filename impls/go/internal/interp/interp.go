@@ -4,9 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
-
 	"lang-go/internal/syntax"
+	"strings"
 )
 
 // sigKind 控制流信号：用 error 通道承载，调用/循环边界捕获.

@@ -6,12 +6,6 @@ package conformance
 
 import (
 	"bytes"
-	"os"
-	"path/filepath"
-	"runtime"
-	"strings"
-	"testing"
-
 	"lang-go/internal/format"
 	"lang-go/internal/gen"
 	"lang-go/internal/genjs"
@@ -21,6 +15,11 @@ import (
 	"lang-go/internal/irinterp"
 	"lang-go/internal/load"
 	"lang-go/internal/pipeline"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"testing"
 )
 
 func conformanceRoot(t *testing.T) string {

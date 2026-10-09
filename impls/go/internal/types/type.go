@@ -7,9 +7,8 @@ package types
 // Unknown 来自无注解参数——保证现有合法程序零误杀）。
 
 import (
-	"strings"
-
 	"lang-go/internal/semantic"
+	"strings"
 )
 
 // Kind 类型构造器类别.
@@ -90,6 +89,7 @@ func ResultOk(t *Type) *Type {
 
 	return Unknown
 }
+
 func ResultErr(t *Type) *Type {
 	if t.Kind == KResult && t.Ret != nil {
 		return t.Ret

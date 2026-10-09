@@ -6,7 +6,6 @@ package refactor
 import (
 	"errors"
 	"fmt"
-
 	"lang-go/internal/semantic"
 	"lang-go/internal/syntax"
 )

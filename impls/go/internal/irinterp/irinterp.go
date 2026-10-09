@@ -16,12 +16,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
-
 	"lang-go/internal/interp"
 	"lang-go/internal/ir"
 	"lang-go/internal/prelude"
 	"lang-go/internal/semantic"
+	"strings"
 )
 
 // Machine IR 解释器.

@@ -7,13 +7,12 @@ package pipeline
 import (
 	"errors"
 	"fmt"
-	"strings"
-
 	"lang-go/internal/hir"
 	"lang-go/internal/ir"
 	"lang-go/internal/semantic"
 	"lang-go/internal/syntax"
 	"lang-go/internal/types"
+	"strings"
 )
 
 // Diagnostic 统一诊断形态.

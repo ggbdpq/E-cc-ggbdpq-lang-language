@@ -7,14 +7,13 @@ package format
 
 import (
 	"io/fs"
+	"lang-go/internal/interp"
+	"lang-go/internal/load"
+	"lang-go/internal/syntax"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"lang-go/internal/interp"
-	"lang-go/internal/load"
-	"lang-go/internal/syntax"
 )
 
 func corpusDirs(t *testing.T) []string {
