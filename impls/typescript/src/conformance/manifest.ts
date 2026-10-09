@@ -290,8 +290,8 @@ function runDifferential(c: Case, stmts: readonly StmtX[], res: CaseResult): Cas
     }
   }
 
-  // 一致性断言：三方 stdout 逐字节一致且等于期望
-  for (const [name, got] of [["解释器", out.text], ["→Go", outGo], ["→JS", outJS]] as const) {
+  // 一致性断言：四方 stdout 逐字节一致且等于期望
+  for (const [name, got] of [["解释器", out.text], ["IR 解释器", irOut.text], ["→Go", outGo], ["→JS", outJS]] as const) {
     if (got !== c.expect.stdout) {
       res.note = `${name} stdout 不一致
 期望: ${JSON.stringify(c.expect.stdout)}

@@ -1,6 +1,6 @@
 package conformance
 
-// runner.go：case 执行器。run 模式 = 三路差分（解释器 / →Go 产物 / →JS 产物）
+// runner.go：case 执行器。run 模式 = 四路差分（AST 解释器 / IR 解释器 / →Go 产物 / →JS 产物）
 // stdout 逐字节一致 + exitCode 0 + stderr 空；check 模式 = 诊断断言
 // （code + severity + primarySpan.line 多重集匹配，message 允许漂移）。
 //
@@ -72,7 +72,7 @@ func RunCase(dir string) CaseResult {
 	return res
 }
 
-// runDifferential 三路执行 + 一致性断言
+// runDifferential 四路执行 + 一致性断言.
 func runDifferential(c *Case, prog []syntax.Stmt, res CaseResult) CaseResult {
 	// 正确程序前提：前端必须零诊断
 	diags, _ := pipeline.CheckStmts(prog)
@@ -139,11 +139,12 @@ func runDifferential(c *Case, prog []syntax.Stmt, res CaseResult) CaseResult {
 		return res
 	}
 
-	// 一致性断言：三方 stdout 逐字节一致且等于期望
+	// 一致性断言：四方 stdout 逐字节一致且等于期望
 	for name, got := range map[string]string{
-		"解释器": outInterp.String(),
-		"→Go": outGo,
-		"→JS": outJS,
+		"解释器":    outInterp.String(),
+		"IR 解释器": outIRI.String(),
+		"→Go":    outGo,
+		"→JS":    outJS,
 	} {
 		if got != c.Expect.Stdout {
 			res.Note = fmt.Sprintf("%s stdout 不一致\n期望: %q\n实际: %q", name, c.Expect.Stdout, got)

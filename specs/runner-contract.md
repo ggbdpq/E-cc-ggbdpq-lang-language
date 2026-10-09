@@ -1,10 +1,10 @@
 # lang-go Runner Contract
 
-四套实现（`lang-go` Go / `lang-go-ts` TypeScript / `lang-go-py` Python / `lang-go-rs` Rust）
+五套实现（Go / TypeScript / Python / Rust / C#，入口见各自 `impls/`）
 各提供一个可执行文件，遵守本文的统一接口。**输入一律为程序目录**（目录即包，
 入口 `main.lang-go`），不接收零散文件；路径面与安全边界同 v0.1 约定。
 
-跨实现验收标准：`conformance/` 套件（14 类 33 case，见 conformance/README.md）
+跨实现验收标准：`conformance/` 套件（2026-10-04 本地清单为 16 类 151 case，数量以 `case.yaml` 清单为准）
 全绿 + 本文五动词行为一致。
 
 ## 五动词
@@ -23,7 +23,7 @@
    （specs/agent-protocol.md）；字段只加不改不删，破坏性变更升版本。
 2. **诊断稳定性**：码空间 E1xxx（词法）/ E2xxx（resolver）/ E3xxx（类型）/
    E4xxx（模式）跨实现共享；message 允许语言化差异。
-3. **差分一致性**：同一合法程序在三后端的 stdout 逐字节一致、exitCode 一致、
+3. **差分一致性**：同一合法程序在 AST/IR 解释器与 Go/JS 产物中的 stdout 逐字节一致、exitCode 一致、
    stderr 为空。例外仅限 spec 文档化的平台差异（当前唯一族：`go`/chan 的同步
    子集 vs 真 goroutine，spec §6.4）。
 4. **确定性**：映射字面量保插入序；`jsonStringify` 键按字母序；诊断按
@@ -33,4 +33,4 @@
 
 ## 版本状态
 
-- v0.8：本文成文；Go 实现全部动词可用；TS/Python/Rust 侧 runner 属各自实现版本范围。
+- v0.8：本文初次成文；此条为历史版本说明。当前五版入口与验证范围见各实现 README，不以旧版本记录代替当前验收。

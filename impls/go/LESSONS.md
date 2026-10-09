@@ -6,6 +6,8 @@
 
 ## 活跃教训
 
+- 规则：循环只消费本层 `break`，向外传播 `return`；IR 输出必须参与期望值比较。为什么：泄漏 `break` 会提前退出外层循环，吞掉 `return` 会继续执行函数；只运行 IR 或检查稳定性会漏掉稳定的错误结果。证据：仅用 Go overlay 将 `internal/irinterp/irinterp.go` 还原到修复前，运行 `go test ./internal/conformance -run 'TestConformanceSuite|TestWhileBreak' -count=1 -v`：`TestWhileBreakKeepsOuterLoopRunning` 期望 `1\n2\nafter\n`，实际 `after\n`；`generics/generic-option-chain` 期望 `Some(2)\nNone\n`，实际 `None\nNone\n`。Seen 1×（2026-10-10）。
+
 - 规则：输出设备错误必须从 `Run` 返回。为什么：忽略 `fmt.Fprint/Fprintln` 的错误会把输出失败报告成运行成功。证据：`internal/irinterp/irinterp_test.go:TestRunPropagatesOutputError`；旧代码 `print` / `println` 均报 `Run() error = <nil>, want output unavailable`。Seen 1×（2026-10-10）。
 - 规则：控制流块的转译错误必须逐层返回。为什么：遗漏 `emitBlock` 的错误使非法嵌套语句产生残缺 JS，且顶层/嵌套语义不一致。证据：`internal/genjs/genjs_test.go:TestTranspileJSPropagatesBlockError`；旧代码 `if_then` / `if_else` / `while_body` 均返回 `<nil>`，顶层正确报错。Seen 1×（2026-10-10）。
 

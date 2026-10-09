@@ -72,3 +72,43 @@ func TestParseManifest受限子集拒绝(t *testing.T) {
 		t.Errorf("合法 manifest 应通过: %v", err)
 	}
 }
+
+// CTRL-WHILE-002：break 只退出最近的循环，后续语句与外层迭代仍须执行。
+func TestWhileBreakKeepsOuterLoopRunning(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	src := `fn main() {
+    for x in [1, 2] {
+        while true {
+            break
+        }
+        println(x)
+    }
+    println("after")
+}
+`
+
+	manifest := `name: while-break-nearest-loop
+category: expressions
+ruleIds:
+  - CTRL-WHILE-002
+expect:
+  exitCode: 0
+  stdout: |
+    1
+    2
+    after
+  stderr: ""
+`
+	for name, text := range map[string]string{"main.lang-go": src, "case.yaml": manifest} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	r := RunCase(dir)
+	if !r.OK {
+		t.Fatalf("while break 应只退出内层循环: %s", r.Note)
+	}
+}

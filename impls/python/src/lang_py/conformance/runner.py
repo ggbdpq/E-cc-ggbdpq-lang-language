@@ -1,6 +1,6 @@
 """Conformance case 执行器。
 
-run 模式 = 三路差分（解释器 / →Go 产物 / →JS 产物）stdout 逐字节一致
+run 模式 = 四路差分（AST 解释器 / IR 解释器 / →Go 产物 / →JS 产物）stdout 逐字节一致
 + exitCode 0 + stderr 空；check 模式 = 诊断断言（code+ruleId+severity+line 多重集）。
 后端执行依赖宿主工具链（go build / node）：缺失时结果为 skipped——不计入通过。
 """
@@ -17,6 +17,7 @@ from ..backends.js_backend import transpile_js
 from ..contract.rules import rule_of
 from ..errors import Diagnostic, LangError, LangRuntimeError
 from ..interp.interp import Interp
+from ..irinterp.machine import Machine
 from ..loader.loader import load_program
 from ..pipeline import analyze_stmts, check_stmts
 from .manifest import Case, parse_manifest
@@ -82,6 +83,17 @@ def run_differential(c: Case, stmts, res: CaseResult) -> CaseResult:
         res.note = f"解释器执行失败: {e}"
         return res
     out_interp = buf.getvalue()
+
+    # IR 解释器同样对照独立 expected，不以输出确定性代替正确性。
+    ir_buf = io.StringIO()
+    try:
+        Machine(ir_buf).run(a.prog)
+    except Exception as e:  # noqa: BLE001
+        res.note = f"IR 解释器执行失败: {e}"
+        return res
+    if ir_buf.getvalue() != c.expect.stdout:
+        res.note = f"IR 解释器 stdout 不一致\n期望: {c.expect.stdout!r}\n实际: {ir_buf.getvalue()!r}"
+        return res
 
     # 2) →Go 产物（go build + 执行）
     def go_backend(d: str) -> str:

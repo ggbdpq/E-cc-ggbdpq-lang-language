@@ -35,7 +35,7 @@ type Stage struct {
 type VerifyResult struct {
 	Success     bool    `json:"success"`
 	Stages      []Stage `json:"stages"`
-	StdoutBytes int     `json:"stdoutBytes,omitempty"` // differential 通过时：三方一致的 stdout 字节数
+	StdoutBytes int     `json:"stdoutBytes,omitempty"` // differential 通过时：四方一致的 stdout 字节数
 	ExitCode    int     `json:"exitCode,omitempty"`
 }
 
@@ -175,10 +175,10 @@ func VerifyDir(dir string) VerifyResult {
 		ok("execute", "")
 	}
 
-	// 9) differential：三方 stdout 逐字节一致
-	if outInterp.String() != outGo || outInterp.String() != outJS {
-		return fail("differential", fmt.Sprintf("不一致\n解释器: %q\n→Go: %q\n→JS: %q",
-			outInterp.String(), outGo, outJS))
+	// 9) differential：四方 stdout 逐字节一致
+	if outInterp.String() != outIRI.String() || outInterp.String() != outGo || outInterp.String() != outJS {
+		return fail("differential", fmt.Sprintf("不一致\n解释器: %q\nIR 解释器: %q\n→Go: %q\n→JS: %q",
+			outInterp.String(), outIRI.String(), outGo, outJS))
 	}
 
 	ok("differential", fmt.Sprintf("%d 字节一致", outInterp.Len()))

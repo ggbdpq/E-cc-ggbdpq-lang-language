@@ -249,8 +249,12 @@ func (m *Machine) exec(st ir.Stmt, f *frame) (step, error) {
 			}
 
 			s, err := m.execStmts(x.Body, newFrame(f))
-			if err != nil || s.flow == flowBreak || s.flow == flowReturn {
+			if err != nil || s.flow == flowReturn {
 				return s, err
+			}
+
+			if s.flow == flowBreak {
+				return step{}, nil
 			}
 		}
 	case *ir.ForIn:
@@ -315,7 +319,7 @@ func (m *Machine) execForIn(x *ir.ForIn, f *frame) (step, error) {
 		body.vars[x.Var] = valPtr(item)
 
 		s, err := m.execStmts(x.Body, body)
-		if err != nil {
+		if err != nil || s.flow == flowReturn {
 			return s, err
 		}
 

@@ -51,7 +51,7 @@ function usage(): void {
                         [--apply] [--json]
                         语义级重构（SymbolId + 引用集，禁止 Regex）；默认只报编辑，--apply 落盘+验证闭环
   lang-go-ts verify [--json]
-                        全管线验证（parse→…→三路差分一致）
+                        全管线验证（parse→…→四路差分一致）
   lang-go-ts fmt        就地格式化当前目录 .lang-go
   lang-go-ts build      语义检查后写 out/main.go（build js 写 out/main.mjs）
   lang-go-ts bind       生成 extern "go" 声明草案（bind.d/）

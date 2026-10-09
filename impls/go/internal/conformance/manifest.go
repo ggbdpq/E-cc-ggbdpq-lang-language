@@ -1,5 +1,5 @@
 // Package conformance 实现 v0.8 一致性套件：manifest（YAML 受限子集）解析 +
-// case runner（run 三路差分 / check 诊断一致性）。套件语料在仓库顶层 conformance/，
+// case runner（run 四路差分 / check 诊断一致性）。套件语料在仓库顶层 conformance/，
 // 独立于 Go implementation——它是四套实现（Go/TS/Python/Rust）的共同真值。
 package conformance
 

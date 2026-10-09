@@ -126,7 +126,7 @@ func usage() {
                      [--apply] [--json]
                      语义级重构（SymbolId + 引用集，禁止 Regex）；默认只报编辑，--apply 落盘+验证闭环
   lang-go verify [--json]
-                     全管线验证（parse→…→三路差分一致）+ conformance 套件同为 runner contract 入口
+                     全管线验证（parse→…→四路差分一致）+ conformance 套件同为 runner contract 入口
   lang-go fmt        就地格式化当前目录 .lang-go
   lang-go build      语义检查后写 out/main.go（build js 写 out/main.mjs）
   lang-go bind       生成 extern "go" 声明草案（bind.d/）

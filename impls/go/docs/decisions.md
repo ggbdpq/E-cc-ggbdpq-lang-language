@@ -221,6 +221,8 @@ null、异常、宏、继承、隐式数值转换、包管理器、LSP、调试�
 | 91 | **IR 解释器 + 四路差分**（irinterp 复用 interp 值/Fmt/CallBuiltin）；闭包捕获经 lower 作用域继承显式保留在 IR 中 | IR 语义独立验证；宿主闭包行为不再充当规范（决策 5 的收口） |
 | 92 | **Task/Channel 宿主无关模型**（specs/concurrency.md）：同步确定子集=规范保证面，真并行=调度自由度；求值顺序成文 EVAL-*（赋值 target 地址先于右值） | go f() 语法保留不新增关键字；跨实现只锁可观察行为 |
 
+决策 91 的验收边界（2026-10-10）：`conformance` 将四路 stdout 分别与 manifest 的期望值比较，`verify` 将 IR 输出纳入差分；仅运行 IR 或检查重复执行的稳定性不足以证明语义一致。IR 的 `while` / `for` 消费本层 `break`，将 `return` 向外传播，嵌套循环不得吞掉外层迭代或函数返回。
+
 ## 错误传播边界（2026-10-10）
 
 `irinterp.Machine.Run` 的输出写入失败沿既有 error 返回边界传播，与 AST 参考解释器一致。`genjs.TranspileJS` 的控制流块复用 `emitBlock` 的错误返回；任一块转译失败即停止，不把残缺 JS 当作成功产物。标准库表驱动回归分别通过源码 → `Run` 和源码 → `TranspileJS` 验证这两个公开边界。

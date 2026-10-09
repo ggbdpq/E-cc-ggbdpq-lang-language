@@ -1,7 +1,7 @@
 // lang-ts verify 的管线：parse → resolve → typecheck → hir → ir → effect →
 // compile → execute → differential。任一阶段失败即停——后续阶段不列。
 // execute 为四方（AST Oracle / IR 解释器 / →Go 产物 / →JS 产物）；
-// differential 断言三方（解释器 / →Go / →JS）stdout 逐字节一致。
+// differential 断言四方（AST 解释器 / IR 解释器 / →Go / →JS）stdout 逐字节一致。
 
 import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -142,9 +142,9 @@ export function verifyDir(dir: string): VerifyResult {
       ok("execute");
     }
 
-    // 9) differential：三方 stdout 逐字节一致
-    if (outBuf.s !== outGo || outBuf.s !== outJS) {
-      return fail("differential", `不一致\n解释器: ${JSON.stringify(outBuf.s)}\n→Go: ${JSON.stringify(outGo)}\n→JS: ${JSON.stringify(outJS)}`);
+    // 9) differential：四方 stdout 逐字节一致
+    if (outBuf.s !== irBuf.s || outBuf.s !== outGo || outBuf.s !== outJS) {
+      return fail("differential", `不一致\n解释器: ${JSON.stringify(outBuf.s)}\nIR 解释器: ${JSON.stringify(irBuf.s)}\n→Go: ${JSON.stringify(outGo)}\n→JS: ${JSON.stringify(outJS)}`);
     }
     ok("differential", `${Buffer.byteLength(outBuf.s, "utf8")} 字节一致`);
     return { success: true, stages, stdoutBytes: Buffer.byteLength(outBuf.s, "utf8"), exitCode: 0 };

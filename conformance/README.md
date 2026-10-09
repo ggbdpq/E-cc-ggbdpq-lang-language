@@ -1,6 +1,6 @@
 # conformance/ — 跨实现一致性套件
 
-本目录是 lang-go 的**共同真值**：任何实现（Go / TypeScript / Python / Rust）跑完
+本目录是 lang-go 的**共同真值**：任何实现（Go / TypeScript / Python / Rust / C#）跑完
 同一套件全绿，即视为与语言规范行为一致。套件独立于任何实现目录。
 
 ## 布局
@@ -37,8 +37,8 @@ expect:
 
 ## mode 语义
 
-- **run**：解释器 / →Go 产物（go build 后执行）/ →JS 产物（node ESM）三方执行；
-  stdout 与期望逐字节一致、exitCode 0、stderr 空。三方输出本就要求逐字节一致，
+- **run**：AST 解释器 / IR 解释器 / →Go 产物（go build 后执行）/ →JS 产物（node ESM）四方执行；
+  stdout 与期望逐字节一致、exitCode 0、stderr 空。四方输出本就要求逐字节一致，
   故只声明一份期望。
 - **check**：程序不执行；静态诊断的 code + severity + primarySpan.line 多重集
   与期望相等。message 文本与列号允许漂移（diagnostics spec 的既定口径）。
@@ -46,7 +46,7 @@ expect:
 ## 确定性例外（文档化）
 
 - `go` 语句 + chan：解释器/→JS 为顺序确定同步子集，→Go 为真 goroutine
-  （spec §6.4）。套件只用三路结果确定的形态（`go send(ch, v)` 后主线程 `recv`）。
+  （spec §6.4）。套件只用四路结果确定的形态（`go send(ch, v)` 后主线程 `recv`）。
 - 运行时错误文本（越界、channel 空等）跨后端措辞不同，归 diagnostics spec 的
   message 漂移面，**v0.8 不进 run 模式比对**——run 模式 case 一律为正确程序。
 - `jsonStringify` 映射键按字母序输出（spec §内建两端确定）；映射字面量本身
