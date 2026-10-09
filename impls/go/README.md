@@ -32,6 +32,10 @@ go test -p 1 ./...                            # 本机编译器并发易崩，�
 
 v0.1 CLI 不接收路径参数：`lang-go run` 固定运行当前目录的 `main.lang-go`，`lang-go test` 固定扫描当前目录（安全边界：文件输入无 `..` 穿越面）。
 
+## 开发检查
+
+本地运行 `go build ./...`、`go vet ./...`、`go test ./...` 与 `~/go/bin/golangci-lint run ./...`（v2.14.0，含存量问题）。根仓库 CI 的 Go job 运行 vet 与增量 lint；lint 只阻挡 PR/push diff 新增的问题，存量按类别逐步清理。
+
 ## 目录
 
 ```

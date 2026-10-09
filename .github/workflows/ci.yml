@@ -9,6 +9,9 @@ on:
 jobs:
   go-test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -20,6 +23,12 @@ jobs:
       - name: go vet
         working-directory: impls/go
         run: go vet ./...
+      - name: golangci-lint（仅新增问题）
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.14.0
+          only-new-issues: true
+          working-directory: impls/go
       - name: go test
         working-directory: impls/go
         run: go test ./... -count=1
