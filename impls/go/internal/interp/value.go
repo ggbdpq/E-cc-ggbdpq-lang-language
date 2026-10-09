@@ -13,11 +13,16 @@ import (
 type Value interface{}
 
 type (
-	IntVal   int64
+	// IntVal 表示整数值.
+	IntVal int64
+	// FloatVal 表示浮点数值.
 	FloatVal float64
-	BoolVal  bool
-	StrVal   string
-	UnitVal  struct{}
+	// BoolVal 表示布尔值.
+	BoolVal bool
+	// StrVal 表示字符串值.
+	StrVal string
+	// UnitVal 表示无返回值.
+	UnitVal struct{}
 )
 
 type RangeVal struct{ Lo, Hi int64 }

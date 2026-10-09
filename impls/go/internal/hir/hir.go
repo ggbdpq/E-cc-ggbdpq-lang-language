@@ -150,7 +150,9 @@ type ForIn struct {
 }
 
 type (
-	Break    struct{ Node }
+	// Break 表示退出最近的循环.
+	Break struct{ Node }
+	// Continue 表示进入最近循环的下一次迭代.
 	Continue struct{ Node }
 )
 

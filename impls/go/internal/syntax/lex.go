@@ -36,7 +36,7 @@ const (
 	KwBreak
 	KwContinue
 
-	// 保留字：v0 使用即报"尚未启用".
+	// KwGo 保留字：v0 使用即报"尚未启用".
 	KwGo
 	KwChan
 	KwImport

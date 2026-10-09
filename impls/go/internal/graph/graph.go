@@ -66,7 +66,7 @@ type Graph struct {
 	depSeen map[string]bool // depends_on 去重
 }
 
-// InEdges 指向符号的边.
+// In 返回指向符号的边.
 func (g *Graph) In(id int) []Edge {
 	var out []Edge
 	for _, i := range g.in[id] {
@@ -76,7 +76,7 @@ func (g *Graph) In(id int) []Edge {
 	return out
 }
 
-// OutEdges 符号指出的边.
+// Out 返回符号指出的边.
 func (g *Graph) Out(id int) []Edge {
 	var out []Edge
 	for _, i := range g.out[id] {

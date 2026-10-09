@@ -12,3 +12,9 @@
 - 规则：诊断提取与宿主错误包装必须保留 error 链。为什么：裸类型断言丢掉包装后的 `ErrorList`，`%v` 把 JSON 的宿主错误变成不可识别的文本。证据：`TestDiagnosticsPreservesWrappedErrors/wrapped` 旧代码 `count = 0, want 1`；`TestJSONParsePreservesSyntaxError` 与 `TestJSONStringifyPreservesValueError` 旧包装无法匹配对应 JSON 错误类型。Seen 1×（2026-10-10）。
 
 - 规则：单类别自动修复后先编译，补齐新 API 必需的 import。为什么：为隔离格式器使用 `--no-config --enable-only errorlint --fix` 时，替换成 `errors.As` 不会自动添加 `errors`。证据：`internal/irinterp/irinterp.go` 编译报 `undefined: errors`，补充标准库 import 后恢复。Seen 1×（2026-10-10）。
+
+## 格式修改也需检查新增问题门禁（2026-10-10，Seen 1×）
+
+- 规则：格式类别交付后运行增量 lint；若触达行使既有告警成为新增，按相应类别单独处理。
+- 为什么：增量门禁按修改行判断，注释句号和 type 分组布局也会把旧 exported 告警暴露为新增。
+- 证据：`internal/graph/graph.go`、`internal/hir/hir.go`、`internal/interp/value.go` 等；`golangci-lint run --new-from-rev=630905f ./...` 曾报告本次修改行的 13 项 revive，独立补齐声明注释后归零。

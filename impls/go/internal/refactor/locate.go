@@ -17,7 +17,7 @@ type Sources struct {
 	ByFile  map[string]string // loader 相对路径 → 源码
 }
 
-// of span 所属文件的源码.
+// Source 返回 span 所属文件的源码.
 func (s Sources) Source(file string) string {
 	if file == "" {
 		return s.Default
