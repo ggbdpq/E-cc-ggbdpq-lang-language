@@ -53,7 +53,7 @@ fn main() {
 }
 `
 
-// aImpact 以 sampleSrc 的 area 为影响分析目标
+// aImpact 以 sampleSrc 的 area 为影响分析目标.
 func aImpact(a *pipeline.Analyzed) graph.Impact {
 	g := graph.Build(a.AST, a.Res, a.Ty, a.HIR, a.Prog, nil)
 	for _, sym := range a.Res.Symbols {

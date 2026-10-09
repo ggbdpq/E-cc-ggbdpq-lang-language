@@ -1,6 +1,6 @@
 package syntax
 
-// Span 盖章的最小校验：位置精确到 rune 偏移与列；文件归属由 load 层写
+// Span 盖章的最小校验：位置精确到 rune 偏移与列；文件归属由 load 层写.
 import "testing"
 
 func TestSpan盖章(t *testing.T) {

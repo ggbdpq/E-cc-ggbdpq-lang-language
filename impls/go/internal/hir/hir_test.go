@@ -28,7 +28,7 @@ func buildSrc(t *testing.T, src string) *Prog {
 	return Build(prog, res, ty)
 }
 
-// TestSnapshot golden 测试：dump 变更 = 协议变更，必须显式更新 testdata
+// TestSnapshot golden 测试：dump 变更 = 协议变更，必须显式更新 testdata.
 func TestSnapshot(t *testing.T) {
 	cases := map[string]string{
 		"basics": `

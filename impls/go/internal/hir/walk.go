@@ -3,7 +3,7 @@ package hir
 // Walk：HIR 的统一遍历器（测试校验、IR 降级共用）。
 // 回调序：父节点先于子节点；nil 回调跳过。
 
-// WalkProg 遍历整个程序
+// WalkProg 遍历整个程序.
 func WalkProg(p *Prog, s func(Stmt), e func(Expr), pat func(Pat)) {
 	for _, g := range p.Globals {
 		WalkStmt(g, s, e, pat)
@@ -13,14 +13,14 @@ func WalkProg(p *Prog, s func(Stmt), e func(Expr), pat func(Pat)) {
 	}
 }
 
-// WalkStmts 遍历语句序列
+// WalkStmts 遍历语句序列.
 func WalkStmts(list []Stmt, s func(Stmt), e func(Expr), pat func(Pat)) {
 	for _, st := range list {
 		WalkStmt(st, s, e, pat)
 	}
 }
 
-// WalkStmt 遍历单条语句及其子树
+// WalkStmt 遍历单条语句及其子树.
 func WalkStmt(st Stmt, s func(Stmt), e func(Expr), pat func(Pat)) {
 	if s != nil {
 		s(st)
@@ -56,7 +56,7 @@ func WalkStmt(st Stmt, s func(Stmt), e func(Expr), pat func(Pat)) {
 	}
 }
 
-// WalkExpr 遍历表达式及其子树
+// WalkExpr 遍历表达式及其子树.
 func WalkExpr(ex Expr, s func(Stmt), e func(Expr), pat func(Pat)) {
 	if e != nil {
 		e(ex)
@@ -128,7 +128,7 @@ func WalkExpr(ex Expr, s func(Stmt), e func(Expr), pat func(Pat)) {
 	}
 }
 
-// WalkPat 遍历模式及其子模式
+// WalkPat 遍历模式及其子模式.
 func WalkPat(p Pat, s func(Stmt), e func(Expr), pat func(Pat)) {
 	if pat != nil {
 		pat(p)

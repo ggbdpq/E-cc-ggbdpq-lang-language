@@ -11,7 +11,7 @@ import (
 	"lang-go/internal/syntax"
 )
 
-// RemoveCheck safe remove 的可行性检查结果
+// RemoveCheck safe remove 的可行性检查结果.
 type RemoveCheck struct {
 	Removable bool
 	Reason    string
@@ -19,7 +19,7 @@ type RemoveCheck struct {
 	RefSites  []string // 引用位置描述
 }
 
-// SafeRemoveCheck 顶层 fn / 全局变量的删除可行性检查
+// SafeRemoveCheck 顶层 fn / 全局变量的删除可行性检查.
 func SafeRemoveCheck(prog []syntax.Stmt, res *semantic.Result, target *semantic.Symbol) (RemoveCheck, error) {
 	if target.Kind != semantic.KFn && target.Kind != semantic.KVar {
 		return RemoveCheck{}, fmt.Errorf("safe remove 仅支持顶层 fn 与全局变量（目标 kind=%s）", kindName(target.Kind))
@@ -105,7 +105,7 @@ func walkRemoveExpr(e syntax.Expr, res *semantic.Result, target *semantic.Symbol
 	}, nil)
 }
 
-// SafeRemoveSpan 可删除时返回声明节点的完整删除区间
+// SafeRemoveSpan 可删除时返回声明节点的完整删除区间.
 func SafeRemoveSpan(prog []syntax.Stmt, res *semantic.Result, target *semantic.Symbol) (syntax.Span, error) {
 	switch target.Kind {
 	case semantic.KFn:
@@ -124,7 +124,7 @@ func SafeRemoveSpan(prog []syntax.Stmt, res *semantic.Result, target *semantic.S
 	return syntax.Span{}, errors.New("不支持的定义定位")
 }
 
-// SafeRemoveEdits 可删除时给出删除编辑：区间吞掉声明后的单个换行，避免残留空行
+// SafeRemoveEdits 可删除时给出删除编辑：区间吞掉声明后的单个换行，避免残留空行.
 func SafeRemoveEdits(prog []syntax.Stmt, srcs Sources, res *semantic.Result, target *semantic.Symbol) ([]edit.TextEdit, error) {
 	span, err := SafeRemoveSpan(prog, res, target)
 	if err != nil {

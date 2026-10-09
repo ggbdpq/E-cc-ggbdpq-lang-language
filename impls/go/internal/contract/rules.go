@@ -2,7 +2,7 @@
 // Rule ID 与诊断码同为跨实现契约：一经发布不可改义；新码追加时同步本表与 specs/rules.md。
 package contract
 
-// CodeToRule 诊断码 → Rule ID（E2009 空号保留）
+// CodeToRule 诊断码 → Rule ID（E2009 空号保留）.
 var CodeToRule = map[string]string{
 	"E1001": "LEX-ALL",
 	"E2001": "NAME-DUP-003",
@@ -33,5 +33,5 @@ var CodeToRule = map[string]string{
 	"E4003": "MATCH-KIND-001",
 }
 
-// RuleOf 查询码对应 Rule ID；未知码返回空串（协议允许缺省）
+// RuleOf 查询码对应 Rule ID；未知码返回空串（协议允许缺省）.
 func RuleOf(code string) string { return CodeToRule[code] }

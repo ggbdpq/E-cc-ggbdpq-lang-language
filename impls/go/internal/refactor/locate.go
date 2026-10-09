@@ -18,7 +18,7 @@ type Sources struct {
 	ByFile  map[string]string // loader 相对路径 → 源码
 }
 
-// of span 所属文件的源码
+// of span 所属文件的源码.
 func (s Sources) Source(file string) string {
 	if file == "" {
 		return s.Default
@@ -29,13 +29,13 @@ func (s Sources) Source(file string) string {
 	return s.Default
 }
 
-// declInfo 函数声明 + 符号
+// declInfo 函数声明 + 符号.
 type declInfo struct {
 	Decl *syntax.FnDecl
 	Sym  *semantic.Symbol
 }
 
-// collectFnDecls 收集全部函数声明（顶层/嵌套/方法）
+// collectFnDecls 收集全部函数声明（顶层/嵌套/方法）.
 func collectFnDecls(prog []syntax.Stmt, res *semantic.Result) []declInfo {
 	var out []declInfo
 	seen := map[syntax.Stmt]bool{}
@@ -56,7 +56,7 @@ func collectFnDecls(prog []syntax.Stmt, res *semantic.Result) []declInfo {
 	return out
 }
 
-// declNameSpan 定位符号声明中「名字 token」的绝对区间
+// declNameSpan 定位符号声明中「名字 token」的绝对区间.
 func declNameSpan(prog []syntax.Stmt, srcs Sources, res *semantic.Result, target *semantic.Symbol) (syntax.Span, error) {
 	switch target.Kind {
 	case semantic.KFn:
@@ -98,7 +98,7 @@ func declNameSpan(prog []syntax.Stmt, srcs Sources, res *semantic.Result, target
 	return syntax.Span{}, errors.New("不支持的定义定位")
 }
 
-// findLetStmt 按符号找 LetStmt
+// findLetStmt 按符号找 LetStmt.
 func findLetStmt(prog []syntax.Stmt, res *semantic.Result, target *semantic.Symbol) *syntax.LetStmt {
 	var found *syntax.LetStmt
 
@@ -113,7 +113,7 @@ func findLetStmt(prog []syntax.Stmt, res *semantic.Result, target *semantic.Symb
 	return found
 }
 
-// paramOwner 参数所属函数符号与参数序号（FnParams 内下标；方法含接收者 0 位）
+// paramOwner 参数所属函数符号与参数序号（FnParams 内下标；方法含接收者 0 位）.
 func paramOwner(res *semantic.Result, target *semantic.Symbol) (*semantic.Symbol, int, bool) {
 	for fnID, params := range res.FnParams {
 		for i, p := range params {
@@ -138,7 +138,7 @@ func findSymByID(res *semantic.Result, id semantic.SymbolID) *semantic.Symbol {
 	return nil
 }
 
-// findFnDeclBySym 按函数符号找声明节点
+// findFnDeclBySym 按函数符号找声明节点.
 func findFnDeclBySym(prog []syntax.Stmt, res *semantic.Result, owner *semantic.Symbol) *syntax.FnDecl {
 	for _, d := range collectFnDecls(prog, res) {
 		if d.Sym == owner {
@@ -163,7 +163,7 @@ type spanTok struct {
 	absCol   int // 绝对列（1 基）
 }
 
-// spanTokens 声明区间的词法切分（坐标换算为绝对行列）
+// spanTokens 声明区间的词法切分（坐标换算为绝对行列）.
 func spanTokens(sp syntax.Span, src string) []spanTok {
 	runes := []rune(src)
 	lo, hi := sp.Start.Offset, sp.End.Offset
@@ -201,7 +201,7 @@ func spanTokens(sp syntax.Span, src string) []spanTok {
 	return out
 }
 
-// scanNameAfterFn fn 声明内的名字 token：fn 后（方法则越过接收者括号与 `.`）的第一个标识符
+// scanNameAfterFn fn 声明内的名字 token：fn 后（方法则越过接收者括号与 `.`）的第一个标识符.
 func scanNameAfterFn(sp syntax.Span, srcs Sources, hasRecv bool) (syntax.Span, error) {
 	toks := spanTokens(sp, srcs.Source(sp.File))
 	i := 0
@@ -237,7 +237,7 @@ func scanNameAfterFn(sp syntax.Span, srcs Sources, hasRecv bool) (syntax.Span, e
 	return spanTokAbs(sp, toks[i]), nil
 }
 
-// firstIdentSpan 区间内第一个标识符 token
+// firstIdentSpan 区间内第一个标识符 token.
 func firstIdentSpan(sp syntax.Span, srcs Sources) (syntax.Span, error) {
 	toks := spanTokens(sp, srcs.Source(sp.File))
 	for _, t := range toks {
@@ -248,7 +248,7 @@ func firstIdentSpan(sp syntax.Span, srcs Sources) (syntax.Span, error) {
 	return syntax.Span{}, errors.New("未找到标识符")
 }
 
-// paramIdentSpan 第 group 组括号内第 seg 段的首个标识符（参数名）
+// paramIdentSpan 第 group 组括号内第 seg 段的首个标识符（参数名）.
 func paramIdentSpan(sp syntax.Span, srcs Sources, group, seg int) (syntax.Span, error) {
 	toks := spanTokens(sp, srcs.Source(sp.File))
 	gi := 0
@@ -317,7 +317,7 @@ func firstIdentInSeg(sp syntax.Span, toks []spanTok) (syntax.Span, error) {
 	return syntax.Span{}, errors.New("参数段无标识符")
 }
 
-// spanTokAbs token → 绝对 Span（spanTokens 已换算为绝对坐标）
+// spanTokAbs token → 绝对 Span（spanTokens 已换算为绝对坐标）.
 func spanTokAbs(sp syntax.Span, t spanTok) syntax.Span {
 	return syntax.Span{
 		File:  sp.File,

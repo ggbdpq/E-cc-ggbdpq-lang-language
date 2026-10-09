@@ -162,7 +162,7 @@ func stripSpecial(s string) string {
 
 // ———— video.go / list.go 纯函数逐字拷贝 ————
 
-// dashStream 仅保留纯函数用到的字段（原结构其余字段属网络层）
+// dashStream 仅保留纯函数用到的字段（原结构其余字段属网络层）.
 type dashStream struct {
 	Codecs    string `json:"codecs"`
 	Codecid   int    `json:"codecid"`
@@ -170,7 +170,7 @@ type dashStream struct {
 	Height    int    `json:"height"`
 }
 
-// codecName 原样拷贝
+// codecName 原样拷贝.
 func codecName(s dashStream) string {
 	switch {
 	case strings.HasPrefix(s.Codecs, "avc"), s.Codecid == 7:
@@ -184,7 +184,7 @@ func codecName(s dashStream) string {
 	}
 }
 
-// pickCodec 逻辑原样（方法接收者的 b.CodecPref 改为参数 pref）
+// pickCodec 逻辑原样（方法接收者的 b.CodecPref 改为参数 pref）.
 func pickCodec(streams []dashStream, pref string) dashStream {
 	score := func(s dashStream) int {
 		name := codecName(s)
@@ -227,7 +227,7 @@ func pickCodec(streams []dashStream, pref string) dashStream {
 	return best
 }
 
-// fpsOf 原样拷贝
+// fpsOf 原样拷贝.
 func fpsOf(fr string) int {
 	if fr == "" {
 		return 0
@@ -246,19 +246,19 @@ func fpsOf(fr string) int {
 	return int(n/d + 0.5)
 }
 
-// pageOf 原样拷贝
+// pageOf 原样拷贝.
 func pageOf(u *url.URL) int {
 	p, _ := strconv.Atoi(u.Query().Get("p"))
 	return p
 }
 
-// refList 对应 core.Ref 的最小面
+// refList 对应 core.Ref 的最小面.
 type refList struct {
 	BVID  string `json:"bvid"`
 	Title string `json:"title"`
 }
 
-// parseArchives 原样拷贝
+// parseArchives 原样拷贝.
 func parseArchives(data []byte) ([]refList, error) {
 	var list struct {
 		Archives []refList `json:"archives"`
@@ -276,7 +276,7 @@ func parseArchives(data []byte) ([]refList, error) {
 	return refs, nil
 }
 
-// listTarget 与 probeList 头部的路径决策逻辑一致（提取为可测函数）
+// listTarget 与 probeList 头部的路径决策逻辑一致（提取为可测函数）.
 type listTarget struct{ Mid, Kind, SID string }
 
 func listKindOf(u *url.URL) (listTarget, error) {

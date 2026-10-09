@@ -6,19 +6,19 @@ package syntax
 
 import "strings"
 
-// Comment 一条注释 trivia
+// Comment 一条注释 trivia.
 type Comment struct {
 	Span Span
 	Text string // 原文（含 // 前缀；不含换行与行尾 \r）
 }
 
-// Line 注释所在行（1 基）
+// Line 注释所在行（1 基）.
 func (c Comment) Line() int { return c.Span.Start.Line }
 
-// Col 注释起始列（1 基）
+// Col 注释起始列（1 基）.
 func (c Comment) Col() int { return c.Span.Start.Col }
 
-// ScanComments 扫描源码中的全部注释（依出现序）
+// ScanComments 扫描源码中的全部注释（依出现序）.
 func ScanComments(src string) []Comment {
 	runes := []rune(src)
 	var out []Comment

@@ -7,13 +7,13 @@ import (
 	"lang-go/internal/syntax"
 )
 
-// Check 源码检查 → 契约负载
+// Check 源码检查 → 契约负载.
 func Check(src string) CheckJSON {
 	diags, _ := pipeline.Check(src)
 	return diagsJSON(diags)
 }
 
-// CheckStmts 已解析语句序列检查（装载器合并程序）
+// CheckStmts 已解析语句序列检查（装载器合并程序）.
 func CheckStmts(prog []syntax.Stmt) CheckJSON {
 	diags, _ := pipeline.CheckStmts(prog)
 	return diagsJSON(diags)
@@ -41,7 +41,7 @@ func diagsJSON(diags []pipeline.Diagnostic) CheckJSON {
 	return out
 }
 
-// lineSpan 行级定位（v0.4：诊断到行，列恒为 1；文档化于 specs/source-span.md）
+// lineSpan 行级定位（v0.4：诊断到行，列恒为 1；文档化于 specs/source-span.md）.
 func lineSpan(line int) *Span {
 	if line < 1 {
 		line = 0

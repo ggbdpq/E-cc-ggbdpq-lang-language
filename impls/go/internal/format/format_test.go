@@ -70,7 +70,7 @@ func Test格式化幂等(t *testing.T) {
 	}
 }
 
-// copyLangGoDir 把 root 下全部 .lang-go 按相对路径拷到 dst（保留子目录结构）
+// copyLangGoDir 把 root 下全部 .lang-go 按相对路径拷到 dst（保留子目录结构）.
 func copyLangGoDir(t *testing.T, root, dst string) {
 	t.Helper()
 	for _, f := range langGoFiles(t, root) {

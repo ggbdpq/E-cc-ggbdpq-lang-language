@@ -9,7 +9,7 @@ import (
 	"lang-go/internal/semantic"
 )
 
-// collectHIRMethodRefs 收集 HIR 语句中指向 target 的方法调用编辑（newName 为替换文本）
+// collectHIRMethodRefs 收集 HIR 语句中指向 target 的方法调用编辑（newName 为替换文本）.
 func collectHIRMethodRefs(st hir.Stmt, res *semantic.Result, target *semantic.Symbol, newName string, edits *[]edit.TextEdit) {
 	switch x := st.(type) {
 	case *hir.Let:
@@ -52,7 +52,7 @@ func collectHIRMethodRefs(st hir.Stmt, res *semantic.Result, target *semantic.Sy
 	}
 }
 
-// collectHIREdit 递归收集 HIR 表达式中的方法调用编辑
+// collectHIREdit 递归收集 HIR 表达式中的方法调用编辑.
 func collectHIREdit(e hir.Expr, res *semantic.Result, target *semantic.Symbol, newName string, edits *[]edit.TextEdit) {
 	switch x := e.(type) {
 	case *hir.MethodCall:

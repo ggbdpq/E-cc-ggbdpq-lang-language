@@ -13,7 +13,7 @@ import (
 	"lang-go/internal/types"
 )
 
-// Node 图节点（Symbol 粒度；字段/枚举 case 以 struct/enum 节点的 Fields 列表表达）
+// Node 图节点（Symbol 粒度；字段/枚举 case 以 struct/enum 节点的 Fields 列表表达）.
 type Node struct {
 	ID        int
 	Kind      string
@@ -27,7 +27,7 @@ type Node struct {
 	Immutable bool
 }
 
-// EdgeKind 边类别
+// EdgeKind 边类别.
 type EdgeKind string
 
 const (
@@ -50,7 +50,7 @@ type Edge struct {
 	File string
 }
 
-// Graph 内存语义图
+// Graph 内存语义图.
 type Graph struct {
 	Nodes map[int]*Node
 	Order []int // 节点 ID（构建序）
@@ -66,7 +66,7 @@ type Graph struct {
 	depSeen map[string]bool // depends_on 去重
 }
 
-// InEdges 指向符号的边
+// InEdges 指向符号的边.
 func (g *Graph) In(id int) []Edge {
 	var out []Edge
 	for _, i := range g.in[id] {
@@ -75,7 +75,7 @@ func (g *Graph) In(id int) []Edge {
 	return out
 }
 
-// OutEdges 符号指出的边
+// OutEdges 符号指出的边.
 func (g *Graph) Out(id int) []Edge {
 	var out []Edge
 	for _, i := range g.out[id] {
@@ -84,13 +84,13 @@ func (g *Graph) Out(id int) []Edge {
 	return out
 }
 
-// Node 按符号 ID 取节点
+// Node 按符号 ID 取节点.
 func (g *Graph) Node(id int) (*Node, bool) {
 	n, ok := g.Nodes[id]
 	return n, ok
 }
 
-// Build 从全前端产物构建语义图
+// Build 从全前端产物构建语义图.
 func Build(prog []syntax.Stmt, res *semantic.Result, ty *types.Result, h *hir.Prog, irp *ir.Prog, files []load.FileInfo) *Graph {
 	g := &Graph{
 		Nodes:         map[int]*Node{},
@@ -191,7 +191,7 @@ func kindStr(k semantic.Kind) string {
 	return "unknown"
 }
 
-// collectHIRStmts 收集 HIR 语句中的 call/spawn/method 边
+// collectHIRStmts 收集 HIR 语句中的 call/spawn/method 边.
 func collectHIRStmts(list []hir.Stmt, from int, g *Graph) {
 	for _, st := range list {
 		collectHIRStmt(st, from, g)
@@ -237,7 +237,7 @@ func collectHIRStmt(st hir.Stmt, from int, g *Graph) {
 
 func argsOf(args []hir.Expr) []hir.Expr { return args }
 
-// collectHIRExpr 递归收集表达式中的 call/method/spawn 边
+// collectHIRExpr 递归收集表达式中的 call/method/spawn 边.
 func collectHIRExpr(e hir.Expr, from int, g *Graph) {
 	switch x := e.(type) {
 	case *hir.Ctor:

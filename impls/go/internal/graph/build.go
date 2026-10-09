@@ -18,7 +18,7 @@ type refCtx struct {
 	depSeen  map[string]bool // depends_on 去重（file\x00module）
 }
 
-// collectRefs 引用/写入/类型边 + 文件级 depends_on
+// collectRefs 引用/写入/类型边 + 文件级 depends_on.
 func (g *Graph) collectRefs(prog []syntax.Stmt, res *semantic.Result) {
 	c := &refCtx{g: g, res: res, fnID: 0}
 
@@ -127,7 +127,7 @@ func (c *refCtx) expr(e syntax.Expr) {
 	}, nil)
 }
 
-// addEdge 统一入口（同时记录文件级 depends_on）
+// addEdge 统一入口（同时记录文件级 depends_on）.
 func (g *Graph) addEdge(e Edge) {
 	g.Edges = append(g.Edges, e)
 	idx := len(g.Edges) - 1

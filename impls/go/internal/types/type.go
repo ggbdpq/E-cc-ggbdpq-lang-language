@@ -12,7 +12,7 @@ import (
 	"lang-go/internal/semantic"
 )
 
-// Kind 类型构造器类别
+// Kind 类型构造器类别.
 type Kind uint8
 
 const (
@@ -54,7 +54,7 @@ type Type struct {
 	Name   string // KTypeArg：泛型参数名
 }
 
-// 预载原始类型单例
+// 预载原始类型单例.
 var (
 	Int     = &Type{Kind: KInt}
 	Float   = &Type{Kind: KFloat}
@@ -82,7 +82,7 @@ func StructOf(sym *semantic.Symbol) *Type  { return &Type{Kind: KStruct, Sym: sy
 func EnumOf(sym *semantic.Symbol) *Type    { return &Type{Kind: KEnum, Sym: sym} }
 func TypeArgOf(sym *semantic.Symbol) *Type { return &Type{Kind: KTypeArg, Sym: sym} }
 
-// ResultOk / ResultErr Result 的 T / E 侧
+// ResultOk / ResultErr Result 的 T / E 侧.
 func ResultOk(t *Type) *Type {
 	if t.Kind == KResult && len(t.Params) == 1 {
 		return t.Params[0]
@@ -96,7 +96,7 @@ func ResultErr(t *Type) *Type {
 	return Unknown
 }
 
-// Equal 结构同一（Struct/Enum 按符号同一——名义类型；TypeArg 为擦除占位，彼此同一）
+// Equal 结构同一（Struct/Enum 按符号同一——名义类型；TypeArg 为擦除占位，彼此同一）.
 func Equal(a, b *Type) bool {
 	if a == b {
 		return true
@@ -130,7 +130,7 @@ func Equal(a, b *Type) bool {
 	}
 }
 
-// laxAny 宽松类型：参与即放行（动态边界/推断缺口/泛型擦除/错误传播）
+// laxAny 宽松类型：参与即放行（动态边界/推断缺口/泛型擦除/错误传播）.
 func laxAny(t *Type) bool {
 	k := t.Kind
 	return k == KAny || k == KUnknown || k == KInvalid || k == KTypeArg
@@ -171,15 +171,15 @@ func Assignable(to, from *Type) bool {
 	return Equal(to, from)
 }
 
-// IsNumeric 是否数值类型
+// IsNumeric 是否数值类型.
 func IsNumeric(t *Type) bool { return t.Kind == KInt || t.Kind == KFloat }
 
-// IsConcrete 是否具体类型（非 Any/Unknown/Invalid）
+// IsConcrete 是否具体类型（非 Any/Unknown/Invalid）.
 func IsConcrete(t *Type) bool {
 	return t != nil && t.Kind != KAny && t.Kind != KUnknown && t.Kind != KInvalid
 }
 
-// String 诊断与 dump 用类型名（贴近源码写法）
+// String 诊断与 dump 用类型名（贴近源码写法）.
 func (t *Type) String() string {
 	if t == nil {
 		return "unknown"

@@ -14,10 +14,10 @@ import (
 	"lang-go/internal/types"
 )
 
-// NodeID 编译内稳定节点编号（先序递增）
+// NodeID 编译内稳定节点编号（先序递增）.
 type NodeID int
 
-// Node 元数据嵌入块（Span 来自解析器盖章，HIR 保留供契约层输出）
+// Node 元数据嵌入块（Span 来自解析器盖章，HIR 保留供契约层输出）.
 type Node struct {
 	ID   NodeID
 	Line int
@@ -36,7 +36,7 @@ type Prog struct {
 	Main    *Fn   // 顶层 main（可空）
 }
 
-// Fn 函数/方法/extern 声明
+// Fn 函数/方法/extern 声明.
 type Fn struct {
 	Node
 	Name       string
@@ -84,13 +84,13 @@ type Case struct {
 
 type Stmt interface{ isStmt() }
 
-// Expr 携带元数据访问器
+// Expr 携带元数据访问器.
 type Expr interface {
 	isExpr()
 	Meta() *Node
 }
 
-// Typ 表达式语义类型
+// Typ 表达式语义类型.
 func Typ(e Expr) *types.Type {
 	if e == nil || e.Meta() == nil || e.Meta().Typ == nil {
 		return types.Unknown
@@ -98,7 +98,7 @@ func Typ(e Expr) *types.Type {
 	return e.Meta().Typ
 }
 
-// Let let/var 绑定
+// Let let/var 绑定.
 type Let struct {
 	Node
 	Name    string
@@ -106,7 +106,7 @@ type Let struct {
 	Init    Expr
 }
 
-// Assign 赋值/复合赋值；Target 为写位置（LocalRef / Field / Index）
+// Assign 赋值/复合赋值；Target 为写位置（LocalRef / Field / Index）.
 type Assign struct {
 	Node
 	Target Expr
@@ -114,13 +114,13 @@ type Assign struct {
 	RHS    Expr
 }
 
-// Eval 表达式语句（求值后丢弃）
+// Eval 表达式语句（求值后丢弃）.
 type Eval struct {
 	Node
 	X Expr
 }
 
-// Return return；Val 为 nil 表示裸 return
+// Return return；Val 为 nil 表示裸 return.
 type Return struct {
 	Node
 	Val Expr
@@ -139,7 +139,7 @@ type While struct {
 	Body []Stmt
 }
 
-// ForIn for x in iter；VarType 为迭代元素类型
+// ForIn for x in iter；VarType 为迭代元素类型.
 type ForIn struct {
 	Node
 	Var     string
@@ -151,14 +151,14 @@ type ForIn struct {
 type Break struct{ Node }
 type Continue struct{ Node }
 
-// Spawn go <fn 调用>（目标已由 resolver 约束为顶层 fn）
+// Spawn go <fn 调用>（目标已由 resolver 约束为顶层 fn）.
 type Spawn struct {
 	Node
 	Fn   *semantic.Symbol
 	Args []Expr
 }
 
-// FnStmt 函数体内嵌套 fn 声明
+// FnStmt 函数体内嵌套 fn 声明.
 type FnStmt struct {
 	Node
 	Fn *Fn
@@ -184,32 +184,32 @@ type Lit struct {
 	B    bool
 }
 
-// LocalRef 局部/全局绑定读取（写目标复用此节点）
+// LocalRef 局部/全局绑定读取（写目标复用此节点）.
 type LocalRef struct {
 	Node
 	Name string
 }
 
-// FnRef fn 引用（函数值）
+// FnRef fn 引用（函数值）.
 type FnRef struct {
 	Node
 	Name string
 }
 
-// BuiltinRef 内建函数值引用
+// BuiltinRef 内建函数值引用.
 type BuiltinRef struct {
 	Node
 	Name string
 }
 
-// Ctor 构造器调用（裸零参引用即空参调用）
+// Ctor 构造器调用（裸零参引用即空参调用）.
 type Ctor struct {
 	Node
 	CtorSym *semantic.Symbol
 	Args    []Expr
 }
 
-// Call 用户 fn（Fn 非 nil）/ 内建（Builtin 非空）/ 表达式 callee（Callee 非 nil）
+// Call 用户 fn（Fn 非 nil）/ 内建（Builtin 非空）/ 表达式 callee（Callee 非 nil）.
 type Call struct {
 	Node
 	Fn      *semantic.Symbol
@@ -218,7 +218,7 @@ type Call struct {
 	Args    []Expr
 }
 
-// MethodCall 方法调用（脱糖自 obj.m(args)）或字段函数值调用（Method 为 nil）
+// MethodCall 方法调用（脱糖自 obj.m(args)）或字段函数值调用（Method 为 nil）.
 type MethodCall struct {
 	Node
 	Recv   Expr
@@ -228,14 +228,14 @@ type MethodCall struct {
 	NameSp syntax.Span // 方法名的 token 区间（rename 用；字段函数值调用为字段名区间）
 }
 
-// Unary 一元运算（- ! &）
+// Unary 一元运算（- ! &）.
 type Unary struct {
 	Node
 	Op syntax.Kind
 	X  Expr
 }
 
-// Binary 二元运算（不含短路）
+// Binary 二元运算（不含短路）.
 type Binary struct {
 	Node
 	Op syntax.Kind
@@ -243,13 +243,13 @@ type Binary struct {
 	R  Expr
 }
 
-// AndThen a && b（短路）
+// AndThen a && b（短路）.
 type AndThen struct {
 	Node
 	L, R Expr
 }
 
-// OrElse a || b（短路）
+// OrElse a || b（短路）.
 type OrElse struct {
 	Node
 	L, R Expr
@@ -272,14 +272,14 @@ type Slice struct {
 	Lo, Hi Expr
 }
 
-// Field 字段读取（/写目标）
+// Field 字段读取（/写目标）.
 type Field struct {
 	Node
 	Obj  Expr
 	Name string
 }
 
-// Try e? —— Result 解包与传播（checker 已约束所在函数返回 Result）
+// Try e? —— Result 解包与传播（checker 已约束所在函数返回 Result）.
 type Try struct {
 	Node
 	X Expr
@@ -306,7 +306,7 @@ type SliceLit struct {
 	Elems []Expr
 }
 
-// Match match 表达式；Kind 为 checker 分类结论
+// Match match 表达式；Kind 为 checker 分类结论.
 type Match struct {
 	Node
 	Scrut Expr
@@ -341,7 +341,7 @@ type CtorPat struct {
 	Subs []Pat
 }
 
-// FnLit 匿名函数
+// FnLit 匿名函数.
 type FnLit struct {
 	Node
 	Params []Param

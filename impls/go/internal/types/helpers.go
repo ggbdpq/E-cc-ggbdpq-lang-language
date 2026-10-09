@@ -6,7 +6,7 @@ import (
 	"lang-go/internal/syntax"
 )
 
-// opName 复合赋值运算符的诊断名
+// opName 复合赋值运算符的诊断名.
 func opName(k syntax.Kind) string {
 	switch k {
 	case syntax.PlusAssign:
@@ -23,7 +23,7 @@ func opName(k syntax.Kind) string {
 	return "?"
 }
 
-// joinNames 逗号连接 case 名
+// joinNames 逗号连接 case 名.
 func joinNames(names []string) string {
 	return strings.Join(names, ", ")
 }

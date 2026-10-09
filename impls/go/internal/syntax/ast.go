@@ -1,21 +1,21 @@
 package syntax
 
-// Node 语法树节点统一带行号
+// Node 语法树节点统一带行号.
 type Node interface{ Pos() int }
 
-// Spanned 携带源码区间的节点（v0.4 Agent Contract 用；Span 与 Line 同源于解析器）
+// Spanned 携带源码区间的节点（v0.4 Agent Contract 用；Span 与 Line 同源于解析器）.
 type Spanned interface {
 	NodeSpan() *Span
 }
 
-// Position 源码位置：Offset 为 0 基 rune 偏移，Line/Col 为 1 基
+// Position 源码位置：Offset 为 0 基 rune 偏移，Line/Col 为 1 基.
 type Position struct {
 	Offset int
 	Line   int
 	Col    int
 }
 
-// Span 源码区间 [Start, End)
+// Span 源码区间 [Start, End).
 type Span struct {
 	File  string
 	Start Position
@@ -103,7 +103,7 @@ type IndexEx struct {
 	Sp   Span
 }
 
-// SliceEx a[lo:hi]，lo/hi 必填
+// SliceEx a[lo:hi]，lo/hi 必填.
 type SliceEx struct {
 	Obj  Expr
 	Lo   Expr
@@ -119,7 +119,7 @@ type FieldEx struct {
 	Sp   Span
 }
 
-// TryEx e? —— Result 传播
+// TryEx e? —— Result 传播.
 type TryEx struct {
 	X    Expr
 	Line int
@@ -169,7 +169,7 @@ type MatchEx struct {
 	Sp    Span
 }
 
-// FnLit 匿名函数表达式
+// FnLit 匿名函数表达式.
 type FnLit struct {
 	TypeParams []string
 	Params     []Param
@@ -192,14 +192,14 @@ type BindPat struct {
 	Sp   Span
 }
 
-// LitPat 字面量模式（Int/Float/Str/Bool）
+// LitPat 字面量模式（Int/Float/Str/Bool）.
 type LitPat struct {
 	Val  Expr
 	Line int
 	Sp   Span
 }
 
-// CasePat 枚举构造模式，Subs 为载荷子模式
+// CasePat 枚举构造模式，Subs 为载荷子模式.
 type CasePat struct {
 	Name string
 	Subs []Pat
@@ -312,21 +312,21 @@ type EnumDecl struct {
 	Sp         Span
 }
 
-// GoStmt go <调用>：后台任务，主函数结束前 join（decisions #57）
+// GoStmt go <调用>：后台任务，主函数结束前 join（decisions #57）.
 type GoStmt struct {
 	Call *CallEx
 	Line int
 	Sp   Span
 }
 
-// ImportStmt import "./md5"（装载器在合并前展开，解释器不会执行到）
+// ImportStmt import "./md5"（装载器在合并前展开，解释器不会执行到）.
 type ImportStmt struct {
 	Path string
 	Line int
 	Sp   Span
 }
 
-// ExternDecl extern "go" { fn 签名 } 声明块：宿主函数手写签名（decisions #17/#35）
+// ExternDecl extern "go" { fn 签名 } 声明块：宿主函数手写签名（decisions #17/#35）.
 type ExternDecl struct {
 	Host string
 	Fns  []*FnDecl // 无函数体
@@ -347,7 +347,7 @@ type MapType struct{ Key, Val TypeEx }
 
 type PtrType struct{ Elem TypeEx }
 
-// FnType 函数类型：fn(int, string): bool。v0 解释器不检查，→Go 转译需要它生成签名
+// FnType 函数类型：fn(int, string): bool。v0 解释器不检查，→Go 转译需要它生成签名.
 type FnType struct {
 	Params []TypeEx
 	Ret    TypeEx
@@ -477,7 +477,7 @@ func (n *Unary) NodeSpan() *Span        { return &n.Sp }
 func (n *WhileStmt) NodeSpan() *Span    { return &n.Sp }
 func (n *WildPat) NodeSpan() *Span      { return &n.Sp }
 
-// 编译期保证：所有带 Sp 的节点都实现 Spanned（漏一个即编译失败）
+// 编译期保证：所有带 Sp 的节点都实现 Spanned（漏一个即编译失败）.
 var (
 	_ Spanned = (*Arm)(nil)
 	_ Spanned = (*ArrLit)(nil)

@@ -24,7 +24,7 @@ import (
 	"lang-go/internal/semantic"
 )
 
-// Machine IR 解释器
+// Machine IR 解释器.
 type Machine struct {
 	Out io.Writer
 
@@ -65,7 +65,7 @@ func (f *frame) slot(l *ir.Local) **interp.Value {
 	return nil
 }
 
-// New 构造 Machine（不执行）
+// New 构造 Machine（不执行）.
 func New(out io.Writer) *Machine {
 	m := &Machine{
 		Out:         out,
@@ -90,7 +90,7 @@ func New(out io.Writer) *Machine {
 	return m
 }
 
-// Run 执行程序：声明注册 → 全局初始化（MODULE-INIT-005 合并序）→ 调 main
+// Run 执行程序：声明注册 → 全局初始化（MODULE-INIT-005 合并序）→ 调 main.
 func (m *Machine) Run(p *ir.Prog) error {
 	m.globals = newFrame(nil)
 	for _, sd := range p.Structs {
@@ -133,7 +133,7 @@ func (m *Machine) Run(p *ir.Prog) error {
 	return nil
 }
 
-// indexGlobal 注册全局符号槽位（Sym.ID → 槽）
+// indexGlobal 注册全局符号槽位（Sym.ID → 槽）.
 func (m *Machine) indexGlobal(l *ir.Local) {
 	if l.Sym != nil {
 		if p, ok := m.globals.vars[l]; ok {
@@ -142,7 +142,7 @@ func (m *Machine) indexGlobal(l *ir.Local) {
 	}
 }
 
-// globalSlot 引用侧兜底：Local 实例不同但符号相同的全局槽
+// globalSlot 引用侧兜底：Local 实例不同但符号相同的全局槽.
 func (m *Machine) globalSlot(l *ir.Local) **interp.Value {
 	if l.Sym != nil {
 		if p, ok := m.globalSlots[int64(l.Sym.ID)]; ok {
@@ -816,7 +816,7 @@ func (m *Machine) callFnVal(fv *irFnVal, args []interp.Value) (interp.Value, err
 	return nil, errors.New("空函数值不可调用")
 }
 
-// execBody 执行函数体；Err 传播（tryErr）到函数边界合成返回值（RESULT-TRY-003）
+// execBody 执行函数体；Err 传播（tryErr）到函数边界合成返回值（RESULT-TRY-003）.
 func (m *Machine) execBody(body []ir.Stmt, f *frame) (interp.Value, error) {
 	s, err := m.execStmts(body, f)
 	if err != nil {
@@ -1019,7 +1019,7 @@ func truthy(v interp.Value) bool {
 	return ok && bool(b)
 }
 
-// derefVal 解引用（&x 的 PtrVal 透明化——VALUE-REF-003 引用读写穿透）
+// derefVal 解引用（&x 的 PtrVal 透明化——VALUE-REF-003 引用读写穿透）.
 func derefVal(v interp.Value) interp.Value {
 	if p, ok := v.(*interp.PtrVal); ok {
 		return *p.Cell
@@ -1087,7 +1087,7 @@ func eqValues(a, b interp.Value) bool {
 	return false
 }
 
-// copyVal 值语义（VALUE-COPY-001）：struct/enum 递归拷贝，容器共享
+// copyVal 值语义（VALUE-COPY-001）：struct/enum 递归拷贝，容器共享.
 func copyVal(v interp.Value) interp.Value {
 	switch x := v.(type) {
 	case *interp.StructVal:

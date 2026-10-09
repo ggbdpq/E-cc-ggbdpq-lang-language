@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-// preludeStdlib 预载 HttpResp / http 服务值与 json 内建
+// preludeStdlib 预载 HttpResp / http 服务值与 json 内建.
 func (it *Interp) preludeStdlib() {
 	it.structs["HttpResp"] = &StructDef{
 		Name:   "HttpResp",
@@ -96,7 +96,7 @@ func jsonParseBuiltin(it *Interp, args []Value) (Value, error) {
 	return jsonToValue(raw, it), nil
 }
 
-// jsonToValue Go 的 JSON 表示 → langGo 值；null → None（langGo 无 null，decisions #12）
+// jsonToValue Go 的 JSON 表示 → langGo 值；null → None（langGo 无 null，decisions #12）.
 func jsonToValue(raw any, it *Interp) Value {
 	switch x := raw.(type) {
 	case nil:
@@ -132,7 +132,7 @@ func jsonToValue(raw any, it *Interp) Value {
 	return UnitVal{}
 }
 
-// valueToJSON langGo 值 → 可 json.Marshal 的 Go 值；None → null
+// valueToJSON langGo 值 → 可 json.Marshal 的 Go 值；None → null.
 func valueToJSON(v Value) (any, error) {
 	switch x := v.(type) {
 	case UnitVal:
@@ -202,7 +202,7 @@ func jsonStringifyBuiltin(it *Interp, args []Value) (Value, error) {
 
 var httpClient = &http.Client{Timeout: 30 * time.Second}
 
-// httpGet(url, headers) → Result[HttpResp, error]：网络错误=Err，任何响应（含 4xx/5xx）=Ok
+// httpGet(url, headers) → Result[HttpResp, error]：网络错误=Err，任何响应（含 4xx/5xx）=Ok.
 func httpGet(it *Interp, args []Value) (Value, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("http.get 需要 2 个参数（url, headers），得到 %d 个", len(args))

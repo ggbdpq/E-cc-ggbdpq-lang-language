@@ -7,7 +7,7 @@ import (
 	"lang-go/internal/syntax"
 )
 
-// deref 引用自动解引用（&T 的字段/索引/方法访问与 interp 的 PtrVal 语义一致）
+// deref 引用自动解引用（&T 的字段/索引/方法访问与 interp 的 PtrVal 语义一致）.
 func deref(t *Type) *Type {
 	for t.Kind == KRef {
 		t = t.Elem
@@ -35,7 +35,7 @@ var typeNames = map[string]*Type{
 	"int": Int, "float": Float, "string": String, "bool": Bool, "error": ErrorT, "any": Any,
 }
 
-// lookupTypeSym 用户 struct/enum 名 → 符号（含预载 error/HttpResp）
+// lookupTypeSym 用户 struct/enum 名 → 符号（含预载 error/HttpResp）.
 func (c *checker) lookupTypeSym(name string) *semantic.Symbol {
 	if s := c.res.Builtin[name]; s != nil && s.Kind == semantic.KStruct {
 		return s
@@ -109,7 +109,7 @@ func (c *checker) resolveTypeEx(t syntax.TypeEx, tps map[string]bool) *Type {
 	return Unknown
 }
 
-// typeExOf 注解解析入口（nil 注解 → nil）——未显式给 tparams 时用当前函数的
+// typeExOf 注解解析入口（nil 注解 → nil）——未显式给 tparams 时用当前函数的.
 func (c *checker) typeExOf(t syntax.TypeEx, tps []string) *Type {
 	if t == nil {
 		return nil
@@ -122,7 +122,7 @@ func (c *checker) typeExOf(t syntax.TypeEx, tps []string) *Type {
 
 // ———— 推断主入口 ————
 
-// infer 推断并记录表达式类型
+// infer 推断并记录表达式类型.
 func (c *checker) infer(e syntax.Expr) *Type {
 	if t, ok := c.out.ExprTy[e]; ok {
 		return t
@@ -214,7 +214,7 @@ func (c *checker) compute(e syntax.Expr) *Type {
 	return Unknown
 }
 
-// identType Ident 类型：作用域栈（参数/绑定/臂捕获）优先，再走符号路径
+// identType Ident 类型：作用域栈（参数/绑定/臂捕获）优先，再走符号路径.
 func (c *checker) identType(x *syntax.Ident) *Type {
 	if t, ok := c.lookupVar(x.Name); ok && t != nil && t.Kind != KInvalid {
 		return t
@@ -243,7 +243,7 @@ func (c *checker) identType(x *syntax.Ident) *Type {
 	return Unknown // 内建裸引用 / 未定义名（已报）→ 保守
 }
 
-// ctorValueType 裸构造器引用（零参才合法，如 None/Unit）
+// ctorValueType 裸构造器引用（零参才合法，如 None/Unit）.
 func (c *checker) ctorValueType(sym *semantic.Symbol, line int) *Type {
 	if sym.Arity != 0 {
 		c.errf(line, E3003, "构造器 %s 须直接调用", sym.Name)
@@ -252,7 +252,7 @@ func (c *checker) ctorValueType(sym *semantic.Symbol, line int) *Type {
 	return c.ctorResultType(sym, nil)
 }
 
-// ctorResultType 构造器调用的结果类型
+// ctorResultType 构造器调用的结果类型.
 func (c *checker) ctorResultType(sym *semantic.Symbol, args []*Type) *Type {
 	switch sym.StructName {
 	case "Option":
@@ -362,7 +362,7 @@ func (c *checker) inferBinary(x *syntax.Binary) *Type {
 	return Unknown
 }
 
-// arithType 数值运算类型：int⊗int→int、float⊗float→float、混用→E3002、动态→Any
+// arithType 数值运算类型：int⊗int→int、float⊗float→float、混用→E3002、动态→Any.
 func (c *checker) arithType(x *syntax.Binary, l, r *Type) *Type {
 	if !IsConcrete(l) || !IsConcrete(r) {
 		return Any
@@ -383,7 +383,7 @@ func (c *checker) requireBool(e syntax.Expr, what string) {
 
 // ———— 调用 ————
 
-// builtinSig 内建函数签名（参数为 nil 表示不检查该位）
+// builtinSig 内建函数签名（参数为 nil 表示不检查该位）.
 var builtinSigs = map[string]func(c *checker, args []*Type) *Type{
 	"println": func(c *checker, a []*Type) *Type { return Unit },
 	"print":   func(c *checker, a []*Type) *Type { return Unit },
@@ -417,7 +417,7 @@ var builtinSigs = map[string]func(c *checker, args []*Type) *Type{
 	},
 }
 
-// inferCall 调用推断
+// inferCall 调用推断.
 func (c *checker) inferCall(x *syntax.CallEx) *Type {
 	// 构造器 / 内建 / 用户 fn 的 Ident 调用
 	if id, ok := x.Callee.(*syntax.Ident); ok {
@@ -477,7 +477,7 @@ func (c *checker) inferCall(x *syntax.CallEx) *Type {
 	return Unknown
 }
 
-// inferMethodCall obj.name(args)：用户方法 / http.get / 字段函数值
+// inferMethodCall obj.name(args)：用户方法 / http.get / 字段函数值.
 func (c *checker) inferMethodCall(fe *syntax.FieldEx, x *syntax.CallEx) *Type {
 	objTy := deref(c.infer(fe.Obj))
 	if id, ok := fe.Obj.(*syntax.Ident); ok && objTy.Kind == KUnknown && fe.Obj != nil {
@@ -534,7 +534,7 @@ func (c *checker) inferMethodCall(fe *syntax.FieldEx, x *syntax.CallEx) *Type {
 	}
 }
 
-// checkArgsVsDecl 实参 ↔ 声明参数（个数 + 已注解参数的兼容性）
+// checkArgsVsDecl 实参 ↔ 声明参数（个数 + 已注解参数的兼容性）.
 func (c *checker) checkArgsVsDecl(d *syntax.FnDecl, args []syntax.Expr, line int) {
 	if len(args) != len(d.Params) {
 		c.errf(line, E3003, "%s 需要 %d 个参数，得到 %d 个", d.Name, len(d.Params), len(args))
@@ -721,7 +721,7 @@ func (c *checker) inferMatch(x *syntax.MatchEx) *Type {
 	return body
 }
 
-// armBindTypes 模式绑定的捕获类型
+// armBindTypes 模式绑定的捕获类型.
 func (c *checker) armBindTypes(p syntax.Pat, kind MatchKind, scrut *Type) map[string]*Type {
 	out := map[string]*Type{}
 	var walk func(p syntax.Pat, t *Type)
@@ -762,7 +762,7 @@ func (c *checker) armBindTypes(p syntax.Pat, kind MatchKind, scrut *Type) map[st
 	return out
 }
 
-// casePayloadType enum case 载荷类型
+// casePayloadType enum case 载荷类型.
 func (c *checker) casePayloadType(enumSym *semantic.Symbol, caseIdx, payloadIdx int) *Type {
 	d, ok := enumSym.Decl.(*syntax.EnumDecl)
 	if !ok || caseIdx >= len(d.Cases) || payloadIdx >= len(d.Cases[caseIdx].Payloads) {
@@ -836,7 +836,7 @@ func (c *checker) classifyMatch(x *syntax.MatchEx) (MatchKind, bool) {
 	}
 }
 
-// checkEnumExhaustive enum match 穷尽性（迁自转译器；interp 的运行时检查由此前移）
+// checkEnumExhaustive enum match 穷尽性（迁自转译器；interp 的运行时检查由此前移）.
 func (c *checker) checkEnumExhaustive(x *syntax.MatchEx) {
 	covered := map[string]bool{}
 	hasWild := false
@@ -877,7 +877,7 @@ func (c *checker) checkEnumExhaustive(x *syntax.MatchEx) {
 }
 
 // checkAlgebraicExhaustive Result/Option match 须两臂齐全（修正 interp 运行时才报、
-// →Go 语句位置静默跳过的三路分歧）
+// →Go 语句位置静默跳过的三路分歧）.
 func (c *checker) checkAlgebraicExhaustive(x *syntax.MatchEx) {
 	pos, neg := false, false
 	for _, arm := range x.Arms {
@@ -899,7 +899,7 @@ func (c *checker) checkAlgebraicExhaustive(x *syntax.MatchEx) {
 
 // ———— ? 传播 ————
 
-// inferTry 语句顶层 ? 的检查：所在函数须注解 Result，操作数须 Result
+// inferTry 语句顶层 ? 的检查：所在函数须注解 Result，操作数须 Result.
 func (c *checker) inferTry(t *syntax.TryEx) *Type {
 	if !c.inFn || c.fnRet == nil || c.fnRet.Kind != KResult {
 		c.errf(t.Line, E3005, "带 ? 的函数须注解为 Result[T, error]")
@@ -925,7 +925,7 @@ func (c *checker) inferTryOperand(t *syntax.TryEx) *Type {
 
 // ———— 字段与索引 ————
 
-// fieldType 字段访问类型检查
+// fieldType 字段访问类型检查.
 func (c *checker) fieldType(objTy *Type, name string, line int) *Type {
 	objTy = deref(objTy)
 	switch {
@@ -954,7 +954,7 @@ func (c *checker) fieldType(objTy *Type, name string, line int) *Type {
 	}
 }
 
-// indexElemTy 索引读取的元素类型
+// indexElemTy 索引读取的元素类型.
 func (c *checker) indexElemTy(objTy *Type, line int) *Type {
 	objTy = deref(objTy)
 	switch objTy.Kind {
@@ -971,7 +971,7 @@ func (c *checker) indexElemTy(objTy *Type, line int) *Type {
 	return Invalid
 }
 
-// checkIndexKey 索引类型检查：容器须 int 下标；映射键限 int/string/bool
+// checkIndexKey 索引类型检查：容器须 int 下标；映射键限 int/string/bool.
 func (c *checker) checkIndexKey(objTy, idxTy *Type, line int) {
 	if !IsConcrete(idxTy) {
 		return

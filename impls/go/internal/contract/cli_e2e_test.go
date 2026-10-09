@@ -31,7 +31,7 @@ func runCLI(t *testing.T, dir string, args ...string) (string, int) {
 	return string(out), code
 }
 
-// buildCLI 构建一次 CLI（模块上下文内），供全部用例复用
+// buildCLI 构建一次 CLI（模块上下文内），供全部用例复用.
 func buildCLI(t *testing.T) string {
 	t.Helper()
 	bin := filepath.Join(t.TempDir(), "lang-go.exe")

@@ -17,7 +17,7 @@ import (
 	"lang-go/internal/types"
 )
 
-// Transpile IR → Go 源码
+// Transpile IR → Go 源码.
 func Transpile(p *ir.Prog) (string, error) {
 	g := &gen{
 		localGo:  map[*ir.Local]string{},
@@ -141,7 +141,7 @@ func (g *gen) gt(e ir.Expr) string {
 }
 
 // matchRetType 表达式位置 match 的有效返回形态：
-// 任一臂的 Go 形态与统一类型不一致（如 [] 臂 vs [Ref]）→ any（旧行为）
+// 任一臂的 Go 形态与统一类型不一致（如 [] 臂 vs [Ref]）→ any（旧行为）.
 func (g *gen) matchRetType(m *ir.Match) string {
 	ret := goTypeOf(m.Typ())
 	for _, arm := range m.Arms {
@@ -153,7 +153,7 @@ func (g *gen) matchRetType(m *ir.Match) string {
 }
 
 // goBuiltinRet 部分内建在 →Go prelude 里的实际返回形态
-// （与语义类型不同：装箱为 any 元素/any 结果——对应旧版 infer 的内建表）
+// （与语义类型不同：装箱为 any 元素/any 结果——对应旧版 infer 的内建表）.
 var goBuiltinRet = map[string]string{
 	"bytes":     "*LangGoArr[any]",
 	"keys":      "*LangGoArr[any]",
@@ -163,7 +163,7 @@ var goBuiltinRet = map[string]string{
 	"jsonParse": "any",
 }
 
-// needWrap 目标具体而右侧是动态 any → 需要 langGoTo 收窄
+// needWrap 目标具体而右侧是动态 any → 需要 langGoTo 收窄.
 func (g *gen) needWrap(target *types.Type, e ir.Expr) bool {
 	return target != nil && !isAny(target) && g.gt(e) == "any"
 }
@@ -183,7 +183,7 @@ func (g *gen) w(line string) {
 
 // ———— 类型映射 ————
 
-// goTypeOf lang-go 类型 → Go 类型（映射，非推断）
+// goTypeOf lang-go 类型 → Go 类型（映射，非推断）.
 func goTypeOf(t *types.Type) string {
 	if t == nil {
 		return "any"
@@ -244,7 +244,7 @@ func isAny(t *types.Type) bool {
 		t.Kind == types.KInvalid || t.Kind == types.KTypeArg
 }
 
-// maybeWrap 在 any 与具体类型交界处插 langGoTo 断言
+// maybeWrap 在 any 与具体类型交界处插 langGoTo 断言.
 func (g *gen) maybeWrap(target *types.Type, got string, expr string) string {
 	if target != nil && !isAny(target) && got == "any" {
 		return "langGoTo[" + goTypeOf(target) + "](" + expr + ")"
@@ -252,7 +252,7 @@ func (g *gen) maybeWrap(target *types.Type, got string, expr string) string {
 	return expr
 }
 
-// wrapArg 按目标类型收窄实参/右值
+// wrapArg 按目标类型收窄实参/右值.
 func (g *gen) wrapArg(target *types.Type, e ir.Expr, expr string) string {
 	return g.maybeWrap(target, g.gt(e), expr)
 }
@@ -341,7 +341,7 @@ func (g *gen) goName(f *ir.Fn) string {
 	return "lf_" + f.Name
 }
 
-// builtinMap 内建 → prelude 运行时函数
+// builtinMap 内建 → prelude 运行时函数.
 var builtinMap = map[string]string{
 	"println": "langGoPrintln", "print": "langGoPrint", "len": "langGoLen",
 	"str": "langGoStr", "int": "langGoInt", "float": "langGoFloat",
@@ -393,7 +393,7 @@ func (g *gen) emitFunc(f *ir.Fn) error {
 	return nil
 }
 
-// bodyHasGo 递归检查语句序列是否包含 go 语句
+// bodyHasGo 递归检查语句序列是否包含 go 语句.
 func bodyHasGo(stmts []ir.Stmt) bool {
 	for _, st := range stmts {
 		switch x := st.(type) {
@@ -524,7 +524,7 @@ func (g *gen) emitStmt(s ir.Stmt) error {
 	return g.errf(0, "→Go 暂不支持该语句")
 }
 
-// emitLet let/var：? 在初始化顶层时先展开传播
+// emitLet let/var：? 在初始化顶层时先展开传播.
 func (g *gen) emitLet(st *ir.Let) error {
 	name := st.Local.Name
 	if t, ok := st.Init.(*ir.Try); ok {
@@ -664,7 +664,7 @@ func (g *gen) emitAssign(st *ir.Assign) error {
 }
 
 // emitCompoundAssign 复合赋值：ident/field 原生 +=；数组 += 走 langGoPushFrom；
-// index 复合走 langGoAddIndex（Map 值读改写）
+// index 复合走 langGoAddIndex（Map 值读改写）.
 func (g *gen) emitCompoundAssign(st *ir.Assign) error {
 	op := string(st.Op)
 	switch tgt := st.Target.(type) {
@@ -711,7 +711,7 @@ func (g *gen) emitCompoundAssign(st *ir.Assign) error {
 	return g.errf(0, "赋值目标不合法")
 }
 
-// isVoidCall 判定"无返回值的调用"（语句位置不加 _ =）
+// isVoidCall 判定"无返回值的调用"（语句位置不加 _ =）.
 func (g *gen) isVoidCall(e ir.Expr) bool {
 	call, ok := e.(*ir.Call)
 	if !ok {
@@ -796,7 +796,7 @@ func (g *gen) emitReturn(st *ir.Return) error {
 	return nil
 }
 
-// genTry 展开 ? 传播；返回持有 Result 的临时变量名
+// genTry 展开 ? 传播；返回持有 Result 的临时变量名.
 func (g *gen) genTry(t *ir.Try) (string, error) {
 	if g.curFn == nil || g.curFn.Ret == nil || g.curFn.Ret.Kind != types.KResult {
 		return "", g.errf(0, "带 ? 的函数须注解为 Result[T, error]")
@@ -911,7 +911,7 @@ func (g *gen) emitForIn(st *ir.ForIn) error {
 	return nil
 }
 
-// emitBlockTyped 开块并预置一个绑定（局部信息已入 IR，无需作用域表）
+// emitBlockTyped 开块并预置一个绑定（局部信息已入 IR，无需作用域表）.
 func (g *gen) emitBlockTyped(stmts []ir.Stmt, v *ir.Local) error {
 	g.indent++
 	err := g.emitBody(stmts)
@@ -994,7 +994,7 @@ func (g *gen) emitMatchStmt(m *ir.Match) error {
 	return nil
 }
 
-// coerceAlgebraic 装箱的 Result/Option（如 http.get 返回 any）在解包前收窄
+// coerceAlgebraic 装箱的 Result/Option（如 http.get 返回 any）在解包前收窄.
 func (g *gen) coerceAlgebraic(scrut string, m *ir.Match) string {
 	if !isAny(m.Scrut.Typ()) {
 		return scrut
@@ -1038,7 +1038,7 @@ func (g *gen) emitResultArmBlock(arm *ir.Arm, tmp, field, bindType string) error
 	return nil
 }
 
-// recordBind 臂绑定声明后的局部 Go 类型（Result/Option 解包 → any）
+// recordBind 臂绑定声明后的局部 Go 类型（Result/Option 解包 → any）.
 func (g *gen) recordBind(arm *ir.Arm, name, typ string) {
 	if p, ok := arm.Pat.(*ir.CtorPat); ok {
 		for _, sp := range p.Subs {
@@ -1073,7 +1073,7 @@ func (g *gen) bindEnumPayloads(p *ir.CtorPat, tmp string) error {
 	return nil
 }
 
-// emitArmStmt 臂体在语句位置（ExprStmt 展开）的输出
+// emitArmStmt 臂体在语句位置（ExprStmt 展开）的输出.
 func (g *gen) emitArmStmt(arm *ir.Arm) error {
 	if m, ok := arm.Body.(*ir.Match); ok {
 		return g.emitMatchStmt(m)
@@ -1090,7 +1090,7 @@ func (g *gen) emitArmStmt(arm *ir.Arm) error {
 	return nil
 }
 
-// emitLiteralMatchStmt 字面量/通配 match（语句位置）→ if/else 链
+// emitLiteralMatchStmt 字面量/通配 match（语句位置）→ if/else 链.
 func (g *gen) emitLiteralMatchStmt(m *ir.Match, tmp string) error {
 	for i := range m.Arms {
 		arm := &m.Arms[i]
@@ -1131,7 +1131,7 @@ func (g *gen) emitLiteralMatchStmt(m *ir.Match, tmp string) error {
 // ———— 表达式 ————
 
 // operand 生成二元/一元运算的操作数：子式本身是运算时强制加括号，
-// 消除 lang-go 与 Go 优先级表的残留差异（如 % 在 Go 里高于 +）
+// 消除 lang-go 与 Go 优先级表的残留差异（如 % 在 Go 里高于 +）.
 func (g *gen) operand(e ir.Expr) (string, error) {
 	s, err := g.expr(e)
 	if err != nil {
@@ -1321,7 +1321,7 @@ func (g *gen) expr(e ir.Expr) (string, error) {
 	return "", g.errf(0, "→Go 暂不支持该表达式")
 }
 
-// exprArg 实参生成：None 无载荷无法推断，按调用方期望的 Option 元素类型特化
+// exprArg 实参生成：None 无载荷无法推断，按调用方期望的 Option 元素类型特化.
 func (g *gen) exprArg(e ir.Expr, target *types.Type) (string, error) {
 	if c, ok := e.(*ir.Ctor); ok && c.Sym.Name == "None" && target != nil && target.Kind == types.KOption && target.Elem != nil && !isAny(target.Elem) {
 		return "LangGoNone[" + goTypeOf(target.Elem) + "]()", nil
@@ -1333,7 +1333,7 @@ func (g *gen) exprArg(e ir.Expr, target *types.Type) (string, error) {
 	return g.expr(e)
 }
 
-// emitCtor 构造器：预载 Option/Result 与用户 enum
+// emitCtor 构造器：预载 Option/Result 与用户 enum.
 func (g *gen) emitCtor(x *ir.Ctor) (string, error) {
 	switch x.Sym.Name {
 	case "None":
@@ -1425,7 +1425,7 @@ func (g *gen) emitBinary(x *ir.Binary) (string, error) {
 	return l + " " + string(x.Op) + " " + r, nil
 }
 
-// emitCall 用户 fn / 内建 / 函数值
+// emitCall 用户 fn / 内建 / 函数值.
 func (g *gen) emitCall(x *ir.Call) (string, error) {
 	// 内建
 	if x.Builtin != "" {
@@ -1577,7 +1577,7 @@ func (g *gen) emitBuiltinCall(x *ir.Call, name, bf string) (string, error) {
 	return bf + "(" + strings.Join(args, ", ") + ")", nil
 }
 
-// exprMatch 表达式位置的 match：包成立即调用的函数字面量（独立缓冲渲染）
+// exprMatch 表达式位置的 match：包成立即调用的函数字面量（独立缓冲渲染）.
 func (g *gen) exprMatch(m *ir.Match) (string, error) {
 	savedBuf := g.buf
 	savedIndent := g.indent
@@ -1689,7 +1689,7 @@ func (g *gen) emitResultArmReturn(arm *ir.Arm, tmp, field, bindType string) erro
 	return err
 }
 
-// wrapTo 把 any 臂体收窄到 match 的结果类型（Go 需要一致返回类型）
+// wrapTo 把 any 臂体收窄到 match 的结果类型（Go 需要一致返回类型）.
 func (g *gen) wrapTo(expr string, body ir.Expr, target *types.Type) string {
 	if target != nil && !isAny(target) && g.gt(body) == "any" {
 		return "langGoTo[" + goTypeOf(target) + "](" + expr + ")"
@@ -1752,7 +1752,7 @@ func (g *gen) emitArmReturn(arm *ir.Arm) error {
 }
 
 // emitFnLit 函数字面量：独立缓冲渲染后作为表达式内嵌
-// endsWithReturn 函数体末条语句是否为 return（粗判：防 Go missing return）
+// endsWithReturn 函数体末条语句是否为 return（粗判：防 Go missing return）.
 func endsWithReturn(body []ir.Stmt) bool {
 	if len(body) == 0 {
 		return false

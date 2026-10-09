@@ -21,10 +21,10 @@ type UnitVal struct{}
 
 type RangeVal struct{ Lo, Hi int64 }
 
-// ArrVal 切片：引用语义
+// ArrVal 切片：引用语义.
 type ArrVal struct{ Items []Value }
 
-// MapVal 保插入序的映射
+// MapVal 保插入序的映射.
 type MapVal struct {
 	ks []Value
 	m  map[string]Value
@@ -102,7 +102,7 @@ type EnumVal struct {
 
 type PtrVal struct{ Cell *Value }
 
-// ChanVal 通道（v0 无限缓冲队列；send 不阻塞、recv 空即 Err，decisions #59）
+// ChanVal 通道（v0 无限缓冲队列；send 不阻塞、recv 空即 Err，decisions #59）.
 type ChanVal struct{ Items []Value }
 
 type Closure struct {
@@ -140,7 +140,7 @@ func (e *Env) define(name string, v Value, mutable bool) error {
 	return nil
 }
 
-// redefine 声明式定义，允许覆盖（顶层 fn 在 REPL 里反复声明用）
+// redefine 声明式定义，允许覆盖（顶层 fn 在 REPL 里反复声明用）.
 func (e *Env) redefine(name string, v Value) {
 	e.vars[name] = &cell{val: v, mutable: false}
 }
@@ -156,7 +156,7 @@ func (e *Env) lookup(name string) (*cell, bool) {
 
 // —— 值语义与比较 ——
 
-// copyValue 落实 struct 值语义：struct 递归拷贝、enum 载荷递归拷贝；slice/map 共享（spec §3.7）
+// copyValue 落实 struct 值语义：struct 递归拷贝、enum 载荷递归拷贝；slice/map 共享（spec §3.7）.
 func copyValue(v Value) Value {
 	switch x := v.(type) {
 	case *StructVal:
@@ -209,7 +209,7 @@ func typeName(v Value) string {
 	return "未知值"
 }
 
-// equals == 语义：标量同型比较、enum 同 case 递归比较；容器不可比（spec §3.3）
+// equals == 语义：标量同型比较、enum 同 case 递归比较；容器不可比（spec §3.3）.
 func equals(a, b Value) (bool, error) {
 	switch x := a.(type) {
 	case IntVal:
@@ -268,7 +268,7 @@ func truthy(v Value) (bool, error) {
 	return bool(b), nil
 }
 
-// Fmt 导出的值格式化（REPL 与工具用）
+// Fmt 导出的值格式化（REPL 与工具用）.
 func Fmt(v Value) string { return fmtVal(v, true) }
 
 // —— 输出格式 ——

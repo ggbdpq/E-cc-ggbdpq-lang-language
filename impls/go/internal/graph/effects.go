@@ -11,7 +11,7 @@ import (
 	"lang-go/internal/semantic"
 )
 
-// Effect 常量（契约枚举）
+// Effect 常量（契约枚举）.
 const (
 	EffPure    = "PURE"
 	EffIO      = "IO"
@@ -24,17 +24,17 @@ const (
 	EffFFI     = "FFI"
 )
 
-// Effect 函数效果条目
+// Effect 函数效果条目.
 type Effect struct {
 	SymbolID int
 	Name     string
 	Effects  []string
 }
 
-// effectOrder 固定输出顺序
+// effectOrder 固定输出顺序.
 var effectOrder = []string{EffPure, EffIO, EffFS, EffNET, EffTIME, EffRANDOM, EffSPAWN, EffCHANNEL, EffFFI}
 
-// builtinEffects 内建直接效果（未列出的内建视为 PURE）
+// builtinEffects 内建直接效果（未列出的内建视为 PURE）.
 var builtinEffects = map[string]string{
 	"println":  EffIO,
 	"print":    EffIO,
@@ -44,13 +44,13 @@ var builtinEffects = map[string]string{
 	"recv":     EffCHANNEL,
 }
 
-// fnEffects 单个函数的直接效果 + 被调符号集（传播用）
+// fnEffects 单个函数的直接效果 + 被调符号集（传播用）.
 type fnDirect struct {
 	self    map[string]bool // 直接效果
 	callees []*ir.Fn        // Call{Fn} / Spawn 目标
 }
 
-// Effects 效果推导：每个顶层 fn/方法/嵌套 fn 各一条，按 SymbolID 排序
+// Effects 效果推导：每个顶层 fn/方法/嵌套 fn 各一条，按 SymbolID 排序.
 func Effects(p *ir.Prog) []Effect {
 	// 收集函数单元
 	units := map[*ir.Fn]bool{}

@@ -8,7 +8,7 @@ import (
 	"lang-go/internal/syntax"
 )
 
-// GraphNode 图节点（Symbol 粒度）
+// GraphNode 图节点（Symbol 粒度）.
 type GraphNode struct {
 	SymbolID int      `json:"symbolId"`
 	Kind     string   `json:"kind"`
@@ -19,7 +19,7 @@ type GraphNode struct {
 	Span     *Span    `json:"span,omitempty"`
 }
 
-// ImpactItemJSON 影响证据
+// ImpactItemJSON 影响证据.
 type ImpactItemJSON struct {
 	SymbolID   int    `json:"symbolId"`
 	Name       string `json:"name"`
@@ -29,7 +29,7 @@ type ImpactItemJSON struct {
 	Span       *Span  `json:"span,omitempty"`
 }
 
-// ImpactJSON 影响分析负载
+// ImpactJSON 影响分析负载.
 type ImpactJSON struct {
 	Symbol      GraphNode        `json:"symbol"`
 	Direct      []ImpactItemJSON `json:"direct"`
@@ -39,14 +39,14 @@ type ImpactJSON struct {
 	Note        string           `json:"note"`
 }
 
-// FileDepJSON 文件级依赖负载
+// FileDepJSON 文件级依赖负载.
 type FileDepJSON struct {
 	Module    string   `json:"module"`
 	Imports   []string `json:"imports"`
 	DependsOn []string `json:"dependsOn"`
 }
 
-// CallersEnvelope inspect callers --json
+// CallersEnvelope inspect callers --json.
 func CallersEnvelope(g *graph.Graph, items []graph.ImpactItem) Envelope {
 	return Envelope{
 		SchemaVersion: SchemaVersion, ToolVersion: ToolVersion, Kind: KindInspectCallers,
@@ -54,7 +54,7 @@ func CallersEnvelope(g *graph.Graph, items []graph.ImpactItem) Envelope {
 	}
 }
 
-// CalleesEnvelope inspect callees --json
+// CalleesEnvelope inspect callees --json.
 func CalleesEnvelope(g *graph.Graph, items []graph.ImpactItem) Envelope {
 	return Envelope{
 		SchemaVersion: SchemaVersion, ToolVersion: ToolVersion, Kind: KindInspectCallees,
@@ -62,7 +62,7 @@ func CalleesEnvelope(g *graph.Graph, items []graph.ImpactItem) Envelope {
 	}
 }
 
-// ImpactEnvelope inspect impact --json
+// ImpactEnvelope inspect impact --json.
 func ImpactEnvelope(imp graph.Impact) Envelope {
 	out := ImpactJSON{
 		Direct:      []ImpactItemJSON{},
@@ -87,7 +87,7 @@ func ImpactEnvelope(imp graph.Impact) Envelope {
 	return Envelope{SchemaVersion: SchemaVersion, ToolVersion: ToolVersion, Kind: KindInspectImpact, Impact: &out}
 }
 
-// GraphNodeJSON 图节点 → 契约节点形态
+// GraphNodeJSON 图节点 → 契约节点形态.
 func GraphNodeJSON(n graph.Node) GraphNode {
 	effs := n.Effects
 	if effs == nil {
@@ -142,7 +142,7 @@ func spanPtr(sp *syntax.Span) *Span {
 	return SpanJSON(*sp)
 }
 
-// GraphDepJSON 文件依赖负载
+// GraphDepJSON 文件依赖负载.
 func GraphDepJSON(dep graph.FileDep) Envelope {
 	imports := dep.Imports
 	if imports == nil {

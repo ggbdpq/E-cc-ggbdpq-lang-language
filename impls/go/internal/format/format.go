@@ -18,7 +18,7 @@ import (
 	"lang-go/internal/syntax"
 )
 
-// Format 把源码格式化为规范形态
+// Format 把源码格式化为规范形态.
 func Format(src string) (string, error) {
 	prog, err := syntax.Parse(src)
 	if err != nil {
@@ -53,7 +53,7 @@ func (t *commentTracker) peek() (syntax.Comment, bool) {
 	return syntax.Comment{}, false
 }
 
-// flushLeading 冲刷 start 之前的**整行**注释（行尾注释留在流里给 flushTrailing）
+// flushLeading 冲刷 start 之前的**整行**注释（行尾注释留在流里给 flushTrailing）.
 func (f *fmtter) flushLeading(start int, indent int) {
 	for {
 		c, ok := f.cm.peek()
@@ -69,7 +69,7 @@ func (f *fmtter) flushLeading(start int, indent int) {
 	}
 }
 
-// flushTrailing 冲刷语句末行上的行尾注释（追加到最近输出行）
+// flushTrailing 冲刷语句末行上的行尾注释（追加到最近输出行）.
 func (f *fmtter) flushTrailing(endOffset, endLine int) {
 	for {
 		c, ok := f.cm.peek()
@@ -85,7 +85,7 @@ func (f *fmtter) flushTrailing(endOffset, endLine int) {
 	}
 }
 
-// flushRemaining 冲刷全部挂起注释（块尾/文件尾），整行输出
+// flushRemaining 冲刷全部挂起注释（块尾/文件尾），整行输出.
 func (f *fmtter) flushRemaining(indent int) {
 	for {
 		c, ok := f.cm.peek()
@@ -112,7 +112,7 @@ func (f *fmtter) w(indent int, s string) {
 	}
 }
 
-// spanned 语句节点 → Span（全部语句都实现 Spanned）
+// spanned 语句节点 → Span（全部语句都实现 Spanned）.
 func spanned(st syntax.Stmt) syntax.Span {
 	if sp, ok := st.(syntax.Spanned); ok {
 		return *sp.NodeSpan()
@@ -231,14 +231,14 @@ func (f *fmtter) stmt(s syntax.Stmt, indent int) {
 	}
 }
 
-// ifChain if / else if / else 扁平化输出
+// ifChain if / else if / else 扁平化输出.
 func (f *fmtter) ifChain(st *syntax.IfStmt, indent int) {
 	f.w(indent, "if "+f.expr(st.Cond, 0, indent)+" {")
 	f.stmts(st.Then, indent+1)
 	f.elseTail(st, indent)
 }
 
-// elseTail 输出 else 分支（else if 保持同起始行）
+// elseTail 输出 else 分支（else if 保持同起始行）.
 func (f *fmtter) elseTail(st *syntax.IfStmt, indent int) {
 	if len(st.Else) == 1 {
 		if nested, ok := st.Else[0].(*syntax.IfStmt); ok {
@@ -367,7 +367,7 @@ func exprPrec(e syntax.Expr) int {
 	return 9
 }
 
-// expr 以 minPrec 门槛输出表达式；低于门槛的子式加括号
+// expr 以 minPrec 门槛输出表达式；低于门槛的子式加括号.
 func (f *fmtter) expr(e syntax.Expr, minPrec, indent int) string {
 	s := f.exprRaw(e, indent)
 	if exprPrec(e) < minPrec {
@@ -491,7 +491,7 @@ func (f *fmtter) pat(p syntax.Pat) string {
 	return "?"
 }
 
-// quoteStr 按 langGo 转义规则输出字符串字面量（仅 \n \t \r \" \\ 五种）
+// quoteStr 按 langGo 转义规则输出字符串字面量（仅 \n \t \r \" \\ 五种）.
 func quoteStr(s string) string {
 	var b strings.Builder
 	b.WriteByte('"')

@@ -17,7 +17,7 @@ import (
 	"lang-go/internal/types"
 )
 
-// TranspileJS IR → JS 源码
+// TranspileJS IR → JS 源码.
 func TranspileJS(p *ir.Prog) (string, error) {
 	g := &jsgen{
 		prog:    p,
@@ -287,7 +287,7 @@ func (g *jsgen) emitStmt(s ir.Stmt) error {
 	return g.errf(0, "→JS 暂不支持该语句")
 }
 
-// emitLet let/var：? 在初始化顶层时先展开传播
+// emitLet let/var：? 在初始化顶层时先展开传播.
 func (g *jsgen) emitLet(st *ir.Let) error {
 	name := st.Local.Name
 	if t, ok := st.Init.(*ir.Try); ok {
@@ -316,7 +316,7 @@ func (g *jsgen) emitLet(st *ir.Let) error {
 	return nil
 }
 
-// isRef & 取引用表达式（赋值即共享，不拷贝）
+// isRef & 取引用表达式（赋值即共享，不拷贝）.
 func isRef(e ir.Expr) bool {
 	u, ok := e.(*ir.Unary)
 	return ok && u.Op == ir.OpRef
@@ -377,7 +377,7 @@ func (g *jsgen) emitAssign(st *ir.Assign) error {
 }
 
 // emitCompoundAssign 复合赋值：ident/field 原生 +=；数组 += 元素拼接；
-// index 复合走 langGoAddIndex（Map 读改写）
+// index 复合走 langGoAddIndex（Map 读改写）.
 func (g *jsgen) emitCompoundAssign(st *ir.Assign) error {
 	op := string(st.Op)
 	switch tgt := st.Target.(type) {
@@ -461,7 +461,7 @@ func (g *jsgen) emitReturn(st *ir.Return) error {
 	return nil
 }
 
-// genTry 展开 ? 传播
+// genTry 展开 ? 传播.
 func (g *jsgen) genTry(t *ir.Try) (string, error) {
 	if g.curFn == nil || g.curFn.Ret == nil || g.curFn.Ret.Kind != types.KResult {
 		return "", g.errf(0, "带 ? 的函数须注解为 Result[T, error]")
@@ -870,7 +870,7 @@ func (g *jsgen) expr(e ir.Expr) (string, error) {
 	return "", g.errf(0, "→JS 暂不支持该表达式")
 }
 
-// emitCtor 构造器
+// emitCtor 构造器.
 func (g *jsgen) emitCtor(x *ir.Ctor) (string, error) {
 	switch x.Sym.Name {
 	case "None":
@@ -930,7 +930,7 @@ func (g *jsgen) emitBinary(x *ir.Binary) (string, error) {
 	return "(" + l + " " + string(x.Op) + " " + r + ")", nil
 }
 
-// emitCall 用户 fn / 内建 / 方法 / 函数值
+// emitCall 用户 fn / 内建 / 方法 / 函数值.
 func (g *jsgen) emitCall(x *ir.Call) (string, error) {
 	// 内建
 	if x.Builtin != "" {
@@ -1031,7 +1031,7 @@ var builtins = map[string]string{
 	"send": "langGoChanSend", "recv": "langGoChanRecv",
 }
 
-// exprMatch 表达式位置 match → 立即调用的 async 函数（调用侧 await）
+// exprMatch 表达式位置 match → 立即调用的 async 函数（调用侧 await）.
 func (g *jsgen) exprMatch(m *ir.Match) (string, error) {
 	savedBuf := g.buf
 	savedIndent := g.indent
@@ -1186,7 +1186,7 @@ func (g *jsgen) emitArmReturn(arm *ir.Arm) error {
 	return nil
 }
 
-// emitFnLit 函数字面量
+// emitFnLit 函数字面量.
 func (g *jsgen) emitFnLit(x *ir.FnLit) (string, error) {
 	var ps []string
 	for _, p := range x.Params {

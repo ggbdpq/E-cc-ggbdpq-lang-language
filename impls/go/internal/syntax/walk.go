@@ -3,14 +3,14 @@ package syntax
 // Walk：AST 统一遍历器（文件归属盖章、dump ast JSON 共用）。
 // 回调序：父节点先于子节点；nil 回调跳过。
 
-// WalkStmts 遍历语句序列
+// WalkStmts 遍历语句序列.
 func WalkStmts(list []Stmt, s func(Stmt), e func(Expr), pat func(Pat)) {
 	for _, st := range list {
 		WalkStmt(st, s, e, pat)
 	}
 }
 
-// WalkStmt 遍历语句及其子树
+// WalkStmt 遍历语句及其子树.
 func WalkStmt(st Stmt, s func(Stmt), e func(Expr), pat func(Pat)) {
 	if s != nil {
 		s(st)
@@ -48,7 +48,7 @@ func WalkStmt(st Stmt, s func(Stmt), e func(Expr), pat func(Pat)) {
 	}
 }
 
-// WalkExpr 遍历表达式及其子树
+// WalkExpr 遍历表达式及其子树.
 func WalkExpr(ex Expr, s func(Stmt), e func(Expr), pat func(Pat)) {
 	if e != nil {
 		e(ex)
@@ -103,7 +103,7 @@ func WalkExpr(ex Expr, s func(Stmt), e func(Expr), pat func(Pat)) {
 	}
 }
 
-// WalkPat 遍历模式及其子模式
+// WalkPat 遍历模式及其子模式.
 func WalkPat(p Pat, s func(Stmt), e func(Expr), pat func(Pat)) {
 	if pat != nil {
 		pat(p)

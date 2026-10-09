@@ -86,7 +86,7 @@ func Test循环导入报错(t *testing.T) {
 	}
 }
 
-// Test根文件冗余互引去重 根目录文件互相 import：自动装载各一次，冗余声明静默去重
+// Test根文件冗余互引去重 根目录文件互相 import：自动装载各一次，冗余声明静默去重.
 func Test根文件冗余互引去重(t *testing.T) {
 	dir := t.TempDir()
 	write(t, dir, "main.lang-go", "import \"./a\"\nfn main() {\n    println(1)\n}")

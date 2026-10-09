@@ -11,7 +11,7 @@ import (
 	"lang-go/internal/types"
 )
 
-// kindStr 符号类别 → 契约字符串
+// kindStr 符号类别 → 契约字符串.
 func kindStr(k semantic.Kind) string {
 	switch k {
 	case semantic.KFn:
@@ -32,7 +32,7 @@ func kindStr(k semantic.Kind) string {
 	return "unknown"
 }
 
-// Symbols 符号清单（ID 序 = 声明/绑定序，天然稳定；预载符号不输出）
+// Symbols 符号清单（ID 序 = 声明/绑定序，天然稳定；预载符号不输出）.
 func Symbols(prog []syntax.Stmt, res *semantic.Result, ty *types.Result) []Symbol {
 	// 反查绑定节点的定义 Span（var/for 变量）
 	stmtSpan := map[semantic.SymbolID]syntax.Span{}
@@ -91,7 +91,7 @@ func Symbols(prog []syntax.Stmt, res *semantic.Result, ty *types.Result) []Symbo
 	return out
 }
 
-// isTopLevel 顶层声明的近似判定：fn/struct/enum/方法/ctor 视为顶层可见
+// isTopLevel 顶层声明的近似判定：fn/struct/enum/方法/ctor 视为顶层可见.
 func isTopLevel(sym *semantic.Symbol) bool {
 	switch sym.Kind {
 	case semantic.KFn, semantic.KMethod, semantic.KStruct, semantic.KEnum, semantic.KCtor:
@@ -171,7 +171,7 @@ func References(prog []syntax.Stmt, res *semantic.Result) []Reference {
 	return out
 }
 
-// TypeAt 行列定位最内层表达式节点
+// TypeAt 行列定位最内层表达式节点.
 func TypeAt(prog []syntax.Stmt, res *semantic.Result, ty *types.Result, file string, line, col int) *Node {
 	best := &Node{Kind: "unknown"}
 	found := false
@@ -223,12 +223,12 @@ func spanSize(s syntax.Span) int {
 
 // —— Envelope 组装 ——
 
-// SymbolsEnvelope inspect symbols --json
+// SymbolsEnvelope inspect symbols --json.
 func SymbolsEnvelope(prog []syntax.Stmt, res *semantic.Result, ty *types.Result) Envelope {
 	return Envelope{SchemaVersion: SchemaVersion, ToolVersion: ToolVersion, Kind: KindInspectSymbols, Symbols: Symbols(prog, res, ty)}
 }
 
-// ReferencesEnvelope inspect refs --json；symbolID >= 0 时按符号过滤
+// ReferencesEnvelope inspect refs --json；symbolID >= 0 时按符号过滤.
 func ReferencesEnvelope(prog []syntax.Stmt, res *semantic.Result, symbolID int) Envelope {
 	refs := References(prog, res)
 	if symbolID >= 0 {
@@ -243,7 +243,7 @@ func ReferencesEnvelope(prog []syntax.Stmt, res *semantic.Result, symbolID int) 
 	return Envelope{SchemaVersion: SchemaVersion, ToolVersion: ToolVersion, Kind: KindInspectRefs, References: refs}
 }
 
-// TypeEnvelope inspect type --json；未命中 ok=false（负载为结构化 error）
+// TypeEnvelope inspect type --json；未命中 ok=false（负载为结构化 error）.
 func TypeEnvelope(prog []syntax.Stmt, res *semantic.Result, ty *types.Result, file string, line, col int) (Envelope, bool) {
 	n := TypeAt(prog, res, ty, file, line, col)
 	if n == nil {
@@ -252,7 +252,7 @@ func TypeEnvelope(prog []syntax.Stmt, res *semantic.Result, ty *types.Result, fi
 	return Envelope{SchemaVersion: SchemaVersion, ToolVersion: ToolVersion, Kind: KindInspectType, Nodes: []*Node{n}}, true
 }
 
-// DependenciesEnvelope inspect dependencies --json
+// DependenciesEnvelope inspect dependencies --json.
 func DependenciesEnvelope(files []load.FileInfo) Envelope {
 	deps := make([]Dependency, 0, len(files))
 	for _, f := range files {
@@ -265,12 +265,12 @@ func DependenciesEnvelope(files []load.FileInfo) Envelope {
 	return Envelope{SchemaVersion: SchemaVersion, ToolVersion: ToolVersion, Kind: KindInspectDependencies, Dependencies: deps}
 }
 
-// EffectsEnvelope inspect effects --json
+// EffectsEnvelope inspect effects --json.
 func EffectsEnvelope(effs []Effect) Envelope {
 	return Envelope{SchemaVersion: SchemaVersion, ToolVersion: ToolVersion, Kind: KindInspectEffects, Effects: effs}
 }
 
-// DumpEnvelope dump ast/hir/ir --json
+// DumpEnvelope dump ast/hir/ir --json.
 func DumpEnvelope(kind string, nodes []*Node) Envelope {
 	return Envelope{SchemaVersion: SchemaVersion, ToolVersion: ToolVersion, Kind: kind, Nodes: nodes}
 }

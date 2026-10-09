@@ -9,14 +9,14 @@ import (
 	"lang-go/internal/syntax"
 )
 
-// 内建函数名单（与 interp/gen/genjs 三方现行实现一致的唯一清单）
+// 内建函数名单（与 interp/gen/genjs 三方现行实现一致的唯一清单）.
 var builtinNames = []string{
 	"println", "print", "len", "str", "int", "float", "keys", "values",
 	"has", "push", "assert", "err", "bytes", "char",
 	"jsonParse", "jsonStringify", "isNone", "makeChan", "send", "recv",
 }
 
-// preludeStructNames 预载 struct（interp prelude 的 error/HttpResp）
+// preludeStructNames 预载 struct（interp prelude 的 error/HttpResp）.
 var preludeStructNames = []string{"error", "HttpResp"}
 
 type resolver struct {
@@ -56,10 +56,10 @@ func Resolve(prog []syntax.Stmt) *Result {
 	return r.res
 }
 
-// HasErrors 是否存在诊断
+// HasErrors 是否存在诊断.
 func (res *Result) HasErrors() bool { return len(res.Diags) > 0 }
 
-// Errs 诊断聚合为 error
+// Errs 诊断聚合为 error.
 func (res *Result) Errs() error { return ErrorList(res.Diags) }
 
 // Builtin 按名取内建符号（println/Some/error/http 等）
@@ -161,7 +161,7 @@ func kindName(k Kind) string {
 	return "符号"
 }
 
-// lookupIdent 与 interp eval(Ident) 的查名顺序一致
+// lookupIdent 与 interp eval(Ident) 的查名顺序一致.
 func (r *resolver) lookup(name string) *Symbol {
 	for i := len(r.scopes) - 1; i >= 0; i-- {
 		if s, ok := r.scopes[i][name]; ok {
@@ -173,7 +173,7 @@ func (r *resolver) lookup(name string) *Symbol {
 
 func (r *resolver) lookupCtor(name string) *Symbol { return r.ctorScope[name] }
 
-// lookupType 类型命名空间查名（struct/enum；供 checker 解析注解）
+// lookupType 类型命名空间查名（struct/enum；供 checker 解析注解）.
 func (r *resolver) lookupType(name string) *Symbol {
 	for i := len(r.typeScopes) - 1; i >= 0; i-- {
 		if s, ok := r.typeScopes[i][name]; ok {
@@ -326,7 +326,7 @@ func (r *resolver) bindGlobals(prog []syntax.Stmt) {
 
 // ———— 第四遍：函数体 ————
 
-// bindFns 走 fn 与方法体（此时全部全局可见——与 interp 运行时/→Go 包级可见性一致）
+// bindFns 走 fn 与方法体（此时全部全局可见——与 interp 运行时/→Go 包级可见性一致）.
 func (r *resolver) bindFns(prog []syntax.Stmt) {
 	for _, s := range prog {
 		if d, ok := s.(*syntax.FnDecl); ok && d.Recv == nil {
@@ -483,7 +483,7 @@ func (r *resolver) stmt(s syntax.Stmt) {
 	}
 }
 
-// block 开新作用域走语句序列
+// block 开新作用域走语句序列.
 func (r *resolver) block(stmts []syntax.Stmt) {
 	r.pushScope()
 	for _, s := range stmts {
@@ -521,7 +521,7 @@ func (r *resolver) fnScope(d *syntax.FnDecl, sym *Symbol) {
 	r.popScope()
 }
 
-// assignTarget 字段/索引赋值目标：只走子表达式（形状合法性由解析器 checkTarget 保证）
+// assignTarget 字段/索引赋值目标：只走子表达式（形状合法性由解析器 checkTarget 保证）.
 func (r *resolver) assignTarget(t syntax.Expr) {
 	switch x := t.(type) {
 	case *syntax.FieldEx:

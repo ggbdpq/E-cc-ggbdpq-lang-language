@@ -32,7 +32,7 @@ func symStr(s *semantic.Symbol) string {
 
 type hirBuilder struct{}
 
-// HIRJSON 整个 HIR 程序
+// HIRJSON 整个 HIR 程序.
 func HIRJSON(p *hir.Prog) []*Node {
 	b := &hirBuilder{}
 	out := make([]*Node, 0, len(p.Structs)+len(p.Enums)+len(p.Globals)+len(p.Fns))
@@ -61,13 +61,13 @@ func HIRJSON(p *hir.Prog) []*Node {
 	return out
 }
 
-// hirNode 携带编译器元数据（NodeID/Span/Type/Symbol）
+// hirNode 携带编译器元数据（NodeID/Span/Type/Symbol）.
 func hirNode(n *hir.Node, kind string) *Node {
 	cn := &Node{NodeID: int(n.ID), Kind: kind, Span: SpanJSON(n.Sp), Type: typeStr(n.Typ)}
 	return cn
 }
 
-// stmtNode 无类型容器节点壳
+// stmtNode 无类型容器节点壳.
 func stmtNode(n *hir.Node, kind string) *Node {
 	return &Node{NodeID: int(n.ID), Kind: kind, Span: SpanJSON(n.Sp)}
 }
@@ -391,7 +391,7 @@ func (b *irBuilder) next() int {
 	return b.id
 }
 
-// IRJSON 整个 IR 程序
+// IRJSON 整个 IR 程序.
 func IRJSON(p *ir.Prog) []*Node {
 	b := &irBuilder{}
 	for _, s := range p.Structs {
@@ -647,5 +647,5 @@ func (b *irBuilder) pat(p ir.Pat) *Node {
 	return &Node{NodeID: b.next(), Kind: "pattern_wild"}
 }
 
-// spanOf 语法节点 → Span JSON（dump 辅助）
+// spanOf 语法节点 → Span JSON（dump 辅助）.
 func spanOf(sp syntax.Span) *Span { return SpanJSON(sp) }

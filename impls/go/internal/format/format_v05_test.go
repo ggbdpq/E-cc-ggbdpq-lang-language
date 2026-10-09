@@ -15,7 +15,7 @@ import (
 	"lang-go/internal/syntax"
 )
 
-// corpus 仓库全部 .lang-go（相对 internal/format）
+// corpus 仓库全部 .lang-go（相对 internal/format）.
 func corpus(t *testing.T) map[string]string {
 	t.Helper()
 	files := map[string]string{}
@@ -39,7 +39,7 @@ func corpus(t *testing.T) map[string]string {
 	return files
 }
 
-// adversarial 对抗样本（注释边界全形状）
+// adversarial 对抗样本（注释边界全形状）.
 func adversarial() map[string]string {
 	return map[string]string{
 		"行尾注释":      "fn main() {\n    let x = 1 // 行尾注释\n    println(x)\n}",
@@ -68,7 +68,7 @@ func commentsSorted(src string) []string {
 	return out
 }
 
-// Test注释100保留 全语料：格式化前后注释文本多重集一致（位置允许规范移动）
+// Test注释100保留 全语料：格式化前后注释文本多重集一致（位置允许规范移动）.
 func Test注释100保留(t *testing.T) {
 	all := corpus(t)
 	for name, src := range adversarial() {
@@ -89,7 +89,7 @@ func Test注释100保留(t *testing.T) {
 	}
 }
 
-// Test格式化幂等对抗 全语料：format(format(x)) == format(x)
+// Test格式化幂等对抗 全语料：format(format(x)) == format(x).
 func Test格式化幂等对抗(t *testing.T) {
 	all := corpus(t)
 	for name, src := range adversarial() {
@@ -113,7 +113,7 @@ func Test格式化幂等对抗(t *testing.T) {
 	}
 }
 
-// Test行尾注释原位保留 行尾注释必须留在同一代码行行尾（最小 diff 的关键样本）
+// Test行尾注释原位保留 行尾注释必须留在同一代码行行尾（最小 diff 的关键样本）.
 func Test行尾注释原位保留(t *testing.T) {
 	src := "fn main() {\n    let x = 1 // 行尾注释\n    println(x)\n}"
 	out, err := Format(src)
@@ -126,7 +126,7 @@ func Test行尾注释原位保留(t *testing.T) {
 	}
 }
 
-// Test语义等价 corpus 程序格式化前后解释器 stdout 逐字节一致
+// Test语义等价 corpus 程序格式化前后解释器 stdout 逐字节一致.
 func Test语义等价(t *testing.T) {
 	for name, src := range corpus(t) {
 		name, src := name, src

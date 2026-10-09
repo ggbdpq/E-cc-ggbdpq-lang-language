@@ -7,7 +7,7 @@ import (
 	"unicode"
 )
 
-// Kind 记号类别
+// Kind 记号类别.
 type Kind int
 
 const (
@@ -36,7 +36,7 @@ const (
 	KwBreak
 	KwContinue
 
-	// 保留字：v0 使用即报"尚未启用"
+	// 保留字：v0 使用即报"尚未启用".
 	KwGo
 	KwChan
 	KwImport
@@ -114,7 +114,7 @@ var keywords = map[string]Kind{
 	"go": KwGo, "chan": KwChan, "import": KwImport, "extern": KwExtern, "interface": KwInterface,
 }
 
-// Token 单个记号；字符串字面量的 Lit 为解码后的值
+// Token 单个记号；字符串字面量的 Lit 为解码后的值.
 type Token struct {
 	Kind  Kind
 	Lit   string
@@ -123,7 +123,7 @@ type Token struct {
 	End   int
 }
 
-// isCont 该类记号之后换行视为续行（spec §2）
+// isCont 该类记号之后换行视为续行（spec §2）.
 func isCont(k Kind) bool {
 	switch k {
 	case Plus, Minus, Star, Slash, Percent,
@@ -148,7 +148,7 @@ func (e *lexError) Error() string {
 	return fmt.Sprintf("第%d行: %s\n  | %s", e.line, e.msg, e.snippet)
 }
 
-// lexErrAt 构造带当前行摘录的词法错误（输出末尾报错时摘录前一行）
+// lexErrAt 构造带当前行摘录的词法错误（输出末尾报错时摘录前一行）.
 func (l *Lexer) lexErrAt(msg string) error {
 	line := l.line
 	if line > 1 && l.i >= len(l.runes) {
@@ -241,7 +241,7 @@ func (l *Lexer) emitAt(k Kind, lit string, start int) {
 	l.last = t
 }
 
-// emitNewline 落实续行规则：续行记号之后、行首的换行不产记号
+// emitNewline 落实续行规则：续行记号之后、行首的换行不产记号.
 func (l *Lexer) emitNewline() {
 	if len(l.toks) == 0 || isCont(l.last.Kind) {
 		return

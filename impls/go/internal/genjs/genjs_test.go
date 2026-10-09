@@ -40,7 +40,7 @@ func interpRunJS(t *testing.T, prog []syntax.Stmt) string {
 	return out.String()
 }
 
-// nodeRun 把产物写入临时目录并以 ESM 执行
+// nodeRun 把产物写入临时目录并以 ESM 执行.
 func nodeRun(t *testing.T, js string) string {
 	t.Helper()
 	dir := t.TempDir()

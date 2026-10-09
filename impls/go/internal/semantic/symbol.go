@@ -8,10 +8,10 @@ import (
 	"lang-go/internal/syntax"
 )
 
-// SymbolID 编译内稳定符号编号
+// SymbolID 编译内稳定符号编号.
 type SymbolID int
 
-// Kind 符号类别
+// Kind 符号类别.
 type Kind int
 
 const (
@@ -52,7 +52,7 @@ type Symbol struct {
 	Decl        any  // 源 AST 声明节点（*syntax.FnDecl 等，checker/HIR 复用；预载符号为 nil）
 }
 
-// IsCtor 是否枚举构造器
+// IsCtor 是否枚举构造器.
 func (s *Symbol) IsCtor() bool { return s.Kind == KCtor }
 
 // Result 解析产物：符号清单 + 节点引用绑定 + 诊断。

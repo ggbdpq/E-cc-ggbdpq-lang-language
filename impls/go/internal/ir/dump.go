@@ -10,7 +10,7 @@ import (
 	"lang-go/internal/types"
 )
 
-// Dump 渲染 IR
+// Dump 渲染 IR.
 func Dump(p *Prog) string {
 	d := &dumper{}
 	d.w("prog")

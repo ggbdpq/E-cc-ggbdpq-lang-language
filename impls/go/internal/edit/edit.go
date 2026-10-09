@@ -13,7 +13,7 @@ import (
 	"sort"
 )
 
-// TextEdit 单个文本替换：将 [StartOffset, EndOffset) 替换为 Replacement
+// TextEdit 单个文本替换：将 [StartOffset, EndOffset) 替换为 Replacement.
 type TextEdit struct {
 	File        string `json:"file"`
 	StartOffset int    `json:"startOffset"`
@@ -21,25 +21,25 @@ type TextEdit struct {
 	Replacement string `json:"replacement"`
 }
 
-// Precondition 前置校验：编辑落盘前文件内容哈希必须仍然匹配（防源码已变时误写）
+// Precondition 前置校验：编辑落盘前文件内容哈希必须仍然匹配（防源码已变时误写）.
 type Precondition struct {
 	File     string `json:"file"`
 	FileHash string `json:"fileHash"` // sha256 hex（原文件字节）
 }
 
-// WorkspaceEdit 一次结构化编辑事务
+// WorkspaceEdit 一次结构化编辑事务.
 type WorkspaceEdit struct {
 	Edits         []TextEdit     `json:"edits"`
 	Preconditions []Precondition `json:"preconditions"`
 }
 
-// HashBytes sha256 hex
+// HashBytes sha256 hex.
 func HashBytes(bs []byte) string {
 	sum := sha256.Sum256(bs)
 	return hex.EncodeToString(sum[:])
 }
 
-// HashFile 文件内容哈希
+// HashFile 文件内容哈希.
 func HashFile(path string) (string, error) {
 	bs, err := os.ReadFile(path)
 	if err != nil {

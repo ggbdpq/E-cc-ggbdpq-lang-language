@@ -315,7 +315,7 @@ func Test表达式语句顶层问号放行(t *testing.T) {
 	wantDiagCodes(t, res, E3005)
 }
 
-// findLetStmt 按 name 定位第一个 let（测试辅助）
+// findLetStmt 按 name 定位第一个 let（测试辅助）.
 func findLetStmt(stmts []syntax.Stmt, name string) *syntax.LetStmt {
 	for _, s := range stmts {
 		switch st := s.(type) {
@@ -347,7 +347,7 @@ func findLetStmt(stmts []syntax.Stmt, name string) *syntax.LetStmt {
 	return nil
 }
 
-// letInitType 取 let 绑定初值的推断类型（测试辅助）
+// letInitType 取 let 绑定初值的推断类型（测试辅助）.
 func letInitType(t *testing.T, res *Result, prog []syntax.Stmt, name string) *Type {
 	t.Helper()
 	d := findLetStmt(prog, name)
@@ -361,7 +361,7 @@ func letInitType(t *testing.T, res *Result, prog []syntax.Stmt, name string) *Ty
 	return ty
 }
 
-// checkSrcStrict 解析+检查，resolver 与 checker 均须零诊断（测试辅助）
+// checkSrcStrict 解析+检查，resolver 与 checker 均须零诊断（测试辅助）.
 func checkSrcStrict(t *testing.T, src string) (*Result, []syntax.Stmt) {
 	t.Helper()
 	prog, err := syntax.Parse(src)

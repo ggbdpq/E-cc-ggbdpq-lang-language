@@ -16,13 +16,13 @@ import (
 	"lang-go/internal/version"
 )
 
-// SchemaVersion 契约版本（破坏性变更才升位）
+// SchemaVersion 契约版本（破坏性变更才升位）.
 const SchemaVersion = "1"
 
-// ToolVersion 工具版本（与 CLI version 同源）
+// ToolVersion 工具版本（与 CLI version 同源）.
 const ToolVersion = version.Version // 唯一版本源（specs/versioning.md §1）
 
-// Kind 输出类别
+// Kind 输出类别.
 const (
 	KindInspectSymbols      = "inspect.symbols"
 	KindInspectRefs         = "inspect.refs"
@@ -39,21 +39,21 @@ const (
 	KindCheck               = "check"
 )
 
-// Position JSON 位置：offset 0 基 rune、line/column 1 基
+// Position JSON 位置：offset 0 基 rune、line/column 1 基.
 type Position struct {
 	Offset int `json:"offset"`
 	Line   int `json:"line"`
 	Column int `json:"column"`
 }
 
-// Span JSON 源码区间
+// Span JSON 源码区间.
 type Span struct {
 	File  string   `json:"file"`
 	Start Position `json:"start"`
 	End   Position `json:"end"`
 }
 
-// SpanJSON syntax.Span → 契约 Span
+// SpanJSON syntax.Span → 契约 Span.
 func SpanJSON(sp syntax.Span) *Span {
 	if sp.File == "" && sp.Start.Offset == 0 && sp.End.Offset == 0 {
 		return nil // 未盖章节点不输出
@@ -65,7 +65,7 @@ func SpanJSON(sp syntax.Span) *Span {
 	}
 }
 
-// Diagnostic JSON 诊断（码稳定；severity v0.4 恒为 error；ruleId v0.9 起携带）
+// Diagnostic JSON 诊断（码稳定；severity v0.4 恒为 error；ruleId v0.9 起携带）.
 type Diagnostic struct {
 	Code         string  `json:"code"`
 	RuleID       string  `json:"ruleId,omitempty"`
@@ -76,7 +76,7 @@ type Diagnostic struct {
 	Help         string  `json:"help"`
 }
 
-// Symbol JSON 符号
+// Symbol JSON 符号.
 type Symbol struct {
 	SymbolID   int    `json:"symbolId"`
 	Name       string `json:"name"`
@@ -87,20 +87,20 @@ type Symbol struct {
 	Module     string `json:"module"`
 }
 
-// Reference JSON 引用
+// Reference JSON 引用.
 type Reference struct {
 	SymbolID      int    `json:"symbolId"`
 	Span          *Span  `json:"span"`
 	ReferenceKind string `json:"referenceKind"` // read | write | call | pattern
 }
 
-// Dependency 模块依赖（文件粒度）
+// Dependency 模块依赖（文件粒度）.
 type Dependency struct {
 	Module  string   `json:"module"`
 	Imports []string `json:"imports"`
 }
 
-// Node dump 输出的统一节点（AST/HIR/IR 共用形态）
+// Node dump 输出的统一节点（AST/HIR/IR 共用形态）.
 type Node struct {
 	NodeID   int     `json:"nodeId"`
 	Kind     string  `json:"kind"`
@@ -111,7 +111,7 @@ type Node struct {
 	Children []*Node `json:"children,omitempty"`
 }
 
-// Envelope 所有机器输出的统一顶层
+// Envelope 所有机器输出的统一顶层.
 type Envelope struct {
 	SchemaVersion string           `json:"schemaVersion"`
 	ToolVersion   string           `json:"toolVersion"`
@@ -130,12 +130,12 @@ type Envelope struct {
 	Dependency    *FileDepJSON     `json:"dependency,omitempty"`
 }
 
-// ErrorEnvelope 结构化错误输出
+// ErrorEnvelope 结构化错误输出.
 func ErrorEnvelope(kind, msg string) Envelope {
 	return Envelope{SchemaVersion: SchemaVersion, ToolVersion: ToolVersion, Kind: kind, Error: msg}
 }
 
-// CheckJSON check 的负载
+// CheckJSON check 的负载.
 type CheckJSON struct {
 	SchemaVersion string       `json:"schemaVersion"`
 	ToolVersion   string       `json:"toolVersion"`
@@ -146,7 +146,7 @@ type CheckJSON struct {
 
 // —— 转换助手 ——
 
-// diagJSON semantic 诊断 → 契约诊断（行级 Span：整行区间）
+// diagJSON semantic 诊断 → 契约诊断（行级 Span：整行区间）.
 func diagJSON(d semantic.Diagnostic) Diagnostic {
 	span := Span{File: "", Start: Position{Offset: 0, Line: d.Line, Column: 1}, End: Position{Offset: 0, Line: d.Line, Column: 1}}
 	return Diagnostic{
@@ -159,7 +159,7 @@ func diagJSON(d semantic.Diagnostic) Diagnostic {
 	}
 }
 
-// typesDiagJSON types 诊断 → 契约诊断
+// typesDiagJSON types 诊断 → 契约诊断.
 func typesDiagJSON(d types.Diagnostic) Diagnostic {
 	span := Span{Start: Position{Offset: 0, Line: d.Line, Column: 1}, End: Position{Offset: 0, Line: d.Line, Column: 1}}
 	return Diagnostic{

@@ -61,7 +61,7 @@ func (b *astBuilder) forVarType(st *syntax.ForInStmt) string {
 	return ""
 }
 
-// ASTJSON 整棵 AST → 契约节点（ty/res 可为 nil：仅 dump 语法树时不标类型）
+// ASTJSON 整棵 AST → 契约节点（ty/res 可为 nil：仅 dump 语法树时不标类型）.
 func ASTJSON(prog []syntax.Stmt, res *semantic.Result, ty *types.Result) []*Node {
 	b := &astBuilder{ty: ty, res: res, enable: ty != nil}
 	return b.stmts(prog)

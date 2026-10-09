@@ -24,7 +24,7 @@ import (
 	"lang-go/internal/pipeline"
 )
 
-// Stage 单阶段结果
+// Stage 单阶段结果.
 type Stage struct {
 	Name    string `json:"stage"`
 	OK      bool   `json:"ok"`
@@ -32,7 +32,7 @@ type Stage struct {
 	Note    string `json:"note,omitempty"`
 }
 
-// VerifyResult 全管线结果
+// VerifyResult 全管线结果.
 type VerifyResult struct {
 	Success     bool    `json:"success"`
 	Stages      []Stage `json:"stages"`
@@ -40,7 +40,7 @@ type VerifyResult struct {
 	ExitCode    int     `json:"exitCode,omitempty"`
 }
 
-// VerifyDir 对程序目录（目录即包）走全管线
+// VerifyDir 对程序目录（目录即包）走全管线.
 func VerifyDir(dir string) VerifyResult {
 	res := VerifyResult{}
 	fail := func(name, note string) VerifyResult {

@@ -9,7 +9,7 @@ import (
 	"lang-go/internal/syntax"
 )
 
-// sigKind 控制流信号：用 error 通道承载，调用/循环边界捕获
+// sigKind 控制流信号：用 error 通道承载，调用/循环边界捕获.
 type sigKind int
 
 const (
@@ -78,7 +78,7 @@ func (it *Interp) errf(line int, format string, args ...any) error {
 	return fmt.Errorf("第%d行: %s", line, fmt.Sprintf(format, args...))
 }
 
-// Run 执行整个程序；定义了 main 则随后调用
+// Run 执行整个程序；定义了 main 则随后调用.
 func (it *Interp) Run(prog []syntax.Stmt) error {
 	if err := it.execStmts(prog, it.Globals); err != nil {
 		return err
@@ -93,7 +93,7 @@ func (it *Interp) Run(prog []syntax.Stmt) error {
 	return nil
 }
 
-// EvalChunk 执行 REPL 片段，返回最后一个表达式语句的值
+// EvalChunk 执行 REPL 片段，返回最后一个表达式语句的值.
 func (it *Interp) EvalChunk(stmts []syntax.Stmt) (Value, bool, error) {
 	var last Value
 	has := false
@@ -113,7 +113,7 @@ func (it *Interp) EvalChunk(stmts []syntax.Stmt) (Value, bool, error) {
 	return last, has, nil
 }
 
-// CallByName 调用全局零参函数（langGo test 运行器用）
+// CallByName 调用全局零参函数（langGo test 运行器用）.
 func (it *Interp) CallByName(name string) error {
 	c, ok := it.Globals.lookup(name)
 	if !ok {
@@ -239,7 +239,7 @@ func (it *Interp) execStmt(s syntax.Stmt, env *Env) error {
 }
 
 // execLoopBody 执行循环体并消化 break/continue；return/err 信号向上抛
-// execLoopBody 执行循环体：返回 breaked=true 表示体内 break（循环应终止）
+// execLoopBody 执行循环体：返回 breaked=true 表示体内 break（循环应终止）.
 func (it *Interp) execLoopBody(body []syntax.Stmt, env *Env) (bool, error) {
 	err := it.execStmts(body, env)
 	if sig, ok := asSignal(err); ok {
@@ -381,7 +381,7 @@ type assignAddr struct {
 	writeBack func() // 非空：容器元素读改写后回写槽位（VALUE-ELEM-009）
 }
 
-// evalAssignAddr 求值赋值目标的地址组件（不做写入）
+// evalAssignAddr 求值赋值目标的地址组件（不做写入）.
 func (it *Interp) evalAssignAddr(tgt syntax.Expr, env *Env) (*assignAddr, error) {
 	line := 0
 	if sp, ok := tgt.(interface{ Line() int }); ok {
@@ -450,7 +450,7 @@ func (it *Interp) evalAssignAddr(tgt syntax.Expr, env *Env) (*assignAddr, error)
 	return nil, it.errf(line, "赋值目标不合法")
 }
 
-// writeAddr 向预求地址写入（= 赋值的唯一出口）
+// writeAddr 向预求地址写入（= 赋值的唯一出口）.
 func (it *Interp) writeAddr(a *assignAddr, v Value) error {
 	if a.cell != nil {
 		if !a.cell.mutable {
@@ -498,7 +498,7 @@ func (it *Interp) writeAddr(a *assignAddr, v Value) error {
 	}
 }
 
-// readAddr 从预求地址读取旧值（复合赋值用）
+// readAddr 从预求地址读取旧值（复合赋值用）.
 func (it *Interp) readAddr(a *assignAddr) (Value, error) {
 	if a.cell != nil {
 		return a.cell.val, nil
@@ -583,7 +583,7 @@ func (it *Interp) assignCompound(st *syntax.AssignStmt, addr *assignAddr, v Valu
 	return it.writeAddr(addr, combined)
 }
 
-// applyOp 复合赋值的数值/字符串运算（语义与 evalBinary 的对应分支一致）
+// applyOp 复合赋值的数值/字符串运算（语义与 evalBinary 的对应分支一致）.
 func (it *Interp) applyOp(op syntax.Kind, old, v Value, line int) (Value, error) {
 	switch op {
 	case syntax.PlusAssign:
@@ -1297,7 +1297,7 @@ func (it *Interp) callClosure(cl *Closure, args []Value) (Value, error) {
 	return it.runBody(cl, fenv, name)
 }
 
-// callMethod 方法调用：接收者绑定到 Recv 名，参数照常绑定
+// callMethod 方法调用：接收者绑定到 Recv 名，参数照常绑定.
 func (it *Interp) callMethod(cl *Closure, recv Value, args []Value) (Value, error) {
 	name := cl.Name
 	if len(args) != len(cl.Decl.Params) {
@@ -1315,7 +1315,7 @@ func (it *Interp) callMethod(cl *Closure, recv Value, args []Value) (Value, erro
 	return it.runBody(cl, fenv, name)
 }
 
-// runBody 执行函数体并消化控制流信号（? 传播在边界合成 Err 返回）
+// runBody 执行函数体并消化控制流信号（? 传播在边界合成 Err 返回）.
 func (it *Interp) runBody(cl *Closure, fenv *Env, name string) (Value, error) {
 	err := it.execStmts(cl.Decl.Body, fenv)
 	if sig, ok := asSignal(err); ok {

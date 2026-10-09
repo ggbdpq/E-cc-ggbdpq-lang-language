@@ -15,7 +15,7 @@ import (
 	"lang-go/internal/syntax"
 )
 
-// FileInfo 文件装载信息（v0.4 inspect dependencies）
+// FileInfo 文件装载信息（v0.4 inspect dependencies）.
 type FileInfo struct {
 	Path    string   // 模块根相对路径（/ 分隔）
 	Imports []string // 该文件声明的 import 路径（源码原文，依出现序）
@@ -29,7 +29,7 @@ func Program(dir string, includeTests bool) ([]syntax.Stmt, []string, error) {
 	return prog, tests, err
 }
 
-// ProgramEx 装载并返回文件级依赖信息
+// ProgramEx 装载并返回文件级依赖信息.
 func ProgramEx(dir string, includeTests bool) ([]syntax.Stmt, []string, []FileInfo, error) {
 	root, err := filepath.Abs(dir)
 	if err != nil {
@@ -96,7 +96,7 @@ func listLangGo(dir string, tests bool) ([]string, error) {
 	return out, nil
 }
 
-// loadDir 合并目录内非测试 .lang-go 并展开 import；根文件标记为 done 供去重
+// loadDir 合并目录内非测试 .lang-go 并展开 import；根文件标记为 done 供去重.
 func (l *loader) loadDir(dir string) ([]syntax.Stmt, error) {
 	files, err := listLangGo(dir, false)
 	if err != nil {
@@ -122,7 +122,7 @@ func (l *loader) loadDir(dir string) ([]syntax.Stmt, error) {
 }
 
 // loadFile 解析单个文件（import 语句保留给上层 expand），
-// 并给全部节点盖上文件归属（Span.File，模块根相对路径）
+// 并给全部节点盖上文件归属（Span.File，模块根相对路径）.
 func (l *loader) loadFile(ap string) ([]syntax.Stmt, error) {
 	src, err := os.ReadFile(ap)
 	if err != nil {
@@ -148,7 +148,7 @@ func (l *loader) loadFile(ap string) ([]syntax.Stmt, error) {
 	return stmts, nil
 }
 
-// stampFile Span.File 归属（v0.4 Agent Contract）
+// stampFile Span.File 归属（v0.4 Agent Contract）.
 func stampFile(stmts []syntax.Stmt, file string) {
 	set := func(n syntax.Spanned) { n.NodeSpan().File = file }
 	syntax.WalkStmts(stmts, func(s syntax.Stmt) {
@@ -166,7 +166,7 @@ func stampFile(stmts []syntax.Stmt, file string) {
 	})
 }
 
-// expand 展开语句序列里的 ImportStmt：相对 fromDir 解析 "./x" → x.lang-go 或 x/ 目录
+// expand 展开语句序列里的 ImportStmt：相对 fromDir 解析 "./x" → x.lang-go 或 x/ 目录.
 func (l *loader) expand(stmts []syntax.Stmt, fromDir string) ([]syntax.Stmt, error) {
 	var out []syntax.Stmt
 	for _, s := range stmts {
@@ -205,7 +205,7 @@ func (l *loader) expand(stmts []syntax.Stmt, fromDir string) ([]syntax.Stmt, err
 	return out, nil
 }
 
-// resolve 规范化 + containment + 环/去重判定
+// resolve 规范化 + containment + 环/去重判定.
 func (l *loader) resolve(rel string, fromDir string, line int) (string, bool, error) {
 	target := filepath.Clean(filepath.Join(fromDir, rel))
 	ap, err := filepath.Abs(target)

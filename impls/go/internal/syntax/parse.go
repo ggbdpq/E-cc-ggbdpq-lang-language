@@ -23,7 +23,7 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("第%d行: %s\n  | %s", e.Line, e.Msg, e.Snippet)
 }
 
-// lineSnippet 取 1-based 行号的内容（trim 后）；空行回退前一行
+// lineSnippet 取 1-based 行号的内容（trim 后）；空行回退前一行.
 func lineSnippet(lines []string, line int) string {
 	if line < 1 {
 		line = 1
@@ -53,7 +53,7 @@ type Parser struct {
 	prevLine  int      // 最近消费记号的行
 }
 
-// Parse 解析整个源文件/REPL 片段，返回语句序列
+// Parse 解析整个源文件/REPL 片段，返回语句序列.
 func Parse(src string) ([]Stmt, error) {
 	toks, err := Lex(src)
 	if err != nil {
@@ -86,7 +86,7 @@ func (p *Parser) next() Token {
 	return t
 }
 
-// lineStarts 每行起始 rune 偏移（0 基）——与 Lexer 的 rune 偏移同一度量
+// lineStarts 每行起始 rune 偏移（0 基）——与 Lexer 的 rune 偏移同一度量.
 func lineStarts(src string) []int {
 	starts := []int{0}
 	nl := rune(10) // '\n'
@@ -100,7 +100,7 @@ func lineStarts(src string) []int {
 	return starts
 }
 
-// posAt 偏移+行 → Position（Col 1 基）
+// posAt 偏移+行 → Position（Col 1 基）.
 func (p *Parser) posAt(offset, line int) Position {
 	if line < 1 {
 		line = 1
@@ -115,7 +115,7 @@ func (p *Parser) posAt(offset, line int) Position {
 	return Position{Offset: offset, Line: line, Col: col}
 }
 
-// spanOf 从起始记号到最近消费记号的区间
+// spanOf 从起始记号到最近消费记号的区间.
 func (p *Parser) spanOf(startTok Token) Span {
 	return Span{Start: p.posAt(startTok.Start, startTok.Line), End: p.posAt(p.prevEnd, p.prevLine)}
 }
@@ -193,7 +193,7 @@ func (p *Parser) parseTop() (Stmt, error) {
 	return p.parseStmt()
 }
 
-// parseExtern extern "host" { fn 签名（无函数体）... }
+// parseExtern extern "host" { fn 签名（无函数体）... }.
 func (p *Parser) parseExtern() (Stmt, error) {
 	t := p.next() // extern
 	host, err := p.expect(TokStr)
@@ -377,7 +377,7 @@ func (p *Parser) parseStmt() (Stmt, error) {
 	}
 }
 
-// checkTarget 赋值目标只能是变量、字段链或索引
+// checkTarget 赋值目标只能是变量、字段链或索引.
 func checkTarget(e Expr) error {
 	switch t := e.(type) {
 	case *Ident:

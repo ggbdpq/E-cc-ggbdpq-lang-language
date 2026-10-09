@@ -5,26 +5,26 @@
 // 定义身份约束：case 名与序、载荷个数、error 字段序以本包为准。
 package prelude
 
-// EnumDef 预载 enum 定义（纯数据）
+// EnumDef 预载 enum 定义（纯数据）.
 type EnumDef struct {
 	Name  string
 	Cases []string // case 名即契约序（Some/None、Ok/Err）
 }
 
-// StructDef 预载 struct 定义（纯数据）
+// StructDef 预载 struct 定义（纯数据）.
 type StructDef struct {
 	Name   string
 	Fields []string
 }
 
-// CtorInfo 全局构造器表项
+// CtorInfo 全局构造器表项.
 type CtorInfo struct {
 	Enum  string
 	Index int
 	Arity int
 }
 
-// 契约常量（specs/option-result.md；变更需 Major）
+// 契约常量（specs/option-result.md；变更需 Major）.
 const (
 	OptionName  = "Option"
 	OptionSome  = "Some"
@@ -36,7 +36,7 @@ const (
 	ErrorField  = "msg"
 )
 
-// Enums 预载 enum 全集
+// Enums 预载 enum 全集.
 func Enums() map[string]EnumDef {
 	return map[string]EnumDef{
 		OptionName: {Name: OptionName, Cases: []string{OptionSome, OptionNone}},
@@ -44,7 +44,7 @@ func Enums() map[string]EnumDef {
 	}
 }
 
-// Ctors 全局构造器表（case 名全局唯一，NAME-CTOR-005）
+// Ctors 全局构造器表（case 名全局唯一，NAME-CTOR-005）.
 func Ctors() map[string]CtorInfo {
 	return map[string]CtorInfo{
 		OptionSome: {Enum: OptionName, Index: 0, Arity: 1},
@@ -54,7 +54,7 @@ func Ctors() map[string]CtorInfo {
 	}
 }
 
-// ErrorDef error struct 定义
+// ErrorDef error struct 定义.
 func ErrorDef() StructDef {
 	return StructDef{Name: ErrorStruct, Fields: []string{ErrorField}}
 }

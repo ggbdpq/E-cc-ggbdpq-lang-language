@@ -30,7 +30,7 @@ import (
 	"lang-go/internal/syntax"
 )
 
-// CaseResult 单 case 执行结果
+// CaseResult 单 case 执行结果.
 type CaseResult struct {
 	Name     string   `json:"name"`
 	Category string   `json:"category"`
@@ -41,7 +41,7 @@ type CaseResult struct {
 	Note     string   `json:"note,omitempty"`    // 失败细节或跳过原因
 }
 
-// RunCase 执行单个 case 目录（内含 case.yaml 与程序文件）
+// RunCase 执行单个 case 目录（内含 case.yaml 与程序文件）.
 func RunCase(dir string) CaseResult {
 	bs, err := os.ReadFile(filepath.Join(dir, "case.yaml"))
 	if err != nil {
@@ -145,7 +145,7 @@ func runDifferential(c *Case, prog []syntax.Stmt, res CaseResult) CaseResult {
 	return res
 }
 
-// execBackend 在临时目录执行后端产物；skipped=true 表示宿主缺工具链（环境性跳过）
+// execBackend 在临时目录执行后端产物；skipped=true 表示宿主缺工具链（环境性跳过）.
 func execBackend(c *Case, toolName string, fn func(dir string) (string, string, error)) (string, error) {
 	if _, err := exec.LookPath(toolName); err != nil {
 		return "", errSkipped(fmt.Sprintf("宿主缺 %s，差分跳过（不计入通过）", toolName))
@@ -165,12 +165,12 @@ func execBackend(c *Case, toolName string, fn func(dir string) (string, string, 
 	return stdout, nil
 }
 
-// errSkipped 环境性跳过（非 case 失败）
+// errSkipped 环境性跳过（非 case 失败）.
 type errSkipped string
 
 func (e errSkipped) Error() string { return string(e) }
 
-// backendFail 把后端失败写进结果；返回 true 表示应终止
+// backendFail 把后端失败写进结果；返回 true 表示应终止.
 func backendFail(res *CaseResult, toolName string, err error) bool {
 	if err == nil {
 		return false
@@ -182,7 +182,7 @@ func backendFail(res *CaseResult, toolName string, err error) bool {
 	return true
 }
 
-// runDiagnostic check 模式：诊断断言（code + severity + line 多重集）
+// runDiagnostic check 模式：诊断断言（code + severity + line 多重集）.
 func runDiagnostic(c *Case, prog []syntax.Stmt, res CaseResult) CaseResult {
 	diags, _ := pipeline.CheckStmts(prog)
 	got := map[string]int{}
@@ -219,7 +219,7 @@ func runDiagnostic(c *Case, prog []syntax.Stmt, res CaseResult) CaseResult {
 	return res
 }
 
-// RunSuite 遍历 root 下 <category>/<case>/ 全部 case（无 case.yaml 的目录视为套件错误）
+// RunSuite 遍历 root 下 <category>/<case>/ 全部 case（无 case.yaml 的目录视为套件错误）.
 func RunSuite(root string) ([]CaseResult, int, error) {
 	cats, err := os.ReadDir(root)
 	if err != nil {
@@ -258,7 +258,7 @@ func RunSuite(root string) ([]CaseResult, int, error) {
 	return all, fails, nil
 }
 
-// tool 在 dir 内执行命令（合并 stderr，超时保护）
+// tool 在 dir 内执行命令（合并 stderr，超时保护）.
 func tool(dir string, timeout time.Duration, name string, args ...string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -271,7 +271,7 @@ func tool(dir string, timeout time.Duration, name string, args ...string) error 
 	return nil
 }
 
-// runCapture 执行命令并分别捕获 stdout/stderr（exitCode 非 0 视为失败）
+// runCapture 执行命令并分别捕获 stdout/stderr（exitCode 非 0 视为失败）.
 func runCapture(dir string, name string, args ...string) (string, string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()

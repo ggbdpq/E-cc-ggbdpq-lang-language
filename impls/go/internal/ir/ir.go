@@ -13,7 +13,7 @@ import (
 	"lang-go/internal/types"
 )
 
-// Prog 后端可执行/可转译的程序
+// Prog 后端可执行/可转译的程序.
 type Prog struct {
 	Structs []*StructDecl
 	Enums   []*EnumDecl
@@ -44,7 +44,7 @@ type Case struct {
 	Payloads []*types.Type
 }
 
-// Local 具名局部槽位（参数/绑定/for 变量）
+// Local 具名局部槽位（参数/绑定/for 变量）.
 type Local struct {
 	Name    string
 	Mutable bool
@@ -74,14 +74,14 @@ type Let struct {
 	Init  Expr
 }
 
-// Assign 赋值/复合赋值；Target 为读位节点复用（LocalGet/Field/Index）
+// Assign 赋值/复合赋值；Target 为读位节点复用（LocalGet/Field/Index）.
 type Assign struct {
 	Target Expr
 	Op     Op
 	Val    Expr
 }
 
-// Op 运算符（宿主无关的字符串形态，来自 syntax.Kind 归一）
+// Op 运算符（宿主无关的字符串形态，来自 syntax.Kind 归一）.
 type Op string
 
 const (
@@ -128,7 +128,7 @@ type While struct {
 	Body []Stmt
 }
 
-// IterKind for-in 迭代协议（HIR 降级时按被迭代类型归类）
+// IterKind for-in 迭代协议（HIR 降级时按被迭代类型归类）.
 type IterKind uint8
 
 const (
@@ -149,13 +149,13 @@ type ForIn struct {
 type Break struct{}
 type Continue struct{}
 
-// Spawn go 语句（目标为顶层 fn）
+// Spawn go 语句（目标为顶层 fn）.
 type Spawn struct {
 	Fn   *semantic.Symbol
 	Args []Expr
 }
 
-// FnDef 嵌套 fn 声明
+// FnDef 嵌套 fn 声明.
 type FnDef struct{ Fn *Fn }
 
 func (*Let) isStmt()      {}
@@ -201,27 +201,27 @@ type LocalGet struct {
 	typ   types.Type
 }
 
-// FnGet fn 值引用
+// FnGet fn 值引用.
 type FnGet struct {
 	Name string
 	Sym  *semantic.Symbol
 	typ  types.Type
 }
 
-// BuiltinGet 内建函数值引用
+// BuiltinGet 内建函数值引用.
 type BuiltinGet struct {
 	Name string
 	typ  types.Type
 }
 
-// Ctor 构造器调用（零参引用即空参）
+// Ctor 构造器调用（零参引用即空参）.
 type Ctor struct {
 	Sym  *semantic.Symbol
 	Args []Expr
 	typ  types.Type
 }
 
-// Call 三形态：用户 fn（Fn）/内建（Builtin）/方法（Method+Recv）/函数值（Callee）
+// Call 三形态：用户 fn（Fn）/内建（Builtin）/方法（Method+Recv）/函数值（Callee）.
 type Call struct {
 	Fn      *semantic.Symbol
 	Builtin string
@@ -266,7 +266,7 @@ type Field struct {
 	typ  types.Type
 }
 
-// Try ? 传播（checker 已约束函数上下文）
+// Try ? 传播（checker 已约束函数上下文）.
 type Try struct {
 	X   Expr
 	typ types.Type
@@ -293,7 +293,7 @@ type SliceLit struct {
 	typ   types.Type
 }
 
-// MatchKind match 分类（checker 结论，后端直接消费）
+// MatchKind match 分类（checker 结论，后端直接消费）.
 type MatchKind uint8
 
 const (

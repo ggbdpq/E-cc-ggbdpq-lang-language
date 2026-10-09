@@ -40,7 +40,7 @@ func hasFlag(args []string, flag string) bool {
 	return false
 }
 
-// printJSON 统一输出契约 JSON
+// printJSON 统一输出契约 JSON.
 func printJSON(v any) {
 	bs, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
@@ -52,7 +52,7 @@ func printJSON(v any) {
 
 const version = contract.ToolVersion // 单一版本源（specs/agent-protocol.md）
 
-// entryFile 固定入口文件名：与 Go「每目录一个 main」的习惯一致
+// entryFile 固定入口文件名：与 Go「每目录一个 main」的习惯一致.
 const entryFile = "main.lang-go"
 
 func cliMain() int {
@@ -132,7 +132,7 @@ func usage() {
 }
 
 // runBind 生成 extern "go" 声明草案到 stdout（decisions #61）：
-// 包目录固定为当前目录的 bind.d/（常量路径），草案需人工审核
+// 包目录固定为当前目录的 bind.d/（常量路径），草案需人工审核.
 func runBind() int {
 	out, err := bind.Dir("bind.d")
 	if err != nil {
@@ -191,7 +191,7 @@ func runBuild(target string) int {
 	return 2
 }
 
-// runFmt 就地格式化当前目录全部 .lang-go（不递归），打印改动的文件
+// runFmt 就地格式化当前目录全部 .lang-go（不递归），打印改动的文件.
 func runFmt() int {
 	entries, err := os.ReadDir(".")
 	if err != nil {
@@ -228,7 +228,7 @@ func runFmt() int {
 }
 
 // runCheck 语义检查（v0.3 起走独立前端：resolver + 类型检查器，
-// 诊断带稳定码 E1xxx/E2xxx/E3xxx/E4xxx；不再依赖 →JS 转译器，decisions #49 被 #66 取代）
+// 诊断带稳定码 E1xxx/E2xxx/E3xxx/E4xxx；不再依赖 →JS 转译器，decisions #49 被 #66 取代）.
 func runCheck() int {
 	prog, _, err := load.Program(".", false)
 	if err != nil {
@@ -245,7 +245,7 @@ func runCheck() int {
 	return 0
 }
 
-// runCheckJSON check --json：契约负载
+// runCheckJSON check --json：契约负载.
 func runCheckJSON() int {
 	prog, _, err := load.Program(".", false)
 	if err != nil {
@@ -262,7 +262,7 @@ func runCheckJSON() int {
 }
 
 // runInspect inspect symbols|refs|type|dependencies|effects --json
-// runInspect inspect symbols|refs|type|dependencies|effects|callers|callees|impact|references
+// runInspect inspect symbols|refs|type|dependencies|effects|callers|callees|impact|references.
 func runInspect(args []string) int {
 	if len(args) == 0 {
 		printJSON(contract.ErrorEnvelope("inspect", "缺少子命令：symbols|refs|type|dependencies|effects|callers|callees|impact|references"))
@@ -389,7 +389,7 @@ func runInspect(args []string) int {
 	return 2
 }
 
-// resolveSymbolArg 解析符号参数：数字 → SymbolID；名字 → 首个同名用户符号；未找到 → -1
+// resolveSymbolArg 解析符号参数：数字 → SymbolID；名字 → 首个同名用户符号；未找到 → -1.
 func resolveSymbolArg(a *pipeline.Analyzed, arg string, g *graph.Graph) int {
 	if arg == "" {
 		return -1
@@ -411,7 +411,7 @@ func resolveSymbolArg(a *pipeline.Analyzed, arg string, g *graph.Graph) int {
 	return -1
 }
 
-// runDump dump ast|hir|ir --json
+// runDump dump ast|hir|ir --json.
 func runDump(args []string) int {
 	if len(args) == 0 {
 		printJSON(contract.ErrorEnvelope("dump", "缺少子命令：ast|hir|ir"))
@@ -472,7 +472,7 @@ func runFile(path string) int {
 	return 0
 }
 
-// runTests 装载目录即包（实现文件 + *_test.lang-go，import 由装载器展开）后依序执行 test* 函数
+// runTests 装载目录即包（实现文件 + *_test.lang-go，import 由装载器展开）后依序执行 test* 函数.
 func runTests() int {
 	it := interp.New(os.Stdout)
 	prog, tests, err := load.Program(".", true)
@@ -625,7 +625,7 @@ func runFix(args []string) int {
 	return 0
 }
 
-// fixStop fix 失败的结构化负载
+// fixStop fix 失败的结构化负载.
 func fixStop(toolVersion, kind, stage, msg string) map[string]any {
 	return map[string]any{
 		"schemaVersion": contract.SchemaVersion,

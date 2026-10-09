@@ -17,7 +17,7 @@ type builder struct {
 	out   *Prog
 }
 
-// Build 构建 HIR
+// Build 构建 HIR.
 func Build(prog []syntax.Stmt, res *semantic.Result, ty *types.Result) *Prog {
 	b := &builder{res: res, ty: ty, ctors: map[string][]*semantic.Symbol{}, out: &Prog{}}
 	for _, s := range res.Symbols {
@@ -392,7 +392,7 @@ func (b *builder) expr(e syntax.Expr) Expr {
 	return nil
 }
 
-// ident 标识符 → LocalRef / FnRef / BuiltinRef / 裸构造器
+// ident 标识符 → LocalRef / FnRef / BuiltinRef / 裸构造器.
 func (b *builder) ident(x *syntax.Ident) Expr {
 	t := b.exprType(x)
 	if sym := b.res.Refs[x]; sym != nil {
@@ -412,7 +412,7 @@ func (b *builder) ident(x *syntax.Ident) Expr {
 	return &LocalRef{Node: b.node(x.Sp, x.Line, nil, t), Name: x.Name}
 }
 
-// call 调用脱糖：构造器 / 内建 / 用户 fn / 方法 / 函数值
+// call 调用脱糖：构造器 / 内建 / 用户 fn / 方法 / 函数值.
 func (b *builder) call(x *syntax.CallEx) Expr {
 	t := b.exprType(x)
 	if id, ok := x.Callee.(*syntax.Ident); ok {
@@ -470,7 +470,7 @@ func (b *builder) call(x *syntax.CallEx) Expr {
 	return n
 }
 
-// methodNameSpan 方法名的 token 区间（fe.Sp.End = 名字 token 终点；File 随表达式区间）
+// methodNameSpan 方法名的 token 区间（fe.Sp.End = 名字 token 终点；File 随表达式区间）.
 func methodNameSpan(fe *syntax.FieldEx) syntax.Span {
 	sp := fe.Sp
 	n := len([]rune(fe.Name))
@@ -481,7 +481,7 @@ func methodNameSpan(fe *syntax.FieldEx) syntax.Span {
 	}
 }
 
-// structOf 取类型对应的 struct 符号（引用自动解引用）
+// structOf 取类型对应的 struct 符号（引用自动解引用）.
 func structOf(t *types.Type) *semantic.Symbol {
 	for t != nil && t.Kind == types.KRef {
 		t = t.Elem

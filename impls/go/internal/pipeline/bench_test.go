@@ -16,7 +16,7 @@ import (
 	"lang-go/internal/syntax"
 )
 
-// 声明唯一，规模经 N 个工作函数扩展（避免重复定义 E2001）
+// 声明唯一，规模经 N 个工作函数扩展（避免重复定义 E2001）.
 const benchCorpusHead = `
 struct Point {
     x: int

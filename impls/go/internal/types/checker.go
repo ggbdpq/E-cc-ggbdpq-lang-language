@@ -14,7 +14,7 @@ import (
 	"lang-go/internal/syntax"
 )
 
-// MatchKind match 的语义分类（checker 判定，HIR/IR/后端直接消费结论）
+// MatchKind match 的语义分类（checker 判定，HIR/IR/后端直接消费结论）.
 type MatchKind uint8
 
 const (
@@ -24,7 +24,7 @@ const (
 	MatchOption
 )
 
-// Result 检查产物
+// Result 检查产物.
 type Result struct {
 	ExprTy    map[syntax.Expr]*Type       // 表达式 → 类型
 	PatTy     map[syntax.Pat]*Type        // 绑定模式 → 捕获类型
@@ -34,10 +34,10 @@ type Result struct {
 	Diags     []Diagnostic
 }
 
-// HasErrors 是否有诊断
+// HasErrors 是否有诊断.
 func (res *Result) HasErrors() bool { return len(res.Diags) > 0 }
 
-// Errs 诊断聚合
+// Errs 诊断聚合.
 func (res *Result) Errs() error { return ErrorList(res.Diags) }
 
 type checker struct {
@@ -49,7 +49,7 @@ type checker struct {
 	inFn   bool
 }
 
-// Check 运行类型检查（res 需先通过 semantic.Resolve）
+// Check 运行类型检查（res 需先通过 semantic.Resolve）.
 func Check(prog []syntax.Stmt, res *semantic.Result) *Result {
 	c := &checker{
 		res: res,
@@ -150,7 +150,7 @@ func (c *checker) fnBody(d *syntax.FnDecl, sym *semantic.Symbol, recvTy *Type) {
 }
 
 // declareParams 解析参数注解（缺注解 → E3007 + Unknown）入作用域，
-// 并把类型按序落到参数符号的 SymTy（接收者在 FnParams[0]）
+// 并把类型按序落到参数符号的 SymTy（接收者在 FnParams[0]）.
 func (c *checker) declareParams(d *syntax.FnDecl, sym *semantic.Symbol, recvTy *Type) {
 	var psyms []*semantic.Symbol
 	if sym != nil {
@@ -179,7 +179,7 @@ func (c *checker) declareParams(d *syntax.FnDecl, sym *semantic.Symbol, recvTy *
 	}
 }
 
-// fnSignature fn/方法的函数类型（参数注解缺失 → Unknown 占位）
+// fnSignature fn/方法的函数类型（参数注解缺失 → Unknown 占位）.
 func (c *checker) fnSignature(d *syntax.FnDecl) *Type {
 	tps := c.tparamsOf(d.TypeParams)
 	var ps []*Type
@@ -355,7 +355,7 @@ func (c *checker) assign(st *syntax.AssignStmt) {
 	}
 }
 
-// checkCompound 复合赋值（+= -= *= /=）：同型数值/字符串；数组 += 数组
+// checkCompound 复合赋值（+= -= *= /=）：同型数值/字符串；数组 += 数组.
 func (c *checker) checkCompound(st *syntax.AssignStmt, tgtTy, valTy *Type) {
 	if !IsConcrete(tgtTy) || !IsConcrete(valTy) {
 		return

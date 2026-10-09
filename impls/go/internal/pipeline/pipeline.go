@@ -16,7 +16,7 @@ import (
 	"lang-go/internal/types"
 )
 
-// Diagnostic 统一诊断形态
+// Diagnostic 统一诊断形态.
 type Diagnostic struct {
 	Code string
 	Msg  string
@@ -27,7 +27,7 @@ func (d Diagnostic) Error() string {
 	return fmt.Sprintf("第%d行: [%s] %s", d.Line, d.Code, d.Msg)
 }
 
-// ErrorList 多诊断聚合（首个诊断即 Error() 文本）
+// ErrorList 多诊断聚合（首个诊断即 Error() 文本）.
 type ErrorList []Diagnostic
 
 func (l ErrorList) Error() string {
@@ -37,7 +37,7 @@ func (l ErrorList) Error() string {
 	return l[0].Error()
 }
 
-// Diagnostics 将聚合转为切片
+// Diagnostics 将聚合转为切片.
 func Diagnostics(err error) []Diagnostic {
 	if diagnostics, ok := errors.AsType[ErrorList](err); ok {
 		return diagnostics
@@ -45,7 +45,7 @@ func Diagnostics(err error) []Diagnostic {
 	return nil
 }
 
-// Parse 解析（独立导出供 dump ast 用）
+// Parse 解析（独立导出供 dump ast 用）.
 func Parse(src string) ([]syntax.Stmt, error) {
 	prog, err := syntax.Parse(src)
 	if err != nil {
@@ -81,7 +81,7 @@ func Check(src string) ([]Diagnostic, error) {
 	return nil, nil
 }
 
-// Analyzed 全前端产物（HIR/IR/符号/类型），契约层一次性取用
+// Analyzed 全前端产物（HIR/IR/符号/类型），契约层一次性取用.
 type Analyzed struct {
 	AST  []syntax.Stmt
 	Res  *semantic.Result
@@ -90,7 +90,7 @@ type Analyzed struct {
 	Prog *ir.Prog
 }
 
-// Analyze 源码 → 全前端产物
+// Analyze 源码 → 全前端产物.
 func Analyze(src string) (*Analyzed, error) {
 	prog, err := syntax.Parse(src)
 	if err != nil {
@@ -100,7 +100,7 @@ func Analyze(src string) (*Analyzed, error) {
 	return AnalyzeStmts(prog)
 }
 
-// AnalyzeStmts 已解析语句 → 全前端产物
+// AnalyzeStmts 已解析语句 → 全前端产物.
 func AnalyzeStmts(prog []syntax.Stmt) (*Analyzed, error) {
 	res := semantic.Resolve(prog)
 	if res.HasErrors() {
@@ -114,7 +114,7 @@ func AnalyzeStmts(prog []syntax.Stmt) (*Analyzed, error) {
 	return &Analyzed{AST: prog, Res: res, Ty: ty, HIR: h, Prog: ir.Lower(h)}, nil
 }
 
-// Compile 源码 → IR（检查全过才降级）
+// Compile 源码 → IR（检查全过才降级）.
 func Compile(src string) (*ir.Prog, error) {
 	a, err := Analyze(src)
 	if err != nil {
@@ -123,7 +123,7 @@ func Compile(src string) (*ir.Prog, error) {
 	return a.Prog, nil
 }
 
-// CheckStmts 前端检查（已解析语句序列）
+// CheckStmts 前端检查（已解析语句序列）.
 func CheckStmts(prog []syntax.Stmt) ([]Diagnostic, error) {
 	res := semantic.Resolve(prog)
 	if res.HasErrors() {
@@ -138,7 +138,7 @@ func CheckStmts(prog []syntax.Stmt) ([]Diagnostic, error) {
 	return nil, nil
 }
 
-// CompileStmts 已解析语句序列 → IR（装载器合并后的程序用）
+// CompileStmts 已解析语句序列 → IR（装载器合并后的程序用）.
 func CompileStmts(prog []syntax.Stmt) (*ir.Prog, error) {
 	a, err := AnalyzeStmts(prog)
 	if err != nil {
@@ -163,7 +163,7 @@ func convertTypes(list []types.Diagnostic) []Diagnostic {
 	return out
 }
 
-// FormatDiags 多行渲染
+// FormatDiags 多行渲染.
 func FormatDiags(diags []Diagnostic) string {
 	var b strings.Builder
 	for _, d := range diags {

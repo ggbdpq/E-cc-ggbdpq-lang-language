@@ -11,7 +11,7 @@ import (
 	"lang-go/internal/prelude"
 )
 
-// prelude 预载代数类型（Option/Result/error，spec §3.6）与内建函数（spec §4）
+// prelude 预载代数类型（Option/Result/error，spec §3.6）与内建函数（spec §4）.
 func (it *Interp) prelude() {
 	// 预载定义来自 prelude 单一来源（v1.0 Gate D1）
 	for name, ci := range prelude.Ctors() {

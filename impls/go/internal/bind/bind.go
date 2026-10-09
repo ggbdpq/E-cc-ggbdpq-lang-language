@@ -20,7 +20,7 @@ import (
 	"strings"
 )
 
-// Dir 解析目录内顶层非测试 .go 文件，返回 extern "go" 声明块草案
+// Dir 解析目录内顶层非测试 .go 文件，返回 extern "go" 声明块草案.
 func Dir(dir string) (string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -98,7 +98,7 @@ func paramNames(fd *ast.FuncDecl) string {
 	return strings.Join(names, ", ")
 }
 
-// goFuncToLangGo 单个导出函数 → langGo 声明；skip 非空表示不可绑定及原因
+// goFuncToLangGo 单个导出函数 → langGo 声明；skip 非空表示不可绑定及原因.
 func goFuncToLangGo(fd *ast.FuncDecl) (sig, skip string) {
 	var params []string
 	list := fd.Type.Params.List
@@ -160,7 +160,7 @@ func isError(t ast.Expr) bool {
 	return ok && id.Name == "error"
 }
 
-// langGoType Go 类型表达式 → langGo 类型名；ok=false 表示不支持
+// langGoType Go 类型表达式 → langGo 类型名；ok=false 表示不支持.
 func langGoType(t ast.Expr) (string, bool) {
 	switch x := t.(type) {
 	case *ast.Ident:

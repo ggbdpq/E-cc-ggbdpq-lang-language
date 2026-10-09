@@ -200,7 +200,7 @@ func Test等价_M4移植(t *testing.T) {
 	}
 }
 
-// Test等价_示例程序 用 examples/ 下的真实程序做端到端等价验证
+// Test等价_示例程序 用 examples/ 下的真实程序做端到端等价验证.
 func Test等价_示例程序(t *testing.T) {
 	if testing.Short() {
 		t.Skip("short 模式跳过 go build")

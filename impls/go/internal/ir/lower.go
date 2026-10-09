@@ -9,7 +9,7 @@ import (
 	"lang-go/internal/types"
 )
 
-// Lower 降级整个程序
+// Lower 降级整个程序.
 func Lower(p *hir.Prog) *Prog {
 	l := &lowerer{out: &Prog{}, scopes: &scope{vars: map[string]*Local{}}}
 	for _, s := range p.Structs {
@@ -216,7 +216,7 @@ func (l *lowerer) lowerBlock(list []hir.Stmt) []Stmt {
 	return out
 }
 
-// fnCtx 保存/恢复函数级状态（嵌套 fn 有自己的局部表）
+// fnCtx 保存/恢复函数级状态（嵌套 fn 有自己的局部表）.
 type fnCtx struct {
 	scopes *scope
 	locals []*Local

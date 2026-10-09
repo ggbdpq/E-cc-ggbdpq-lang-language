@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// ImportLine 一条 import 声明
+// ImportLine 一条 import 声明.
 type ImportLine struct {
 	Path    string
 	Comment string // 行尾注释（含 // 前缀；无则空）
@@ -16,7 +16,7 @@ type ImportLine struct {
 	Used    bool   // 是否被引用
 }
 
-// OrganizeImports 对单个文件源码做 organize imports，返回新源码与是否变化
+// OrganizeImports 对单个文件源码做 organize imports，返回新源码与是否变化.
 func OrganizeImports(src string) (string, bool, error) {
 	changed := false
 	lines := strings.Split(src, "\n")

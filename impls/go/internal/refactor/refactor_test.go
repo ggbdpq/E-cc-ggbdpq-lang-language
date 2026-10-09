@@ -209,7 +209,7 @@ func TestOrganizeImports未使用删除(t *testing.T) {
 	}
 }
 
-// applyToSrc 按编辑集改造源码（rune 偏移，降序拼接），验证偏移正确性的关键缝
+// applyToSrc 按编辑集改造源码（rune 偏移，降序拼接），验证偏移正确性的关键缝.
 func applyToSrc(src string, edits []edit.TextEdit) string {
 	rs := []rune(src)
 	es := append([]edit.TextEdit(nil), edits...)

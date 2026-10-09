@@ -26,7 +26,7 @@ const (
 	E2010 = "E2010" // 嵌套类型声明（→Go 无法表达）
 )
 
-// Diagnostic 一条类型诊断
+// Diagnostic 一条类型诊断.
 type Diagnostic struct {
 	Code string
 	Msg  string
@@ -39,7 +39,7 @@ func (d Diagnostic) Error() string {
 
 func (d Diagnostic) String() string { return d.Error() }
 
-// ErrorList 多诊断聚合
+// ErrorList 多诊断聚合.
 type ErrorList []Diagnostic
 
 func (l ErrorList) Error() string {

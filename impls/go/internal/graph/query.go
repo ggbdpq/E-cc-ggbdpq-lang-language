@@ -10,7 +10,7 @@ import (
 	"lang-go/internal/syntax"
 )
 
-// ImpactItem 一条影响证据
+// ImpactItem 一条影响证据.
 type ImpactItem struct {
 	From       int          // 影响源符号（引用/调用它的一方）
 	Kind       EdgeKind     // 证据类别
@@ -18,19 +18,19 @@ type ImpactItem struct {
 	Transitive bool         // 是否传递影响（经由调用链）
 }
 
-// FileDep 文件级依赖
+// FileDep 文件级依赖.
 type FileDep struct {
 	Module    string
 	Imports   []string
 	DependsOn []string
 }
 
-// Callers 反向调用 BFS：谁（直接/传递）调用 id
+// Callers 反向调用 BFS：谁（直接/传递）调用 id.
 func (g *Graph) Callers(id, depth int) []ImpactItem {
 	return g.callBFS(id, true, depth)
 }
 
-// Callees 正向调用 BFS：id（直接/传递）调用谁
+// Callees 正向调用 BFS：id（直接/传递）调用谁.
 func (g *Graph) Callees(id, depth int) []ImpactItem {
 	return g.callBFS(id, false, depth)
 }
@@ -144,7 +144,7 @@ func (g *Graph) Impact(id, depth int) Impact {
 	return imp
 }
 
-// Impact 影响分析结果
+// Impact 影响分析结果.
 type Impact struct {
 	Symbol      *Node
 	Direct      []ImpactItem // 直接影响（全部入边类别）
@@ -171,7 +171,7 @@ func sortedKeys(m map[string]bool) []string {
 	return out
 }
 
-// FileDep 文件级依赖查询
+// FileDep 文件级依赖查询.
 func (g *Graph) FileDep(module string) (FileDep, bool) {
 	if len(g.Files) == 0 {
 		// 空 Files（如从纯源码构建）——仅当声明过 imports 才有

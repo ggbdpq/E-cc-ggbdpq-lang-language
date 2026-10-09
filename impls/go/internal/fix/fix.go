@@ -19,7 +19,7 @@ import (
 	"lang-go/internal/edit"
 )
 
-// ListDir 列出目录内全部 .lang-go 文件（模块根相对路径，/ 分隔，依文件名序）
+// ListDir 列出目录内全部 .lang-go 文件（模块根相对路径，/ 分隔，依文件名序）.
 func ListDir(root string) ([]string, error) {
 	entries, err := os.ReadDir(root)
 	if err != nil {
@@ -35,7 +35,7 @@ func ListDir(root string) ([]string, error) {
 	return out, nil
 }
 
-// PlanFile 对单文件计算 safe fix 的 TextEdit 列表（rune 偏移，依偏移降序——Apply 约定）
+// PlanFile 对单文件计算 safe fix 的 TextEdit 列表（rune 偏移，依偏移降序——Apply 约定）.
 func PlanFile(src string) []edit.TextEdit {
 	var edits []edit.TextEdit
 
@@ -114,7 +114,7 @@ func PlanFile(src string) []edit.TextEdit {
 	return edits
 }
 
-// importName 从 import 行提取 "./x" 的 x
+// importName 从 import 行提取 "./x" 的 x.
 func importName(line string) string {
 	i := strings.Index(line, `"`)
 	j := strings.LastIndex(line, `"`)
@@ -146,7 +146,7 @@ func referencedIn(src string, name string) bool {
 	return false
 }
 
-// PlanDir 对目录内全部 .lang-go 计算 safe fix WorkspaceEdit
+// PlanDir 对目录内全部 .lang-go 计算 safe fix WorkspaceEdit.
 func PlanDir(root string) (edit.WorkspaceEdit, error) {
 	files, err := ListDir(root)
 	if err != nil {

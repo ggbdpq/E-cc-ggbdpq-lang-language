@@ -11,7 +11,7 @@ import (
 )
 
 // DiagExpect check 模式的单条诊断断言（code/severity/line 必须精确匹配；
-// message 与列号允许漂移——diagnostics spec 的既定口径）
+// message 与列号允许漂移——diagnostics spec 的既定口径）.
 type DiagExpect struct {
 	Code     string
 	RuleID   string // 可选：声明了才比对（向后兼容 v0.8 case）
@@ -19,7 +19,7 @@ type DiagExpect struct {
 	Line     int
 }
 
-// Expect case 的期望面
+// Expect case 的期望面.
 type Expect struct {
 	ExitCode    int
 	Stdout      string
@@ -27,7 +27,7 @@ type Expect struct {
 	Diagnostics []DiagExpect
 }
 
-// Case 单个 conformance case
+// Case 单个 conformance case.
 type Case struct {
 	Name     string
 	Category string
@@ -218,7 +218,7 @@ func diagField(d *DiagExpect, key, val string, lineNo int) error {
 	return nil
 }
 
-// cutKey "key: value" → key, value（value 已去引号与注释）；无冒号 → 未支持形态
+// cutKey "key: value" → key, value（value 已去引号与注释）；无冒号 → 未支持形态.
 func cutKey(s string) (string, string, bool) {
 	i := strings.Index(s, ":")
 	if i <= 0 {
@@ -240,7 +240,7 @@ func cutKey(s string) (string, string, bool) {
 	return key, val, true
 }
 
-// unquote 仅支持普通双引号串（不允许转义）——子集刻意收窄
+// unquote 仅支持普通双引号串（不允许转义）——子集刻意收窄.
 func unquote(s string) (string, error) {
 	if s == `""` {
 		return "", nil

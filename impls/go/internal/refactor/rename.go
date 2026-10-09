@@ -19,7 +19,7 @@ import (
 	"lang-go/internal/syntax"
 )
 
-// ResolveTarget 解析 --symbol 参数（ID 或名字）为唯一符号
+// ResolveTarget 解析 --symbol 参数（ID 或名字）为唯一符号.
 func ResolveTarget(res *semantic.Result, arg string) (*semantic.Symbol, error) {
 	if arg == "" {
 		return nil, errors.New("缺少 --symbol 参数")
@@ -62,7 +62,7 @@ func allDigits(s string) (int, bool) {
 	return n, true
 }
 
-// ValidateNewName 新名字合法性：标识符、非关键字/保留字、非内建名
+// ValidateNewName 新名字合法性：标识符、非关键字/保留字、非内建名.
 func ValidateNewName(name string) error {
 	if name == "" {
 		return errors.New("新名字为空")
