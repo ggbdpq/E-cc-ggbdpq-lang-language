@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -112,7 +113,7 @@ func goFuncToLangGo(fd *ast.FuncDecl) (sig, skip string) {
 			n = 1
 		}
 		for j := 0; j < n; j++ {
-			name := "a" + fmt.Sprint(len(params)+1)
+			name := "a" + strconv.Itoa(len(params)+1)
 			if j < len(field.Names) && field.Names[j] != nil {
 				name = field.Names[j].Name
 			}

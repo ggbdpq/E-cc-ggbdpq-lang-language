@@ -4,6 +4,7 @@ package refactor
 // 全部基于 token 扫描（非正则）：声明 Span 内的记号流按词法类别匹配。
 
 import (
+	"errors"
 	"fmt"
 
 	"lang-go/internal/semantic"
@@ -61,29 +62,29 @@ func declNameSpan(prog []syntax.Stmt, srcs Sources, res *semantic.Result, target
 	case semantic.KFn:
 		d, ok := target.Decl.(*syntax.FnDecl)
 		if !ok {
-			return syntax.Span{}, fmt.Errorf("未找到函数声明节点")
+			return syntax.Span{}, errors.New("未找到函数声明节点")
 		}
 		return scanNameAfterFn(d.Sp, srcs, false)
 	case semantic.KMethod:
 		d, ok := target.Decl.(*syntax.FnDecl)
 		if !ok {
-			return syntax.Span{}, fmt.Errorf("未找到方法声明节点")
+			return syntax.Span{}, errors.New("未找到方法声明节点")
 		}
 		return scanNameAfterFn(d.Sp, srcs, true)
 	case semantic.KVar:
 		st := findLetStmt(prog, res, target)
 		if st == nil {
-			return syntax.Span{}, fmt.Errorf("未找到绑定声明")
+			return syntax.Span{}, errors.New("未找到绑定声明")
 		}
 		return firstIdentSpan(st.Sp, srcs)
 	case semantic.KParam:
 		ownerSym, idx, ok := paramOwner(res, target)
 		if !ok {
-			return syntax.Span{}, fmt.Errorf("未找到参数所属函数")
+			return syntax.Span{}, errors.New("未找到参数所属函数")
 		}
 		d := findFnDeclBySym(prog, res, ownerSym)
 		if d == nil {
-			return syntax.Span{}, fmt.Errorf("未找到函数声明节点")
+			return syntax.Span{}, errors.New("未找到函数声明节点")
 		}
 		hasRecv := d.Recv != nil
 		group := 0
@@ -94,7 +95,7 @@ func declNameSpan(prog []syntax.Stmt, srcs Sources, res *semantic.Result, target
 		}
 		return paramIdentSpan(d.Sp, srcs, group, seg)
 	}
-	return syntax.Span{}, fmt.Errorf("不支持的定义定位")
+	return syntax.Span{}, errors.New("不支持的定义定位")
 }
 
 // findLetStmt 按符号找 LetStmt
@@ -208,7 +209,7 @@ func scanNameAfterFn(sp syntax.Span, srcs Sources, hasRecv bool) (syntax.Span, e
 		i++
 	}
 	if i >= len(toks) {
-		return syntax.Span{}, fmt.Errorf("未找到 fn")
+		return syntax.Span{}, errors.New("未找到 fn")
 	}
 	i++ // 越过 fn
 	if hasRecv {
@@ -231,7 +232,7 @@ func scanNameAfterFn(sp syntax.Span, srcs Sources, hasRecv bool) (syntax.Span, e
 		}
 	}
 	if i >= len(toks) || toks[i].kind != syntax.TokIdent {
-		return syntax.Span{}, fmt.Errorf("未找到名字 token")
+		return syntax.Span{}, errors.New("未找到名字 token")
 	}
 	return spanTokAbs(sp, toks[i]), nil
 }
@@ -244,7 +245,7 @@ func firstIdentSpan(sp syntax.Span, srcs Sources) (syntax.Span, error) {
 			return spanTokAbs(sp, t), nil
 		}
 	}
-	return syntax.Span{}, fmt.Errorf("未找到标识符")
+	return syntax.Span{}, errors.New("未找到标识符")
 }
 
 // paramIdentSpan 第 group 组括号内第 seg 段的首个标识符（参数名）
@@ -274,7 +275,7 @@ func paramIdentSpan(sp syntax.Span, srcs Sources, group, seg int) (syntax.Span, 
 			}
 		}
 	}
-	return syntax.Span{}, fmt.Errorf("未找到参数组")
+	return syntax.Span{}, errors.New("未找到参数组")
 }
 
 func segIdent(sp syntax.Span, toks []spanTok, lp, seg int) (syntax.Span, error) {
@@ -313,7 +314,7 @@ func firstIdentInSeg(sp syntax.Span, toks []spanTok) (syntax.Span, error) {
 			return spanTokAbs(sp, t), nil
 		}
 	}
-	return syntax.Span{}, fmt.Errorf("参数段无标识符")
+	return syntax.Span{}, errors.New("参数段无标识符")
 }
 
 // spanTokAbs token → 绝对 Span（spanTokens 已换算为绝对坐标）

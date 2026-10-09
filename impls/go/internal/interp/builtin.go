@@ -1,6 +1,7 @@
 package interp
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -140,7 +141,7 @@ func (it *Interp) prelude() {
 	})
 	reg("push", func(it *Interp, args []Value) (Value, error) {
 		if len(args) < 2 {
-			return nil, fmt.Errorf("push 需要至少 2 个参数")
+			return nil, errors.New("push 需要至少 2 个参数")
 		}
 		arr, ok := args[0].(*ArrVal)
 		if !ok {
@@ -151,7 +152,7 @@ func (it *Interp) prelude() {
 	})
 	reg("assert", func(it *Interp, args []Value) (Value, error) {
 		if len(args) < 1 || len(args) > 2 {
-			return nil, fmt.Errorf("assert 需要 1~2 个参数")
+			return nil, errors.New("assert 需要 1~2 个参数")
 		}
 		t, err := truthy(args[0])
 		if err != nil {
@@ -161,7 +162,7 @@ func (it *Interp) prelude() {
 			if len(args) == 2 {
 				return nil, fmt.Errorf("assert 失败: %s", fmtVal(args[1], true))
 			}
-			return nil, fmt.Errorf("assert 失败")
+			return nil, errors.New("assert 失败")
 		}
 		return UnitVal{}, nil
 	})

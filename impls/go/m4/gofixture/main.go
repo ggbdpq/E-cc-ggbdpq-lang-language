@@ -7,6 +7,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"math/bits"
@@ -281,7 +282,7 @@ type listTarget struct{ Mid, Kind, SID string }
 func listKindOf(u *url.URL) (listTarget, error) {
 	segs := strings.Split(strings.Trim(u.Path, "/"), "/")
 	if len(segs) < 2 {
-		return listTarget{}, fmt.Errorf("不是 UP主列表页链接")
+		return listTarget{}, errors.New("不是 UP主列表页链接")
 	}
 	mid := segs[0]
 	var kind, sid string
@@ -294,10 +295,10 @@ func listKindOf(u *url.URL) (listTarget, error) {
 			kind = "season"
 		}
 	} else {
-		return listTarget{}, fmt.Errorf("不是合集/列表页链接（支持 channel/collectiondetail 与 lists）")
+		return listTarget{}, errors.New("不是合集/列表页链接（支持 channel/collectiondetail 与 lists）")
 	}
 	if sid == "" || mid == "" {
-		return listTarget{}, fmt.Errorf("列表链接缺少 id 参数")
+		return listTarget{}, errors.New("列表链接缺少 id 参数")
 	}
 	return listTarget{Mid: mid, Kind: kind, SID: sid}, nil
 }

@@ -3,6 +3,7 @@ package refactor
 // remove.go：safe remove——仅当 Semantic Graph 证明目标无可达引用时才允许删除。
 
 import (
+	"errors"
 	"fmt"
 
 	"lang-go/internal/edit"
@@ -24,7 +25,7 @@ func SafeRemoveCheck(prog []syntax.Stmt, res *semantic.Result, target *semantic.
 		return RemoveCheck{}, fmt.Errorf("safe remove 仅支持顶层 fn 与全局变量（目标 kind=%s）", kindName(target.Kind))
 	}
 	if target.Extern {
-		return RemoveCheck{}, fmt.Errorf("extern 声明不支持 safe remove")
+		return RemoveCheck{}, errors.New("extern 声明不支持 safe remove")
 	}
 
 	// 声明节点必须可定位（fn / 全局 let）
@@ -34,7 +35,7 @@ func SafeRemoveCheck(prog []syntax.Stmt, res *semantic.Result, target *semantic.
 		found = true
 	}
 	if !found {
-		return RemoveCheck{}, fmt.Errorf("未找到声明节点")
+		return RemoveCheck{}, errors.New("未找到声明节点")
 	}
 
 	// 引用计数：除定义外的全部 Ident 引用
@@ -110,17 +111,17 @@ func SafeRemoveSpan(prog []syntax.Stmt, res *semantic.Result, target *semantic.S
 	case semantic.KFn:
 		d, ok := target.Decl.(*syntax.FnDecl)
 		if !ok {
-			return syntax.Span{}, fmt.Errorf("未找到函数声明节点")
+			return syntax.Span{}, errors.New("未找到函数声明节点")
 		}
 		return d.Sp, nil
 	case semantic.KVar:
 		st := findLetStmt(prog, res, target)
 		if st == nil {
-			return syntax.Span{}, fmt.Errorf("未找到绑定声明")
+			return syntax.Span{}, errors.New("未找到绑定声明")
 		}
 		return st.Sp, nil
 	}
-	return syntax.Span{}, fmt.Errorf("不支持的定义定位")
+	return syntax.Span{}, errors.New("不支持的定义定位")
 }
 
 // SafeRemoveEdits 可删除时给出删除编辑：区间吞掉声明后的单个换行，避免残留空行

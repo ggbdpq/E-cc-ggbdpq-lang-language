@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -186,7 +187,7 @@ func runDiagnostic(c *Case, prog []syntax.Stmt, res CaseResult) CaseResult {
 	diags, _ := pipeline.CheckStmts(prog)
 	got := map[string]int{}
 	for _, d := range diags {
-		got[d.Code+"|"+contract.RuleOf(d.Code)+"|error|"+fmt.Sprint(d.Line)]++
+		got[d.Code+"|"+contract.RuleOf(d.Code)+"|error|"+strconv.Itoa(d.Line)]++
 	}
 	// 期望声明了 ruleId 则精确比对；未声明（v0.8 旧 case）回填映射表值参与匹配
 	want := map[string]int{}
@@ -195,7 +196,7 @@ func runDiagnostic(c *Case, prog []syntax.Stmt, res CaseResult) CaseResult {
 		if rule == "" {
 			rule = contract.RuleOf(d.Code)
 		}
-		want[d.Code+"|"+rule+"|"+d.Severity+"|"+fmt.Sprint(d.Line)]++
+		want[d.Code+"|"+rule+"|"+d.Severity+"|"+strconv.Itoa(d.Line)]++
 	}
 	var missing, extra []string
 	for k, n := range want {

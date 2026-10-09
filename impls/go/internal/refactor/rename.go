@@ -10,6 +10,7 @@
 package refactor
 
 import (
+	"errors"
 	"fmt"
 
 	"lang-go/internal/edit"
@@ -21,7 +22,7 @@ import (
 // ResolveTarget 解析 --symbol 参数（ID 或名字）为唯一符号
 func ResolveTarget(res *semantic.Result, arg string) (*semantic.Symbol, error) {
 	if arg == "" {
-		return nil, fmt.Errorf("缺少 --symbol 参数")
+		return nil, errors.New("缺少 --symbol 参数")
 	}
 	if n, ok := allDigits(arg); ok {
 		for _, s := range res.Symbols {
@@ -64,7 +65,7 @@ func allDigits(s string) (int, bool) {
 // ValidateNewName 新名字合法性：标识符、非关键字/保留字、非内建名
 func ValidateNewName(name string) error {
 	if name == "" {
-		return fmt.Errorf("新名字为空")
+		return errors.New("新名字为空")
 	}
 	for i, r := range name {
 		first := i == 0
@@ -107,10 +108,10 @@ func Rename(prog []syntax.Stmt, srcs Sources, res *semantic.Result, h *hir.Prog,
 	case semantic.KStruct, semantic.KEnum, semantic.KCtor:
 		return nil, fmt.Errorf("暂不支持对 %s 的 rename（列 P1）", kindName(target.Kind))
 	default:
-		return nil, fmt.Errorf("该符号类型不支持 rename")
+		return nil, errors.New("该符号类型不支持 rename")
 	}
 	if target.Name == "_" {
-		return nil, fmt.Errorf("占位符 _ 不可 rename")
+		return nil, errors.New("占位符 _ 不可 rename")
 	}
 	// 冲突检测（保守）：其他同名用户符号存在即拒绝
 	for _, s := range res.Symbols {

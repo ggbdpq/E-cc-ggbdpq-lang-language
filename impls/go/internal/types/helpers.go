@@ -1,6 +1,10 @@
 package types
 
-import "lang-go/internal/syntax"
+import (
+	"strings"
+
+	"lang-go/internal/syntax"
+)
 
 // opName 复合赋值运算符的诊断名
 func opName(k syntax.Kind) string {
@@ -21,12 +25,5 @@ func opName(k syntax.Kind) string {
 
 // joinNames 逗号连接 case 名
 func joinNames(names []string) string {
-	out := ""
-	for i, n := range names {
-		if i > 0 {
-			out += ", "
-		}
-		out += n
-	}
-	return out
+	return strings.Join(names, ", ")
 }

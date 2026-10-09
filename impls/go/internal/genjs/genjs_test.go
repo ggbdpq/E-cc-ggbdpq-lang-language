@@ -193,14 +193,7 @@ func splitLines(s string) []string {
 }
 
 func joinLines(lines []string) string {
-	out := ""
-	for i, l := range lines {
-		if i > 0 {
-			out += "\n"
-		}
-		out += l
-	}
-	return out
+	return strings.Join(lines, "\n")
 }
 
 func hasPrefix(s, p string) bool { return len(s) >= len(p) && s[:len(p)] == p }

@@ -4,6 +4,7 @@
 package conformance
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -174,22 +175,22 @@ func ParseManifest(src string) (*Case, error) {
 
 	// 收尾校验
 	if c.Name == "" || c.Category == "" {
-		return nil, fmt.Errorf("manifest 缺 name/category")
+		return nil, errors.New("manifest 缺 name/category")
 	}
 	switch c.Mode {
 	case "run":
 		if c.Expect.ExitCode != 0 {
-			return nil, fmt.Errorf("run 模式 exitCode 必须为 0（v0.8 不比对运行时错误文本）")
+			return nil, errors.New("run 模式 exitCode 必须为 0（v0.8 不比对运行时错误文本）")
 		}
 		if c.Expect.Stderr != "" {
-			return nil, fmt.Errorf("run 模式 stderr 必须为空串")
+			return nil, errors.New("run 模式 stderr 必须为空串")
 		}
 		if !strings.HasSuffix(c.Expect.Stdout, "\n") || strings.Contains(c.Expect.Stdout, "\n\n") {
-			return nil, fmt.Errorf("run 模式 stdout 须为块标量且无空行")
+			return nil, errors.New("run 模式 stdout 须为块标量且无空行")
 		}
 	case "check":
 		if len(c.Expect.Diagnostics) == 0 {
-			return nil, fmt.Errorf("check 模式至少声明一条诊断")
+			return nil, errors.New("check 模式至少声明一条诊断")
 		}
 	default:
 		return nil, fmt.Errorf("mode 须为 run|check（得到 %q）", c.Mode)

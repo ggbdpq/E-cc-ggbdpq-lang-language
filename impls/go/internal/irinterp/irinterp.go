@@ -275,7 +275,7 @@ func (m *Machine) execForIn(x *ir.ForIn, f *frame) (step, error) {
 			items = append(items, interp.IntVal(i))
 		}
 	default:
-		return step{}, fmt.Errorf("该类型不可迭代")
+		return step{}, errors.New("该类型不可迭代")
 	}
 	for _, item := range items {
 		body := newFrame(f)
@@ -377,13 +377,13 @@ func (m *Machine) evalSlot(tgt ir.Expr, f *frame) (assignSlot, error) {
 			return arrSlot{arr: c, idx: i}, nil
 		case *interp.MapVal:
 			if _, ok := keyOK(iv); !ok {
-				return nil, fmt.Errorf("映射键须为 int/string/bool")
+				return nil, errors.New("映射键须为 int/string/bool")
 			}
 			return mapSlot{mm: c, k: iv}, nil
 		}
-		return nil, fmt.Errorf("该类型不可索引赋值")
+		return nil, errors.New("该类型不可索引赋值")
 	}
-	return nil, fmt.Errorf("赋值目标不合法")
+	return nil, errors.New("赋值目标不合法")
 }
 
 func (m *Machine) execAssign(x *ir.Assign, f *frame) (step, error) {
@@ -475,7 +475,7 @@ func (m *Machine) eval(e ir.Expr, f *frame) (interp.Value, error) {
 			case interp.FloatVal:
 				return -n, nil
 			}
-			return nil, fmt.Errorf("一元 - 不适用于该类型")
+			return nil, errors.New("一元 - 不适用于该类型")
 		case ir.OpNot:
 			return interp.BoolVal(!truthy(v)), nil
 		case ir.OpRef:
@@ -485,7 +485,7 @@ func (m *Machine) eval(e ir.Expr, f *frame) (interp.Value, error) {
 					return &interp.PtrVal{Cell: *p}, nil
 				}
 			}
-			return nil, fmt.Errorf("& 仅可作用于变量")
+			return nil, errors.New("& 仅可作用于变量")
 		}
 		return nil, fmt.Errorf("irinterp: 未支持的一元运算 %s", string(x.Op))
 	case *ir.Binary:
@@ -558,7 +558,7 @@ func (m *Machine) eval(e ir.Expr, f *frame) (interp.Value, error) {
 			}
 			return interp.StrVal(string([]rune(string(c))[i])), nil
 		}
-		return nil, fmt.Errorf("该类型不可索引")
+		return nil, errors.New("该类型不可索引")
 	case *ir.Slice:
 		ov, err := m.eval(x.Obj, f)
 		if err != nil {
@@ -586,7 +586,7 @@ func (m *Machine) eval(e ir.Expr, f *frame) (interp.Value, error) {
 			}
 			return interp.StrVal(string(rs[lo:hi])), nil
 		}
-		return nil, fmt.Errorf("该类型不可切片")
+		return nil, errors.New("该类型不可切片")
 	case *ir.Field:
 		ov, err := m.eval(x.Obj, f)
 		if err != nil {
@@ -730,7 +730,7 @@ func (m *Machine) evalCall(x *ir.Call, f *frame) (interp.Value, error) {
 		case *irBuiltinVal:
 			return m.callBuiltin(fv.name, args)
 		}
-		return nil, fmt.Errorf("该值不可调用")
+		return nil, errors.New("该值不可调用")
 	}
 }
 
@@ -776,7 +776,7 @@ func (m *Machine) callBuiltin(name string, args []interp.Value) (interp.Value, e
 
 func (m *Machine) callFn(fn *ir.Fn, recv interp.Value, args []interp.Value) (interp.Value, error) {
 	if fn.Extern {
-		return nil, fmt.Errorf("extern 函数仅转译可用")
+		return nil, errors.New("extern 函数仅转译可用")
 	}
 	f := newFrame(m.globals)
 	if fn.Recv != nil {
@@ -813,7 +813,7 @@ func (m *Machine) callFnVal(fv *irFnVal, args []interp.Value) (interp.Value, err
 		}
 		return m.execBody(fv.lit.Body, f)
 	}
-	return nil, fmt.Errorf("空函数值不可调用")
+	return nil, errors.New("空函数值不可调用")
 }
 
 // execBody 执行函数体；Err 传播（tryErr）到函数边界合成返回值（RESULT-TRY-003）
@@ -845,7 +845,7 @@ func (m *Machine) evalMatch(x *ir.Match, f *frame) (interp.Value, error) {
 		}
 		return m.eval(arm.Body, bind)
 	}
-	return nil, fmt.Errorf("match 无匹配分支")
+	return nil, errors.New("match 无匹配分支")
 }
 
 func (m *Machine) matchPat(p ir.Pat, v interp.Value, bind *frame) bool {
@@ -902,7 +902,7 @@ func (m *Machine) arith(op ir.Op, lv, rv interp.Value) (interp.Value, error) {
 	case interp.IntVal:
 		b, ok := rv.(interp.IntVal)
 		if !ok {
-			return nil, fmt.Errorf("int 与 float 不可混合运算（无隐式转换）")
+			return nil, errors.New("int 与 float 不可混合运算（无隐式转换）")
 		}
 		switch op {
 		case ir.OpPlus, ir.OpPlusA:
@@ -913,12 +913,12 @@ func (m *Machine) arith(op ir.Op, lv, rv interp.Value) (interp.Value, error) {
 			return a * b, nil
 		case ir.OpSlash, ir.OpSlashA:
 			if b == 0 {
-				return nil, fmt.Errorf("整数除零")
+				return nil, errors.New("整数除零")
 			}
 			return a / b, nil
 		case ir.OpPercent:
 			if b == 0 {
-				return nil, fmt.Errorf("整数模零")
+				return nil, errors.New("整数模零")
 			}
 			return a % b, nil
 		case ir.OpAnd:
@@ -935,7 +935,7 @@ func (m *Machine) arith(op ir.Op, lv, rv interp.Value) (interp.Value, error) {
 	case interp.FloatVal:
 		b, ok := rv.(interp.FloatVal)
 		if !ok {
-			return nil, fmt.Errorf("int 与 float 不可混合运算（无隐式转换）")
+			return nil, errors.New("int 与 float 不可混合运算（无隐式转换）")
 		}
 		switch op {
 		case ir.OpPlus, ir.OpPlusA:
@@ -950,13 +950,13 @@ func (m *Machine) arith(op ir.Op, lv, rv interp.Value) (interp.Value, error) {
 	case interp.StrVal:
 		b, ok := rv.(interp.StrVal)
 		if !ok {
-			return nil, fmt.Errorf("string 只能与 string 拼接")
+			return nil, errors.New("string 只能与 string 拼接")
 		}
 		if op == ir.OpPlus || op == ir.OpPlusA {
 			return a + b, nil
 		}
 	}
-	return nil, fmt.Errorf("运算不适用于该类型")
+	return nil, errors.New("运算不适用于该类型")
 }
 
 func (m *Machine) compare(op ir.Op, lv, rv interp.Value) (interp.Value, error) {
@@ -1001,7 +1001,7 @@ func (m *Machine) compare(op ir.Op, lv, rv interp.Value) (interp.Value, error) {
 			}
 		}
 	}
-	return nil, fmt.Errorf("该类型不可比较")
+	return nil, errors.New("该类型不可比较")
 }
 
 // —— 辅助 ——
@@ -1037,7 +1037,7 @@ func asStruct(v interp.Value) (*interp.StructVal, error) {
 func intIndex(v interp.Value, length int) (int, error) {
 	i, ok := v.(interp.IntVal)
 	if !ok {
-		return 0, fmt.Errorf("索引须为 int")
+		return 0, errors.New("索引须为 int")
 	}
 	n := int(i)
 	if n < 0 || n >= length {

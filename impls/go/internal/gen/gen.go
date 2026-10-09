@@ -572,18 +572,19 @@ func (g *gen) emitLet(st *ir.Let) error {
 	g.w("_ = " + name)
 	// 函数值绑定注册参数/返回类型，调用点据此收窄
 	if fl, ok := st.Init.(*ir.FnLit); ok {
-		sig := "func("
+		var signature strings.Builder
+		signature.WriteString("func(")
 		for i, fp := range fl.Params {
 			if i > 0 {
-				sig += ", "
+				signature.WriteString(", ")
 			}
-			sig += goTypeOf(fp.Typ)
+			signature.WriteString(goTypeOf(fp.Typ))
 		}
-		sig += ")"
+		signature.WriteString(")")
 		if fl.Ret != nil && fl.Ret.Kind != types.KUnit && fl.Ret.Kind != types.KUnknown {
-			sig += " " + goTypeOf(fl.Ret)
+			signature.WriteString(" " + goTypeOf(fl.Ret))
 		}
-		g.localGo[st.Local] = sig
+		g.localGo[st.Local] = signature.String()
 		fi := &ir.Fn{Name: name}
 		fi.Params = fl.Params
 		fi.Ret = fl.Ret

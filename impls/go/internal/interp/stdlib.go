@@ -7,6 +7,7 @@ package interp
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -35,7 +36,7 @@ func (it *Interp) preludeStdlib() {
 	reg("jsonStringify", jsonStringifyBuiltin)
 	reg("makeChan", func(it *Interp, args []Value) (Value, error) {
 		if len(args) != 0 {
-			return nil, fmt.Errorf("makeChan 不需要参数")
+			return nil, errors.New("makeChan 不需要参数")
 		}
 		return &ChanVal{}, nil
 	})
