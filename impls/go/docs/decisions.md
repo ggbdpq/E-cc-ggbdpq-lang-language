@@ -220,3 +220,7 @@ null、异常、宏、继承、隐式数值转换、包管理器、LSP、调试�
 | 90 | **诊断携带 ruleId**（contract.Diagnostic.RuleID，映射唯一实现 contract/rules.go）；manifest 支持 case 级 ruleIds 与诊断 ruleId 比对 | schemaVersion 1 只加不改；Agent 可从 check --json 追溯到规范条目 |
 | 91 | **IR 解释器 + 四路差分**（irinterp 复用 interp 值/Fmt/CallBuiltin）；闭包捕获经 lower 作用域继承显式保留在 IR 中 | IR 语义独立验证；宿主闭包行为不再充当规范（决策 5 的收口） |
 | 92 | **Task/Channel 宿主无关模型**（specs/concurrency.md）：同步确定子集=规范保证面，真并行=调度自由度；求值顺序成文 EVAL-*（赋值 target 地址先于右值） | go f() 语法保留不新增关键字；跨实现只锁可观察行为 |
+
+## 错误传播边界（2026-10-10）
+
+`irinterp.Machine.Run` 的输出写入失败沿既有 error 返回边界传播，与 AST 参考解释器一致。`genjs.TranspileJS` 的控制流块复用 `emitBlock` 的错误返回；任一块转译失败即停止，不把残缺 JS 当作成功产物。标准库表驱动回归分别通过源码 → `Run` 和源码 → `TranspileJS` 验证这两个公开边界。

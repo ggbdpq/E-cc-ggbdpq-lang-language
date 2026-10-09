@@ -757,11 +757,11 @@ func (m *Machine) evalArgs(args []ir.Expr, f *frame) ([]interp.Value, error) {
 func (m *Machine) callBuiltin(name string, args []interp.Value) (interp.Value, error) {
 	switch name {
 	case "println":
-		fmt.Fprintln(m.Out, m.fmtArgs(args))
-		return interp.UnitVal{}, nil
+		_, err := fmt.Fprintln(m.Out, m.fmtArgs(args))
+		return interp.UnitVal{}, err
 	case "print":
-		fmt.Fprint(m.Out, m.fmtArgs(args))
-		return interp.UnitVal{}, nil
+		_, err := fmt.Fprint(m.Out, m.fmtArgs(args))
+		return interp.UnitVal{}, err
 	}
 	v, found, err := m.host.CallBuiltin(name, args)
 	if err != nil {

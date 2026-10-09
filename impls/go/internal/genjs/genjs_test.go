@@ -261,3 +261,29 @@ func Test等价JS_jsonStringify非字符串键报错(t *testing.T) {
 		t.Fatalf("错误消息不符\n实际输出: %s", out.String())
 	}
 }
+
+func TestTranspileJSPropagatesBlockError(t *testing.T) {
+	t.Parallel()
+	tests := []struct{ name, source string }{
+		{name: "top_level", source: `fn main() { let p = println }`},
+		{name: "if_then", source: `fn main() { if true { let p = println } }`},
+		{name: "if_else", source: `fn main() { if false { println("ok") } else { let p = println } }`},
+		{name: "while_body", source: `fn main() { while false { let p = println } }`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			prog, err := pipeline.Compile(tt.source)
+			if err != nil {
+				t.Fatal(err)
+			}
+			out, err := TranspileJS(prog)
+			if err == nil || !strings.Contains(err.Error(), "内建 println 须直接调用") {
+				t.Fatalf("TranspileJS() error = %v, want 内建 println 须直接调用", err)
+			}
+			if out != "" {
+				t.Fatalf("failed transpilation returned partial output")
+			}
+		})
+	}
+}

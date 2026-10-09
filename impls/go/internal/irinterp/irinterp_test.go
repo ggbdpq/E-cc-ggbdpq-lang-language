@@ -5,6 +5,7 @@ package irinterp
 
 import (
 	"bytes"
+	"errors"
 	"testing"
 
 	"lang-go/internal/interp"
@@ -175,5 +176,31 @@ fn main() {
 `)
 	if astOut != "Err(error{msg: \"div by zero\"})\n" {
 		t.Fatalf("Err 传播语义漂移: %q", astOut)
+	}
+}
+
+// failingOutput 模拟调用方提供的输出设备写入失败。
+type failingOutput struct{ err error }
+
+func (w failingOutput) Write([]byte) (int, error) { return 0, w.err }
+
+func TestRunPropagatesOutputError(t *testing.T) {
+	t.Parallel()
+	tests := []struct{ name, source string }{
+		{name: "print", source: `fn main() { print("hello") }`},
+		{name: "println", source: `fn main() { println("hello") }`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			prog, err := pipeline.Compile(tt.source)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := errors.New("output unavailable")
+			if err := New(failingOutput{err: want}).Run(prog); !errors.Is(err, want) {
+				t.Fatalf("Run() error = %v, want output unavailable", err)
+			}
+		})
 	}
 }

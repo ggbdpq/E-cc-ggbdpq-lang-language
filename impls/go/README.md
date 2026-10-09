@@ -52,3 +52,7 @@ examples/selftest/   lang-go 语言自测（lang-go test）
 m4/                  M4 移植：md5.lang-go / wbi.lang-go / main.lang-go + 测试
 m4/gofixture/        linkpull 原版逐字拷贝的对照 fixture 生成器
 ```
+
+## 执行与转译失败
+
+IR 解释器的 `print` / `println` 会把输出设备写入错误返回给调用方；JS 转译器在 `if`、`else`、`while` 块内遇到转译错误时返回错误与空产物，和顶层语句保持一致。

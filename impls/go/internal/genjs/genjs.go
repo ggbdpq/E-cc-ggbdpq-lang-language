@@ -196,10 +196,14 @@ func (g *jsgen) emitStmt(s ir.Stmt) error {
 			return err
 		}
 		g.w("if (" + cond + ") {")
-		g.emitBlock(st.Then)
+		if err := g.emitBlock(st.Then); err != nil {
+			return err
+		}
 		if len(st.Else) > 0 {
 			g.w("} else {")
-			g.emitBlock(st.Else)
+			if err := g.emitBlock(st.Else); err != nil {
+				return err
+			}
 		}
 		g.w("}")
 		return nil
@@ -210,7 +214,9 @@ func (g *jsgen) emitStmt(s ir.Stmt) error {
 			return err
 		}
 		g.w("while (" + cond + ") {")
-		g.emitBlock(st.Body)
+		if err := g.emitBlock(st.Body); err != nil {
+			return err
+		}
 		g.w("}")
 		return nil
 
